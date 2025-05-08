@@ -1,1 +1,11 @@
-Mults4.scala: The pipeline program to print the multiples of 4. 
+Mults4.scala: The pipeline program to print the multiples of four. 
+
+BoundedMults4.scala: The pipeline program to print the multiples of four up to
+some maximum value.
+
+QSortChannels.scala: Quicksort implemented using recursive parallelism. 
+
+NatsCircuit.scala: Fine-grained concurrency network to print natural numbers.
+
+BoundedNatsCircuit.scala: Fine-grained concurrency network to print natural
+numbers up to some limit.  Exercise??? 

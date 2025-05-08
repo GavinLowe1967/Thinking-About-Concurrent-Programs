@@ -24,6 +24,8 @@ processes.
 
 %%%%%
 
+\section{Channels}
+
 Think of a channel as a directional wire.  Messages are sent at one end, and
 received at the other end. 
 
@@ -157,21 +159,33 @@ helps with documentation (the names of the channels also help).  In addition,
 this style provides some  type safety: if, for example, the code tries to send
 on~|in|, the compiler will give a type error. 
 
-%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-Figure~\ref{fig:Mults4} gives a slightly larger example.  The function
-|console(in)| defines a thread that repeatedly reads a value from \SCALA{in}
-and writes it to standard output.  The function \SCALA{nats(out)} defines a
-thread that sends the natural numbers, in order, on \SCALA{out}.  The function
-\SCALA{alts(in, out)} defines a thread that copies alternate values read from
-\SCALA{in} to \SCALA{out}.
+\section{Example: printing multiples of four}
+
+We now consider a slightly larger example, which is an instance of a paradigm
+known as \emph{fine-grained concurrency}: the system is built from several
+small components which are composed in parallel.  It is not a very efficient
+--- or even sensible --- way to create real programs.  We include such
+examples here as they are a good way to get used to thinking about
+concurrency, where multiple components work together, while keeping the
+quantity of code small.  Also, such a programs could be thought of as a model
+of an electronic circuit, with components implemented in hardware and wired
+together.
+
+The program appears in Figure~\ref{fig:Mults4}. The overall effect is to print
+the multiples of four.
+
+The function |console(in)| defines a component that repeatedly reads a value
+from \SCALA{in} and writes it to standard output.  The function
+\SCALA{nats(out)} defines a component that sends the natural numbers, in
+order, on \SCALA{out}.  The function \SCALA{alts(in, out)} defines a component
+that copies alternate values read from \SCALA{in} to \SCALA{out}.
 
 %%%%%
 
 \begin{figure}
 \begin{scala}
-import ox.scl._
-
 object Mults4{
   def console[A](in: ??[A]) = thread{ while(true) println(in?()) }
 
@@ -183,9 +197,10 @@ object Mults4{
     while(true){ out!(in?()); in?() } 
   }
 
-  private val x1, x2, x4 = new SyncChan[Int]
-
-  def system = nats(x1) || alts(x1, x2) || alts(x2, x4) || console(x4)
+  def system = {
+    val x1, x2, x4 = new SyncChan[Int]
+    nats(x1) || alts(x1, x2) || alts(x2, x4) || console(x4)
+  }
 
   def main(args: Array[String]) = run(system)
 }
@@ -196,7 +211,8 @@ object Mults4{
 
 %%%%%
 
-The definition of |system| puts the components together as illustrated below.  
+The definition of |system| creates appropriate channels and puts the
+components together as illustrated below.
 %
 \begin{center}
 \begin{tikzpicture}
@@ -229,15 +245,15 @@ The definition of |system| puts the components together as illustrated below.
 The |nats| thread outputs the natural numbers on~|x1|.  The first instance of
 |alts| receives these, and outputs every other value, i.e.~the even natural
 numbers, on~|x2|.  The second instance of |alts| receives these, and outputs
-every other value, i.e.~the multiples of~4, on~|x4|.  |console| receives these
-and prints them.  Thus the overall effect is to print the (non-negative)
-multiples of~4.
+every other value, i.e.~the multiples of four, on~|x4|.  |console| receives
+these and prints them.  Thus the overall effect is to print the (non-negative)
+multiples of~four.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{Buffered channels}
 
-In the previous example, we used synchronous channels.  In effect, on each
+In the previous examples, we used synchronous channels.  In effect, on each
 channel, the send and receive of each value happen at the same time: the
 sender and receiver \emph{synchronise} on the communication.
 %
@@ -260,8 +276,6 @@ the sender is blocked until the receiver is ready to receive one of the
 earlier messages. 
 
 %%%%%
-
-\heading{Buffered channels}
 
 The class of buffered channels is defined as follows.
 %
@@ -312,149 +326,3 @@ When |copy| is called with a concrete type for~|A|, the runtime will provide
 the |ClassTag|. 
 
 
-
-% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\heading{tee}
-
-The following thread inputs values on~\SCALA{in}, and outputs on
-both~\SCALA{out1} and \SCALA{out2}.
-%
-\begin{scala}
-def tee[A](in: ??[A], out1: !![A], out2: !![A]) = thread{
-  while(true){ val v = in?(); out1!v; out2!v }
-}
-\end{scala}
-
-The above version of \SCALA{tee} outputs on its \SCALA{out1} channel before
-its \SCALA{out2} channel.  What happens if we use this in the context of some
-larger system that inputs on \SCALA{out2} before \SCALA{out1}?  For example:
-\begin{scala}
-val in, out1, out2 = new SyncChan[Int]
-run( tee(in, out1, out2) || thread{ println(out2?() + out1?()) } )
-\end{scala}
-
-% %%%%%
-
-Generic components should place as few assumptions as possible upon the
-network in which they are placed.  The following version of |tee| performs the
-outputs concurrently, i.e.~in either order.
-%
-\begin{scala}
-def tee[A](in: ??[A], out1: !![A], out2: !![A]) = thread{
-  while(true){ 
-    val v = in?()
-    run(thread{out1!v} || thread{out2!v}) 
-  }
-}
-\end{scala}
-
-However, creating and running two new threads is moderately expensive.  In
-specific settings, it might be more efficient and easier to perform the
-outputs in a fixed order.
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%%%%
-
-\section{Closing channels}
-
-Often a component has to process a finite stream of data.  But how should the
-end of the stream be signalled?  One way might be to send a special
-``end-of-stream'' value.  But that assumes that we can find such a value, that
-won't be sent as a valid piece of data; and it will require additional
-programming to send that value, and for the receiver to recognise it and act
-appropriately. 
-
-An alternative way to indicate the end of the data stream is for the sender to
-close the channel.  But also, a receiver can close a channel, to signal to the
-sender that it is unable to accept more data.
-
-In SCL, if |in| is an |InPort| (e.g.~a channel), then |in.close| closes it.
-%
-If |out| is an |OutPort| (e.g.~a channel), then |out.endOfStream| closes it
-for sending.  For a synchronous channel, this also closes it for receiving.
-However, for a buffered channel, other threads can continue to receive until
-the buffer becomes empty, at which point the channel becomes fully closed.
-
-%%%%%
-
-If a thread tries to send or receive on a channel that has been closed, it
-throws a |Closed| exception, a subclass of the |Stopped| exception class.
-(Well see another subclass of |Stopped| in Chapter~\ref{chap:alts}.)
-
-Threads should normally catch such exceptions, and then do the right thing.
-For a receiver, if the closing represents the end of the data stream, then
-typically the thread should just close.  If the thread is part of a larger
-network, such as a pipeline, then typically the thread should close channels
-to other components, to signal to the next component in line that the stream
-is closed.
-
-%% If such closing is possible, the thread should handle it appropriately,
-%% normally closing its channels to pass the message on. 
-
-Here's a new version of |alts| that does this.
-%
-\begin{scala}
-def alts[A](in: ??[A], out: !![A]) = thread{ 
-  try{ while(true){ out!(in?()); in?() } } 
-  catch{ case _: Closed => in.close; out.endOfStream }
-}
-\end{scala}
-% 
-If either sending or receiving fails, because the channel has been closed, the
-thread exits the loop, and closes both channels.  Note that closing a channel
-that is already closed has no effect.
-
-Note also that there's no need to close a channel that is about to go out of
-scope and be garbage collected. 
-
-The above pattern is sufficiently common, that there's a construct to capture
-it.
-%
-\begin{scala}
-  repeat{ <command> }
-\end{scala}
-%
-behaves much like
-\begin{scala}
-  while(true){ <command> }
-\end{scala}
-but terminates cleanly if \SCALA{<command>} throws a \SCALA{Stopped}
-exception.
-
-For example:
-%
-\begin{scala}
-def alts[A](in: ??[A], out: !![A]) = thread{ 
-  repeat{ out!(in?()); in?() } 
-  in.close; out.endOfStream
-}
-\end{scala}
-
-%%%%%
-
-The construct
-%
-\begin{scala}
-  repeat(guard){ <command> }
-\end{scala}
-%
-behaves much like
-\begin{scala}
-  while(guard){ <command> }
-\end{scala}
-but terminates cleanly if \SCALA{<command>} throws a \SCALA{Stopped}
-exception.
-
-A closed channel~|c| can be reopened using the construct
-\begin{scala}
-  c.reopen
-\end{scala}
-%
-This has a precondition that the channel is indeed closed, and that no thread
-is trying to send or receive on it.  This allows channels to be reused.
-
-It is possible to test whether a channel~|c| is closed using
-%
-\begin{scala}
-  c.isClosed
-\end{scala}

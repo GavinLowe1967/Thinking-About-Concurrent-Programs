@@ -1,3 +1,5 @@
+\chapter{Using Channels}
+
 % Draw a comparator in the rows given by #1 and #2, with a horizontal
 % displacement of #3
 \def\comp#1#2#3{%
@@ -43,14 +45,14 @@ following outline.
       val pivot = in?()
       ...
     }{
-      out.endOfStream // We've received no data, so just close
+      out.endOfStream() // We've received no data, so just close
     }
   }
 \end{scala}
 %
 The command |attempt{p}{q}| acts like~|p|, but if that throws a |Stopped|
 exception, it executes~|q|.  Thus if the initial attempt to input on |in|
-fails, the function performs |out.endOfStream|.
+fails, the function performs |out.endOfStream()|.
 
 We now consider the resursive case.  Suppose the first input succeeds, giving
 a value stored in |pivot|.  We then create two recursive |qSort| threads, that
@@ -109,13 +111,13 @@ The following definition implements this strategy.
       // Main controller thread.
       def controller = thread("Controller"){
         repeat{ val n = in?(); if(n < pivot) toLower!n else toHigher!n }
-	toHigher.endOfStream; toLower.endOfStream
+	toHigher.endOfStream(); toLower.endOfStream()
         repeat{ out!(fromLower?()) }; out!pivot; repeat{ out!(fromHigher?()) }
-        out.endOfStream
+        out.endOfStream()
       }      
       // Put the system together and run it.
       run(controller || qSort(toHigher, fromHigher) || qSort(toLower, fromLower))
-    }{ out.endOfStream } // We've received no data, so just close
+    }{ out.endOfStream() } // We've received no data, so just close
   }
 \end{scala}
 
@@ -151,7 +153,7 @@ The following code achieves this.
     val xs = Array.fill(size)(Random.nextInt(Max))
     val ys = new Array[Int](size)
     val in, out = new SyncChan[Int]
-    def sender = thread("sender"){ for(x <- xs) in!x; in.endOfStream }
+    def sender = thread("sender"){ for(x <- xs) in!x; in.endOfStream() }
     def receiver = thread("receiver"){ var i = 0; repeat{ ys(i) = out?(); i += 1 } }
     run(sender || qSort(in, out) || receiver)
     assert(xs.sorted.sameElements(ys))
@@ -467,3 +469,22 @@ implementation of CSP for Java.
 
 
 %%%%%
+
+
+\heading{Summary}
+
+\begin{itemize}
+\item Examples: Quicksort, sorting networks.
+
+\item 
+Data-less channels.
+
+\item
+The happens-before relation.
+
+\item
+Threads and objects.
+
+\item
+Other approaches.
+\end{itemize}

@@ -17,11 +17,11 @@ object QSortChannels{
 	repeat{ val n = in?(); if(n < pivot) toLower!n else toHigher!n }
 	// We've received the final input, so close the channels to the
 	// sub-sorters.
-	toHigher.endOfStream; toLower.endOfStream
+	toHigher.endOfStream(); toLower.endOfStream()
 
 	// Now output the results
 	repeat{ out!(fromLower?()) }; out!pivot; repeat{ out!(fromHigher?()) }
-	out.endOfStream
+	out.endOfStream()
       }      
 
       // Put the system together, and run it
@@ -29,7 +29,7 @@ object QSortChannels{
 	controller || qSort(toHigher, fromHigher) || qSort(toLower, fromLower)
       )
     }{
-      out.endOfStream // We've received no data, so just close
+      out.endOfStream() // We've received no data, so just close
     }
   }
 }
@@ -49,7 +49,7 @@ object QSortChannelsTest{
     val xs = Array.fill(size)(Random.nextInt(Max))
     val ys = new Array[Int](size)
     val in, out = new SyncChan[Int]
-    def sender = thread{ for(x <- xs) in!x; in.endOfStream }
+    def sender = thread{ for(x <- xs) in!x; in.endOfStream() }
     def receiver = thread{ var i = 0; repeat{ ys(i) = out?(); i += 1 } }
     run(sender || QSortChannels.qSort(in, out) || receiver)
     assert(xs.sorted.sameElements(ys))

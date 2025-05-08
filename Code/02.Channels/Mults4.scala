@@ -18,11 +18,12 @@ object Mults4{
   /** Repeatedly input on `in`, printing the values received. */
   def console[A](in: ??[A]) = thread{ while(true) println(in?()) }
 
-  /* Each channel xk passes multiples of k. */
-  val x1, x2, x4 = new SyncChan[Int]
-
   /** Complete system. */
-  def system = nats(x1) || alts(x1, x2) || alts(x2, x4) || console(x4)
+  def system = {
+    // Each channel xk passes multiples of k. 
+    val x1, x2, x4, out = new SyncChan[Int]
+    nats(x1) || alts(x1, x2) || alts(x2, x4) || console(x4)
+  }
 
   def main(args: Array[String]) = run(system)
 }
