@@ -1,0 +1,30 @@
+Chapter 1: Introduction
+- What is concurrency?
+- reasons for concurrency.  TO DO
+- concurrent architectures: TO DO
+- disciplined interaction
+- in first part of course, threads use disjoint variables -- say later
+- correctness properties: TO DO
+- summary: TO DO
+- exercises
+
+Chaper 2: Message passing using channels.
+- Deal with "tee" subsection
+- thread(name){...} notation -- maybe delay
+- ordering of actions -- write or move
+- sorting practical intro -- move to exercise? 
+- Various things near end
+
+--------------
+
+TO DO
+
+Check for correct usage of ??[A] and !![A]:
+fgrep -n "?[" *.tex | fgrep -v "??"
+grep "[!][[]" *.tex | egrep -v "[!]{2}"
+
+
+SCL: 
+
+TO DO: make ?[A] and ![A] deprecated.
+Add one-place buffers and unbounded buffers?

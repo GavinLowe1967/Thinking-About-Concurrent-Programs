@@ -1,0 +1,128 @@
+
+\newenvironment{slide}{}{}
+\def\heading#1{\subsection{#1}}
+
+%%% Boxes explaining syntax.  
+\usepackage{newfloat,tocloft,caption}
+\usepackage[framemethod=TikZ]{mdframed}
+\newlistof{sib}{sib}{List of Scala  boxes}
+\DeclareFloatingEnvironment[fileext=sib,placement={!ht},name=Scala
+  box]{myfloat}
+\captionsetup[myfloat]{labelfont=bf}
+
+\newenvironment{scalaBox}[1]
+{\begin{myfloat}[tp]
+   \begin{mdframed}[roundcorner=10pt,backgroundcolor=blue!8]
+   \setlength{\parindent}{4mm}
+   \caption{#1}
+} {
+  \end{mdframed}\end{myfloat}
+}
+
+%%% Annotation rule
+\newenvironment{Rule}[2][]
+{\begin{myfloat}[#1]\begin{mdframed}[roundcorner=10pt,backgroundcolor=blue!8]
+\setlength{\parindent}{4mm}{\textbf{#2}}}
+{\end{mdframed}\end{myfloat}}
+  
+%%% Strict same-page environment
+\newenvironment{mysamepage}
+  {\par\nobreak\vfil\penalty0\vfilneg\vtop\bgroup}
+  {\par\xdef\tpd{\the\prevdepth}\egroup \prevdepth=\tpd}
+
+\newenvironment{myminipage}[1]
+{\noindent\begin{minipage}{#1}\color{black}\setlength{\parindent}{4mm}}
+{\end{minipage}}
+
+%%% Instruction environment.
+\newenvironment{instruction}{\begin{list}{}{\setlength\leftmargin{0cm}}%
+\item[$\triangleright$]}
+{\end{list}}
+
+%%% Section headings for exercises
+\def\exercises{\section*{Exercises}\markright{EXERCISES}}
+
+%%% Alignment
+\def\align{\begin{array}[t]{@{}l@{}}}
+\def\endalign{\end{array}}
+\newenvironment{alignc}{\begin{array}{@{}l@{}}}{\end{array}}
+
+%%% Construction macros
+\def\@overlay#1#2{\mathpalette\@@overlay{{#1}{#2}}}
+\def\@@overlay#1#2{\@@@overlay#1#2}
+\def\@@@overlay#1#2#3{{\setbox0=\hbox{$#1#2$}\setbox1=\hbox{$#1#3$}%
+                      \ifdim \wd0<\wd1%
+                         \setbox2=\box1 \setbox1=\box0 \setbox0=\box2%
+                      \fi % \box0 is the wider
+                      \rlap{\hbox to\wd0{\hss\box1\hss}}\box0}}
+\def\strut@op#1{\mathop{\mathstrut{#1}}\nolimits}
+
+%%% Sets
+\def \set#1{\{#1\}}  
+\let \union     \cup              
+\let \inter     \cap                          
+\let \nin       \notin                 
+\def\interval#1#2{[#1 \upto #2)}  % ]
+\def \power     {\strut@op{\mathbb{P}}}
+\let \cross     \times                     
+\let \Union     \bigcup  
+\let \Inter     \bigcap 
+\mathcode`\|=\mid            % redefine | to produce \mid
+
+% Functions
+\def \pfun      {\mathbin{\@overlay{\rightarrow}{\rule{0.05ex}{1.0ex}}}}
+\let \fun       \rightarrow
+\def \inverse {^{-1}}
+\def\dom{\mathop{\rm dom\,}}
+
+% Logic       
+\def \land      {\mathrel{\wedge}}           
+\def \lnot      {\neg}                     
+\def \lor       {\mathrel{\vee}}                    
+\let \implies   \Rightarrow 
+\def \@spot{{\setlength{\unitlength}{1ex}\begin{picture}(1,1)
+  \put(0.5,0.6){\circle*{0.5}}\end{picture}}}
+\def\spot{\mathrel{\@spot}}                  
+\let \iff       \Leftrightarrow    
+
+% Misc symbols       
+\def \defs {\mathrel{\widehat=}}
+\def \div       {\mathbin{\rm div}}
+\def \mod       {\mathbin{\rm mod}}
+
+%% \def\If{\sm{if}\;}
+%% \def\Then{\sm{then}\;}
+%% \def\Else{\sm{else}\;}
+\def\annot#1{\,\{#1\}\,}
+\def\defd{\mathop{\sf{def}}}
+\def\word#1{\emph{#1}}
+       
+
+
+\def\assert#1{\{#1\}}
+
+\def\mac#1{\mathsf{#1}} % formatting of keywords
+\def\State{\mathop{\mac{state\ }}}
+\def\Init{\mathop{\mac{init\ }}}
+\def\Pre{\mathop{\mac{pre:\ }}}
+\def\Post{\mathop{\mac{post:\ }}}
+\def\Returns{\mathop{\mac{returns\ }}}
+\def\ST{\mathrel{\mac{such~that}}}
+\def\DTI{\mathop{\mac{DTI:\ }}}
+\def\Abs{\mathop{\mac{Abs:\ }}}
+
+\def\If{\mac{if}\;}
+\def\Then{\mac{then}\;}
+\def\Else{\mac{else}\;}
+
+% Maths operators
+
+\def\seq#1{{\langle#1\rangle}}
+\def\cat{\mathbin{+\!+}}
+\let\append\cat
+\def\upto{\,..\,}
+%\def\upto{\mathbin{..}}
+\let\oldmapsto\mapsto
+\def\mapsto{\rightarrow}
+\def\last{\mathop{\mbox{\it last}}}
+\def\Seq{\mathop{\mbox{\rm seq}\,}}

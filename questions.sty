@@ -1,0 +1,65 @@
+\newcounter{qctr}[chapter]
+
+%% Exercises are numbered within chapters
+\def\theqctr{\thechapter.\arabic{qctr}}
+
+\def\mkQHead#1{%
+  \refstepcounter{qctr}
+  \pagebreak[3]\begin{trivlist} \item[]%
+  {\bf #1}\nopagebreak\item[] \nopagebreak \@enumdepth=1
+}
+
+\newenvironment{question}[1][\theqctr]{\mkQHead{Exercise #1}
+}{\end{trivlist}\pagebreak[2]}
+
+\newenvironment{questionS}[1][\theqctr]{\mkQHead{Exercise #1 $\dag$}
+}{\end{trivlist}\pagebreak[2]}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Answers
+
+%% Header for answer
+\def\answerHead#1{\pagebreak[3]\begin{trivlist} \item[]%
+  {\bf Answer to Exercise #1}\nopagebreak\item[] \nopagebreak \@enumdepth=1}
+
+%%%%%%%%%% An inline answer
+
+\newenvironment{answer}[1][\theqctr]{\answerHead{#1}
+}{\end{trivlist}\pagebreak[2]}
+
+%%%%%%%%%% Self-study answers
+
+\newbox\allanswersS
+\setbox\allanswersS=\vbox{}
+
+\newenvironment{answerS}[1][\theqctr]{%
+  \global\setbox\allanswersS=\vbox\bgroup
+  \unvbox\allanswersS
+  \answerHead{#1}
+}{\end{trivlist}\pagebreak[2]\egroup}
+
+\newcommand{\showallanswersS}{\par\unvbox\allanswersS}
+
+%%%%%%%%%% Answers for instructors
+
+\newbox\allanswersI
+\setbox\allanswersI=\vbox{}
+
+\newenvironment{answerI}[1][\theqctr]{%
+  \global\setbox\allanswersI=\vbox\bgroup
+  \unvbox\allanswersI
+  \answerHead{#1}
+}{\end{trivlist}\pagebreak[2]\egroup}
+
+\newcommand{\showallanswersI}{\par\unvbox\allanswersI
+%  \write\myoutput\allanswersI
+  %\write\myoutput{test}
+  %\immediate\closeout\myoutput 
+}
+
+%% \def\jobname{instructor.tex}
+%% \newwrite\myoutput
+%% \immediate\openout\myoutput=\jobname
+%% \def\doTheWrite#1{\write\myoutput{\unexpanded{#1}}}
+
+
+
