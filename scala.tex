@@ -1,0 +1,39 @@
+\chapter{A brief introduction to Scala}
+\label{app:scala}
+
+
+Scala built on top of Java; can use Java libraries; compiled into bytecode for
+execution on the Java Virtual Machine (JVM).  Influenced by Haskell.
+
+An object is basically a class with a single instance, sometimes called a
+\emph{singleton object}.  Most main modules in Scala are objects.
+
+Most typing is optional.  Needed with arguments of procedures, and recursion.
+Recommended when it improves clarity.
+
+\SCALA{var} for variables.  \SCALA{val} for constant values.  \SCALA{def} for
+definitions, e.g.~of procedures.  
+
+\SCALA{0 until 1000} means $[0 .. 1000)$. 
+
+|while|, |for|, |if|.  
+
+def var val
+
+\begin{scala}
+object Factorial{
+
+  def fact(n: Int): Int = {
+    var x = 1
+    for(i <- 1 to n) x = x*i
+    i
+  }
+
+  def main(args: Array[String]) = {
+    val n = args(0).toInt; println(fact(n))
+  } 
+}
+\end{scala}
+
+
+|assert|, |require| 

@@ -1,0 +1,11 @@
+DIR = ../tacp/channels
+
+all:	$(DIR)/QSortChannels.class
+
+clean:
+	rm $(DIR)/*.class; fsc -shutdown
+
+FSC = fsc -d .. -cp .:..
+
+$(DIR)/%.class:     %.scala
+	$(FSC)  $<

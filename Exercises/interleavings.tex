@@ -1,0 +1,49 @@
+\begin{questionS}
+\begin{enumerate}
+\item
+Suppose two threads respectively perform $m$ and $n$ atomic actions
+sequentially. How many interleavings of these atomic actions are there?
+
+\item Use your answer to the previous part to give an estimate for the number of
+  interleavings of the memory actions from Figure~\ref{fig:race}, where each
+  thread performs 2000 memory actions.  \textbf{Hint:} use Stirling's
+  approximation, $n! \approx \sqrt{2\pi n} \, (n/e)^n$. 
+\end{enumerate}
+\end{questionS}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\begin{answerS}
+\begin{enumerate}
+\item There are a total of $m+n$ actions, and the number of interleavings is
+  the number of ways of choosing $m$ of those as the actions of the first
+  thread.  There is a standard formula for this, namely
+  \[\mstyle
+  \frac{(m+n)!}{m! \, n!}
+  \]
+One way to see this is that if we ignore the orderings for each thread, there
+are $(m+n)!$ ways of ordering these $m+n$ actions: we can choose the first
+action in $m+n$ ways, the second in $m+n-1$ ways, and so on.  However, only a
+proportion $1/m!$ of these will respect the order of the first thread, and
+only a proportion $1/n!$ will respect the order of the second thread. 
+
+
+\item
+Using the above formula with $m = n = 2000$, and Stirling's approximation, we
+get 
+\[\mstyle
+\frac{4000!}{(2000!)^2}
+\approx \frac{\sqrt{2 \pi 4000} \, (4000/e)^{4000}}{
+  2 \pi 2000 \, (2000/e)^{4000}}
+= \frac{2^{4000}}{\sqrt{2000 \pi}}
+\approx 1.7 \times 10^{1202}.
+\]
+That's a big number!
+%% scala> Math.pow(2, 1000)
+%% val res1: Double = 1.0715086071862673E301
+%% scala> Math.pow(1.0715086071862673,4) /  Math.sqrt(Math.PI * 2000)
+%% val res7: Double = 0.016630018093978575
+%% So ~ 0.017E1204.
+\end{enumerate}
+\end{answerS}

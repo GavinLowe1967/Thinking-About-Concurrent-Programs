@@ -1,0 +1,147 @@
+\begin{questionS}
+\label{exercise:stackRace}
+Consider the simple implementation of a stack of |Int|s in
+Figure~\ref{fig:stackRace}.  This encapsulates a |List[Int]|, holding the
+current contents of the stack.  Scala box~\ref{sb:Lists} describes the basics
+of the |List| class in Scala. 
+
+%%%%%
+
+\begin{figure}
+\begin{scala}
+class IntStack{
+  private var st = List[Int]()
+
+  /** Push £x£ onto the stack. */
+  def push(x: Int) = { st = x :: st }
+
+  /** Pop a value off the stack.  Precondition: the stack is not empty. */
+  def pop(): Int = {
+    require(!st.isEmpty); val result = st.head; st = st.tail; result
+  }
+
+  /** Is the stack empty? */
+  def isEmpty: Boolean = st.isEmpty
+}
+\end{scala}
+\caption{A faulty implementation of a stack.}
+\label{fig:stackRace}
+\end{figure}
+
+%%%%%
+
+\begin{scalaBox}{Lists}
+\label{sb:Lists}
+The type |List[A]| represents the type of immutable lists containing data of
+type~|A|.
+
+A list containing values~|x|, |y| and~|z| can be defined as \SCALA{List[A](x,
+  y, z)}; the type parameter~|A| can normally be omitted, as the compiler can
+infer it.
+
+If |xs| has type |List[A]|, and |x| has type~|A|, then |x :: xs| is a new
+|List[A]| containing~|x| followed by the elements of~|xs|.  The expression
+|xs.isEmpty| returns a |Boolean| indicating whether |xs| is empty.  If |xs| is
+not empty, then |xs.head| gives its first element, and |xs.tail| gives the
+list containing all of~|xs| except the first element.
+\end{scalaBox}
+
+%%%%%
+
+The implementation works correctly when used sequentially, but not when it is
+used by several threads concurrently.  List as many different things that can
+go wrong as possible.  For the purpose of this question, you can ignore errors
+caused by caching or compiler optimisations.
+
+You might be wondering what ``correct'' means in this case.  The operations
+should appear to take place in a one-at-a-time order, without interfering with
+one another, and giving the results one would expect from that order.
+Further, the point at which each operation takes place should be at some point
+between when the operation is called and when it returns.  That means that if
+one operation returns before another is called, they should take place in the
+same order; but if two operations overlap in time, they can appear to take
+place in either order.
+
+For example, if there are concurrent calls of |push(2)| and |push(3)|,
+starting in a state where the stack holds~|xs|, then the final state should
+either be |2::3::xs| (the |push(3)| seems to take place before the
+|push(2)|), or |3::2::xs| (the |push(2)| seems to take place before the
+|push(3)|).  Similarly, if there are concurrent calls to |push(3)| and |pop|,
+starting in a state where the stack holds |2::xs|, then either the |pop|
+should return~|2| and the final state should be |3::xs| (the |pop| seems to
+take place before the |push|), or the |pop| should return~|3| and the final
+state should be |2::xs| (the |push| seems to take place before the |pop|).
+This property is called \emph{linearization}: we will discuss it in more
+detail later in the book.
+\end{questionS}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{answerS}
+The implementation can go wrong in a numbre of ways, described below.  I~will
+write ``|pop|-read-1'', ``|pop|-read-2'' and ``|pop|-read-3'' for the three
+reads of~|st| within~|pop|.
+%
+\begin{enumerate}
+\item First, the interface of the class does not seem suitable for a stack
+  that is used concurrently.  A typical way in which a stack might be used in
+  a sequential program is via code such as
+\begin{scala}
+  if(!stack.isEmpty){ 
+    val x = stack.pop(); ... // Do something with £x£.
+  }
+  else ... // Handle the empty stack.
+\end{scala}
+However, if this code is used concurrently, the following is possible:
+thread~$A$ finds that the stack is not empty; thread~$B$ performs |pop|s to
+empty the stack; thread~$A$ attempts a |pop|, and the |require| statement
+throws an exception.  Note that this can occur even if each individual
+operation call acts atomically.  This is a time-of-check to time-of-use error,
+as in the answer to Exercise~\ref{exercise:account}.
+
+It would be better for |pop| to have a signature such as
+\begin{scala}
+  def pop(): Option[Int]
+\end{scala}
+either returning a result of the form~|Some(x)|, where |x| is the value
+popped, or a result~|None| to indicate that the stack is empty.  (The type
+|Option[Int]| contains the union of such values.)  This combines the |isEmpty|
+and |pop| operations from the given class.  Client code can treat the result
+appropriately in each case.  
+
+\item (This item is somewhat related to the previous.)  Suppose a thread calls
+  |pop| when the stack is non-empty, and the subsequent |require| statement
+  passes.  However, if another thread then performs |pop|s to make the stack
+  empty, |pop|-read-2 will return the empty list, and the expression |st.head|
+  will throw an exception.  Alternatively, if the stack becomes empty between
+  |pop|-read-2 and |pop|-read-3, then the expression |st.tail| will throw an
+  exception.
+
+\item Suppose two threads call |push(2)| and |push(3)| concurrently, and
+  suppose both read the same value of~|st|.  Each will write to |st|,
+  corresponding to its own operation.  But whichever thread writes first will
+  have its value overwritten by the other thread, so the former thread's value
+  will be lost.
+
+\item Suppose two threads call |pop| concurrently.  If both read the same
+  value of |st| for their |pop|-read-2,  then both will end up
+  returning the same value.  Further, it's possible that either one or two
+  values are removed from the stack, depending upon the relative orders of the
+  reads and writes of |st| within |st = st.tail|.  
+
+\item Now suppose two threads call |push(3)| and |pop|, respectively, and both
+  the |push|-read and |pop|-read-2 obtain the same value of~|st|, of the
+  form~|2::xs|.  Then the |pop| will return~|2|, but the final value of~|st|
+  might be |3::2::xs| (if the |pop|-read-3 and |pop|-write precede the
+  |push|-write), or |2::xs| (if the |push|-write precedes the |pop|-read-3 and
+  |pop|-write), or |xs| (if~the |pop|-read-3 precedes the |push|-write, which
+  precedes the |pop|-write).
+\end{enumerate}
+
+However, there is no race concerning the |isEmpty| operation and either a
+|push| or a |pop|.  The |isEmpty| will see the result of a |push| if and only
+if its read follows the |push|-write, in which case it seems to take place
+after the |push|.  Similarly, the |isEmpty| will see the result of a |pop| if
+and only if its read follows the |pop|-write, in which case it seems to take
+place after the |pop|.
+\end{answerS}

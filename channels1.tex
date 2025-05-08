@@ -1,0 +1,460 @@
+
+We saw in the last chapter that we need some way to provide for
+\emph{disciplined} interaction between threads, to avoid threads interfering
+with one another.  In this book, we will see three basic ways to achieve this:
+message passing, monitors and semaphores.  At a higher level of abstraction,
+we will also see how to use concurrent datatypes.
+
+We will start with message passing.  In my opinion, it is the most intuitive
+approach: one thread can send a message to another thread.  
+In addition, message passing is  necessary for distributed computing, and also
+works well with loosely coupled systems.  
+
+A downside is that message passing tends to be slower than other approaches,
+because there is an overhead in the sending and receiving of messages.
+However, it is a good paradigm to start with, to get used to thinking about
+concurrent programs.
+
+The basic idea is that programs are composed of components, which might be
+either threads (i.e.~sharing an address space) or processes (with distinct
+address spaces, possibly on different computers).  These processes communicate
+only by sending and receiving messages over \emph{channels}.  In this book, we
+will be dealing with threads; but the same techniques can be used with
+processes. 
+
+%%%%%
+
+Think of a channel as a directional wire.  Messages are sent at one end, and
+received at the other end. 
+
+%% \item At one end there is an output port, at the other an input port.
+%% %
+%% \begin{center}
+%% \begin{tikzpicture}
+%% \draw (0,0) node[draw] (sender) {\scalashape chan!v};
+%% \draw (4.5,0) node[draw] (receiver) {\scalashape chan?()};
+%% \draw[->] (sender) -- 
+%%   node[above,near start]{\small outport} 
+%%   node[above,near end]{\small inport} (receiver);
+%% \end{tikzpicture}
+%% \end{center}
+
+%% \item Values sent at the outport end (using |chan!v|) are received at the
+%%   inport end (using |chan?()|), in the same order.
+
+%% \item
+%% Channels can be either synchronous or asynchronous; we will use a mix in this
+%% course.
+%% \end{itemize}
+%% \end{slide}
+
+%%%%%
+
+In SCL, \SCALA{Chan[A]} is the type of channels that pass data of
+type~\SCALA{A}.  This has two concrete subtypes: |SyncChan[A]|, of synchronous
+channels; and |BuffChan[A]|, of buffered (or asynchronous) channels.  We will
+start by describing synchronous channels, and later describe buffered
+channels. 
+
+The command
+\begin{scala}
+  val chan = new SyncChan[A]
+\end{scala}
+defines |chan| to be a synchronous channel passing data of type~|A|.  Then the
+command 
+\begin{scala}
+  chan!v
+\end{scala}
+sends the value \SCALA{v} on \SCALA{chan}.  The expression
+\begin{scala}
+  chan?()
+\end{scala}
+receives a value from~\SCALA{chan} and returns it.  The communication is
+\emph{synchronous}: whichever part is executed first waits for the other; both
+then proceed.  Thus the send and receive appear to take place at the same
+time.  
+
+%%%%%
+
+For example, the following program prints the number 42 (in a round-about
+way): 
+\begin{scala}
+  val chan = new SyncChan[Int]
+  run(thread{ chan!42 } || thread{ println(chan?()) }) 
+\end{scala}
+%
+This runs two threads: the first thread sends 42 on the channel; the second
+thread receives a value on the channel, and prints it.
+
+%%%%%
+
+As another example, here's a thread that inputs values from the channel
+\SCALA{in}, and outputs them on the channel~\SCALA{out}:
+%
+\begin{scala}
+def copy[A](in: SyncChan[A], out: SyncChan[A]) = thread{
+  while(true){ val x = in?(); out!x }
+}
+\end{scala}
+%
+(The function that creates the thread is parameterised by the channels, and by
+the type~|A| of those channels.)
+%
+We could have written the body of \SCALA{copy} as simply:
+\begin{scala}
+  while(true) out!(in?()) 
+\end{scala}
+Note that in both forms, the communication on |in| can proceed even if no
+thread is yet ready to receive on |out|.
+
+%%%%%
+
+A channel is simply an \SCALA{InPort} (something from which threads can
+receive) and an \SCALA{OutPort} (something on which threads can send).  A
+channel is composed of an |InPort| and an |OutPort|.
+Note that the terminology ``|InPort|'' and ``|OutPort|'' refer to the point of
+view of \emph{threads}, not channels: a thread receives values in on an
+|InPort|, and sends values out on an |OutPort|; however, a value is put into a
+channel on an |OutPort|, and passed out on an |InPort|.
+
+Figure~\ref{fig:channel-types} outlines the relevant types.  (The definition
+of |Chan[A]| uses multiple inheritance: it inherits definitions from both
+|InPort[A]| and |OutPort[A]|.)  The types \SCALA{InPort[A]} and
+\SCALA{OutPort[A]} can be abbreviated as \SCALA{??[A]} and~\SCALA{!![A]}.
+
+%%%%%%
+
+\begin{figure}
+\begin{scala}
+package ox.scl.channel
+
+trait InPort[A]{ def ?(): A; ... }
+        
+trait OutPort[A]{ def !(value: A): Unit; ... }
+  
+trait Chan[A] extends InPort[A] with OutPort[A]{ ... }
+
+class SyncChan[A] extends Chan[A]{...} 
+\end{scala}
+\caption{Outline of the types of channels.}
+\label{fig:channel-types}
+\end{figure}
+
+%%%%%
+
+The earlier function \SCALA{copy} uses only the \SCALA{InPort} of \SCALA{in}
+and the \SCALA{OutPort} of \SCALA{out}.  We therefore could have written the
+definition as:
+%
+\begin{scala}
+def copy[A](in: ??[A], out: !![A]) = thread{ 
+  while(true) out!(in?()) 
+}
+\end{scala}
+%
+This signature makes clear what the thread does with each channel, and so
+helps with documentation (the names of the channels also help).  In addition,
+this style provides some  type safety: if, for example, the code tries to send
+on~|in|, the compiler will give a type error. 
+
+%%%%%
+
+Figure~\ref{fig:Mults4} gives a slightly larger example.  The function
+|console(in)| defines a thread that repeatedly reads a value from \SCALA{in}
+and writes it to standard output.  The function \SCALA{nats(out)} defines a
+thread that sends the natural numbers, in order, on \SCALA{out}.  The function
+\SCALA{alts(in, out)} defines a thread that copies alternate values read from
+\SCALA{in} to \SCALA{out}.
+
+%%%%%
+
+\begin{figure}
+\begin{scala}
+import ox.scl._
+
+object Mults4{
+  def console[A](in: ??[A]) = thread{ while(true) println(in?()) }
+
+  def nats(out: !![Int]) = thread{ 
+    var n = 0; while(true){ out!n; n += 1 }
+  }
+
+  def alts[A](in: ??[A], out: !![A]) = thread{ 
+    while(true){ out!(in?()); in?() } 
+  }
+
+  private val x1, x2, x4 = new SyncChan[Int]
+
+  def system = nats(x1) || alts(x1, x2) || alts(x2, x4) || console(x4)
+
+  def main(args: Array[String]) = run(system)
+}
+\end{scala}
+\caption{Printing multiples of four.}
+\label{fig:Mults4}
+\end{figure}
+
+%%%%%
+
+The definition of |system| puts the components together as illustrated below.  
+%
+\begin{center}
+\begin{tikzpicture}
+\draw (0,0) node[draw] (nats) {\scalashape nats};
+\draw (nats)++(2,0) node[draw] (alts1) {\scalashape alts};
+\draw[->] (nats) -- node[above]{\small\scalashape x1} (alts1);
+\draw (alts1)++(2,0) node[draw] (alts2) {\scalashape alts};
+\draw[->] (alts1) -- node[above]{\small\scalashape x2} (alts2);
+\draw (alts2)++(2,0) node[draw] (console) {\scalashape console};
+\draw[->] (alts2) -- node[above]{\small\scalashape x4} (console);
+%
+\draw (nats)++(1,-0.5) node {\small\scalashape 0};
+\draw (nats)++(1,-1) node {\small\scalashape 1};
+\draw (nats)++(1,-1.5) node {\small\scalashape 2};
+\draw (nats)++(1,-2) node {\small\scalashape 3};
+\draw (nats)++(1,-2.5) node {\small\scalashape 4};
+\draw (nats)++(1,-3) node {\small\scalashape \vdots};
+%
+\draw (alts1)++(1,-0.5) node {\small\scalashape 0};
+\draw (alts1)++(1,-1.5) node {\small\scalashape 2};
+\draw (alts1)++(1,-2.5) node {\small\scalashape 4};
+\draw (alts1)++(1,-3) node {\small\scalashape \vdots};
+%
+\draw (alts2)++(1,-0.5) node {\small\scalashape 0};
+\draw (alts2)++(1,-2.5) node {\small\scalashape 4};
+\draw (alts2)++(1,-3) node {\small\scalashape \vdots};
+\end{tikzpicture}
+\end{center}
+%
+The |nats| thread outputs the natural numbers on~|x1|.  The first instance of
+|alts| receives these, and outputs every other value, i.e.~the even natural
+numbers, on~|x2|.  The second instance of |alts| receives these, and outputs
+every other value, i.e.~the multiples of~4, on~|x4|.  |console| receives these
+and prints them.  Thus the overall effect is to print the (non-negative)
+multiples of~4.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Buffered channels}
+
+In the previous example, we used synchronous channels.  In effect, on each
+channel, the send and receive of each value happen at the same time: the
+sender and receiver \emph{synchronise} on the communication.
+%
+Using synchronous channels can make programs easier to understand: it helps us
+to relate the states in different components.
+
+By contrast, buffered channels normally allow a send to happen, even if there
+is no thread ready to receive: the sender can return immediately, and the
+channel stores the values until a receiver is ready to receive them.  In
+particular, the channel ensures the messages are received in the same order in
+which they are sent: the channel acts as a first-in first-out buffer.
+
+However, the implementation of buffered channels imposes a bound on the number
+of messages that can be buffered.  Suppose we did not have such a bound, and
+imagine a scenario where the sender sent messages much faster than the
+receiver could deal with them.  Then the buffered channel will hold more and
+more messages, consuming more and more memory, possibly until all available
+memory is used.  With a bounded buffered channel, once the bound is reached,
+the sender is blocked until the receiver is ready to receive one of the
+earlier messages. 
+
+%%%%%
+
+\heading{Buffered channels}
+
+The class of buffered channels is defined as follows.
+%
+\begin{scala}
+class BuffChan[A: scala.reflect.ClassTag](size: Int) extends Chan[A]
+\end{scala}
+%
+Thus a declaration such as
+\begin{scala}
+val chan = new BuffChan[Int](size)
+\end{scala}
+defines a new buffered channel, passing |Int|s, able to hold at most |size|
+messages.
+
+In the multiples-of-four example, we could have defined the channels as 
+%
+\begin{scala}
+  val x1, x2, x4 = new BuffChan[Int](10)
+\end{scala}
+%
+Making the channels buffered might help to overcome inconsistencies in the
+speeds of threads.  For example, is one thread is suspended, its neighbours
+will be able to continue for a while.
+
+The ``|[A: scala.reflect.ClassTag]|'' in the declaration of |BuffChan| needs
+some explanation. Internally, a {\scalashape BuffChan} stores the buffered
+messages in an array.  This means that the runtime implementation needs to
+construct an |Array[A]|.  However, in order to do this, it needs to have what
+is known as a |ClassTag| for~|A|, essentially information that tells the
+runtime what |A| is.  If {\scalashape A} is a concrete type, e.g.~{\scalashape
+  Int}, then the runtime implementation can construct the {\scalashape
+  ClassTag} itself.  In such --- very common --- cases, you don't need to
+provide the |ClassTag|: you can happily ignore the issue.  However, if
+{\scalashape A} is declared as a polymorphic type in some enclosing
+definition, it should be given the type bound {\scalashape A:
+  scala.reflect.ClassTag}, and the compiler will ensure a {\scalashape
+  ClassTag} is available.  For example, here's a version of the earlier |copy|
+function that uses buffered channels: the type parameter |A| of |copy| needs
+to be given the type bound.
+%
+\begin{scala}
+def copy[A: scala.Reflect.ClassTag](in: BuffChan[A], out: BuffChan[A]) = thread{
+  while(true){ val x = in?(); out!x }
+}
+\end{scala}
+%
+When |copy| is called with a concrete type for~|A|, the runtime will provide
+the |ClassTag|. 
+
+
+
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\heading{tee}
+
+The following thread inputs values on~\SCALA{in}, and outputs on
+both~\SCALA{out1} and \SCALA{out2}.
+%
+\begin{scala}
+def tee[A](in: ??[A], out1: !![A], out2: !![A]) = thread{
+  while(true){ val v = in?(); out1!v; out2!v }
+}
+\end{scala}
+
+The above version of \SCALA{tee} outputs on its \SCALA{out1} channel before
+its \SCALA{out2} channel.  What happens if we use this in the context of some
+larger system that inputs on \SCALA{out2} before \SCALA{out1}?  For example:
+\begin{scala}
+val in, out1, out2 = new SyncChan[Int]
+run( tee(in, out1, out2) || thread{ println(out2?() + out1?()) } )
+\end{scala}
+
+% %%%%%
+
+Generic components should place as few assumptions as possible upon the
+network in which they are placed.  The following version of |tee| performs the
+outputs concurrently, i.e.~in either order.
+%
+\begin{scala}
+def tee[A](in: ??[A], out1: !![A], out2: !![A]) = thread{
+  while(true){ 
+    val v = in?()
+    run(thread{out1!v} || thread{out2!v}) 
+  }
+}
+\end{scala}
+
+However, creating and running two new threads is moderately expensive.  In
+specific settings, it might be more efficient and easier to perform the
+outputs in a fixed order.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%%%%
+
+\section{Closing channels}
+
+Often a component has to process a finite stream of data.  But how should the
+end of the stream be signalled?  One way might be to send a special
+``end-of-stream'' value.  But that assumes that we can find such a value, that
+won't be sent as a valid piece of data; and it will require additional
+programming to send that value, and for the receiver to recognise it and act
+appropriately. 
+
+An alternative way to indicate the end of the data stream is for the sender to
+close the channel.  But also, a receiver can close a channel, to signal to the
+sender that it is unable to accept more data.
+
+In SCL, if |in| is an |InPort| (e.g.~a channel), then |in.close| closes it.
+%
+If |out| is an |OutPort| (e.g.~a channel), then |out.endOfStream| closes it
+for sending.  For a synchronous channel, this also closes it for receiving.
+However, for a buffered channel, other threads can continue to receive until
+the buffer becomes empty, at which point the channel becomes fully closed.
+
+%%%%%
+
+If a thread tries to send or receive on a channel that has been closed, it
+throws a |Closed| exception, a subclass of the |Stopped| exception class.
+(Well see another subclass of |Stopped| in Chapter~\ref{chap:alts}.)
+
+Threads should normally catch such exceptions, and then do the right thing.
+For a receiver, if the closing represents the end of the data stream, then
+typically the thread should just close.  If the thread is part of a larger
+network, such as a pipeline, then typically the thread should close channels
+to other components, to signal to the next component in line that the stream
+is closed.
+
+%% If such closing is possible, the thread should handle it appropriately,
+%% normally closing its channels to pass the message on. 
+
+Here's a new version of |alts| that does this.
+%
+\begin{scala}
+def alts[A](in: ??[A], out: !![A]) = thread{ 
+  try{ while(true){ out!(in?()); in?() } } 
+  catch{ case _: Closed => in.close; out.endOfStream }
+}
+\end{scala}
+% 
+If either sending or receiving fails, because the channel has been closed, the
+thread exits the loop, and closes both channels.  Note that closing a channel
+that is already closed has no effect.
+
+Note also that there's no need to close a channel that is about to go out of
+scope and be garbage collected. 
+
+The above pattern is sufficiently common, that there's a construct to capture
+it.
+%
+\begin{scala}
+  repeat{ <command> }
+\end{scala}
+%
+behaves much like
+\begin{scala}
+  while(true){ <command> }
+\end{scala}
+but terminates cleanly if \SCALA{<command>} throws a \SCALA{Stopped}
+exception.
+
+For example:
+%
+\begin{scala}
+def alts[A](in: ??[A], out: !![A]) = thread{ 
+  repeat{ out!(in?()); in?() } 
+  in.close; out.endOfStream
+}
+\end{scala}
+
+%%%%%
+
+The construct
+%
+\begin{scala}
+  repeat(guard){ <command> }
+\end{scala}
+%
+behaves much like
+\begin{scala}
+  while(guard){ <command> }
+\end{scala}
+but terminates cleanly if \SCALA{<command>} throws a \SCALA{Stopped}
+exception.
+
+A closed channel~|c| can be reopened using the construct
+\begin{scala}
+  c.reopen
+\end{scala}
+%
+This has a precondition that the channel is indeed closed, and that no thread
+is trying to send or receive on it.  This allows channels to be reused.
+
+It is possible to test whether a channel~|c| is closed using
+%
+\begin{scala}
+  c.isClosed
+\end{scala}

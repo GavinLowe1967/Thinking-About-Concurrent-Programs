@@ -1,0 +1,62 @@
+\documentclass[12pt,a4paper]{book}
+%\documentclass[times]{acm-book}%%%
+
+%% \usepackage{amsmath}    % Package for AMS math extensions.
+%% \usepackage{amssymb}
+
+\usepackage{color}
+\usepackage{url}
+%\usepackage{hyperref}
+\usepackage{tikz}
+\usepgflibrary{arrows}
+\tikzset{>=angle 90}
+
+\usepackage{book} % misc macros
+
+\usepackage{scalalistings}
+\scalaMid
+
+%%% Colours
+\definecolor{BLUE}{rgb}{0,0,1} %% I don't know why this is necessary.
+\definecolor{BLACK}{rgb}{0,0,0}
+\def\codecolour{\scalacolour}
+\colorlet{TextColor}{black}
+\def\scalacolour{\color{blue!70!black}}
+
+%%% Use scalacolour and italics in maths
+\def\mstyle{\scalacolour}
+\everymath{\mstyle}
+
+\usepackage{questions} 
+
+\renewcommand{\textfraction}{.15}
+\renewcommand{\topfraction}{.85}
+\renewcommand{\floatpagefraction}{.75}
+\sloppy\raggedbottom
+
+\title{Thinking about Concurrent Programs}
+\author{Gavin Lowe}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+\maketitle
+%% \pagenumbering{roman}
+%% \newpage
+\pagenumbering{roman}
+\cleardoublepage
+\tableofcontents
+\input{preface}
+
+%% \pagenumbering{arabic}
+%% \newpage
+\input{intro}
+\input{channels}
+
+\appendix
+
+\input{scala}
+% type params
+
+\input{answers}
+\end{document}

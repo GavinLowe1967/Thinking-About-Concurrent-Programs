@@ -1,0 +1,4 @@
+Race.scala: The initial program showing a race condition.
+
+BusyWait.scala: The program that tries to signal using a shared variable and
+busy waiting.
