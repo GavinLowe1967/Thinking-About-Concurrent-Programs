@@ -7,10 +7,12 @@ won't be sent as a valid piece of data; and it will require additional
 programming to send that value, and for the receiver to recognise it and act
 appropriately. 
 
-An alternative way to indicate the end of the data stream is for the sender to
-close the channel.  But also, a receiver can close a channel, to signal to the
-sender that it is unable to accept more data.
+Further, it can sometimes be useful for a receiver to indicate to the sender
+that it is unable to accept any more data.
 
+The way we deal with each of these scenarios is for the relevant thread to
+close the channel. 
+%
 In SCL, if |in| is an |InPort| (e.g.~a channel), then |in.close()| closes it.
 %
 If |out| is an |OutPort| (e.g.~a channel), then |out.endOfStream()| closes it
@@ -26,10 +28,10 @@ throws a |Closed| exception, a subclass of the |Stopped| exception class.
 
 Threads should normally catch such exceptions, and then do the right thing.
 For a receiver, if the closing represents the end of the data stream, then
-typically the thread should just close.  If the thread is part of a larger
-network, such as a pipeline, then typically the thread should close channels
-to other components, to signal to the next component in line that the stream
-is closed.
+typically the thread should terminate.  But if the thread is part of a larger
+network, such as a pipeline, then typically the thread should first close
+channels to other components, to signal to the next component in line that the
+stream is closed.
 
 %% If such closing is possible, the thread should handle it appropriately,
 %% normally closing its channels to pass the message on. 
@@ -37,7 +39,7 @@ is closed.
 Here's a new version of |alts| that does this.
 %
 \begin{scala}
-def alts[A](in: ??[A], out: !![A]) = thread{ 
+def alts[A](in: ??[A], out: !![A]) = thread("alts"){ 
   try{ while(true){ out!(in?()); in?() } } 
   catch{ case _: Closed => in.close(); out.endOfStream() }
 }
@@ -75,7 +77,8 @@ Figure~\ref{fig:BoundedMults4} illustrates this for the |alts| function.
 
 %%%%%
 
-The construct
+It's sometimes useful to exit a loop for some reason other than a channel
+being closed.  The construct
 %
 \begin{scala}
   repeat(guard){ <command> }
@@ -131,23 +134,21 @@ than |max| is reached, as illustrated below.
 \begin{figure}
 \begin{scala}
 object BoundedMults4{
-  def nats(max: Int, out: !![Int]) = thread{ 
+  def nats(max: Int, out: !![Int]) = thread("nats"){ 
     var n = 0
     repeat{ out!n; n += 1 }
   }
 
-  def alts[A](in: ??[A], out: !![A]) = thread{ 
+  def alts[A](in: ??[A], out: !![A]) = thread("alts"){ 
     repeat{ out!(in?()); in?() }
     in.close(); out.endOfStream()
   }
 
-  def console[A](in: ??[A]) = thread{ repeat{ println(in?()) } }
+  def console[A](in: ??[A]) = thread("console"){ repeat{ println(in?()) } }
 
-  def takeWhile[A](p: A => Boolean, in: ??[A], out: !![A]) = thread{
+  def takeWhile[A](p: A => Boolean, in: ??[A], out: !![A]) = thread("takeWhile"){
     var done = false
-    repeat(!done){ 
-      val x = in?(); if(p(x)) out!x else done = true
-    }
+    repeat(!done){ val x = in?(); if(p(x)) out!x else done = true }
     in.close(); out.endOfStream()
   }
 
@@ -188,6 +189,12 @@ and returns the result of the test |x <= max|.)
 \medskip
 
 There are two other operations on channels related to closing. 
+It is possible to test whether a channel~|c| is closed using the expression
+%
+\begin{scala}
+  c.isClosed
+\end{scala}
+%
 A closed channel~|c| can be reopened using the construct
 \begin{scala}
   c.reopen()
@@ -195,12 +202,6 @@ A closed channel~|c| can be reopened using the construct
 %
 This has a precondition that the channel is indeed closed, and that no thread
 is trying to send or receive on it.  This allows channels to be reused.
-
-It is possible to test whether a channel~|c| is closed using the expression
-%
-\begin{scala}
-  c.isClosed
-\end{scala}
 
 \framebox{Cut above?}
 
@@ -234,17 +235,17 @@ in Figure~\ref{fig:NatsCircuit}.
 \begin{figure}
 \begin{scala}
 object NatsCircuit{
-  def console[A](in: ??[A]) = thread{ repeat{ println(in?()) } }
+  def console[A](in: ??[A]) = thread("console"){ repeat{ println(in?()) } }
 
-  def prefix[A](x: A, in: ??[A], out: !![A]) = thread{
+  def prefix[A](x: A, in: ??[A], out: !![A]) = thread("prefix"){
     out!x; repeat{ out!in?() }
   }
 
-  def tee[A](in: ??[A], out1: !![A], out2: !![A]) = thread{
+  def tee[A](in: ??[A], out1: !![A], out2: !![A]) = thread("tee"){
     repeat{ val x = in?(); out1!x; out2!x }
   }
 
-  def map[A,B](f: A => B, in: ??[A], out: !![B]) = thread{
+  def map[A,B](f: A => B, in: ??[A], out: !![B]) = thread("map"){
     repeat{ out!(f(in?())) }
   }
 

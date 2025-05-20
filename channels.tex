@@ -2,8 +2,7 @@
 
 \input{channels1} % Channels; buffered channels
 \input{channels2} % Closing channels
-
-%\input{usingChannels}
+\input{usingChannels}
 
 %%%%%
 
@@ -31,19 +30,27 @@ Examples: components; pipelines; fine-grained concurrency.
 
 \exercises
 
-Version of MultFours up to some n, when nats closes the channel.
+\input{Exercises/boundedNats} % bounded version of NatsCircuit
 
-Merge two ordered streams.
+\input{Exercises/merge}
 
-Pipesort.
+\input{Exercises/hamming} 
+
+
+\input{Exercises/pipesort} % sorting using a pipeline.
+
+\input{Exercises/sorting} % sorting using comparators
+
+
+More exercises:
+
+quicksort
 
 fibs
 
-integrator
+integrator?
 
-Sorting practical.
+Bitonic part of sorting practical.
 
-Nats circuit from B's notes?? 
-\url{https://www.cs.ox.ac.uk/teaching/materials15-16/concurrentprogramming/Lectures/04-channels.pdf}
-
-Hamming numbers?
+%% Nats circuit from B's notes?? 
+%% \url{https://www.cs.ox.ac.uk/teaching/materials15-16/concurrentprogramming/Lectures/04-channels.pdf}

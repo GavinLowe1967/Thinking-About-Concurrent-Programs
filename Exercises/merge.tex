@@ -1,0 +1,32 @@
+\begin{questionS}
+\label{ex:merge}
+Create a component with the signature
+\begin{scala}
+  def merge(left: ??[Int], right: ??[Int], out: !![Int])
+\end{scala}
+which receives ascending streams of data on its input channels (each without
+repetition), and merges them into a single ascending stream (again without
+repetition).
+\end{questionS}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{answerS}
+My code is below. 
+\begin{scala}
+  def merge(left: ??[Int], right: ??[Int], out: !![Int]) = thread("merge"){
+    // Invariant: £l£ is the last value read from £left£; £r£ is the last value read from
+    // £right£.
+    var l = left?(); var r = right?()
+    repeat{
+      if(l < r){ out!l; l = left?() }
+      else if(l == r){ out!l; l = left?(); r = right?() }
+      else{ out!r; r = right?() }
+    }
+  }
+\end{scala}
+If one of the input channels closes, this simply terminates.  Arguably, the
+component should continue to pass data from the input channel that is still
+open, although that requires maintaining some extra state, recording whether
+the values in~|l| and~|r| have been output yet.  
+\end{answerS}

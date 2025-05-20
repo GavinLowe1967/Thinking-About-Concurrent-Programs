@@ -1,8 +1,8 @@
 DIR = ../tacp/channels
 
-all: $(DIR)/QSortChannels.class $(DIR)/Mults4.class		\
-	$(DIR)/BoundedMults4.class $(DIR)/NatsCircuit.class	\
-	$(DIR)/BoundedNatsCircuit.class
+all: $(DIR)/QSort.class $(DIR)/Mults4.class $(DIR)/BoundedMults4.class	\
+	$(DIR)/NatsCircuit.class $(DIR)/BoundedNatsCircuit.class	\
+	$(DIR)/Hamming.class $(DIR)/Sorting.class $(DIR)/Mergesort.class
 
 clean:
 	rm $(DIR)/*.class; fsc -shutdown

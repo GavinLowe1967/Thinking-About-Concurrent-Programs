@@ -1,4 +1,3 @@
-
 We saw in the last chapter that we need some way to provide for
 \emph{disciplined} interaction between threads, to avoid threads interfering
 with one another.  In this book, we will see three basic ways to achieve this:
@@ -6,9 +5,9 @@ message passing, monitors and semaphores.  At a higher level of abstraction,
 we will also see how to use concurrent datatypes.
 
 We will start with message passing.  In my opinion, it is the most intuitive
-approach: one thread can send a message to another thread.  
-In addition, message passing is  necessary for distributed computing, and also
-works well with loosely coupled systems.  
+approach: threads send messages to one another.  In addition, message passing
+is necessary for distributed computing, and also works well with loosely
+coupled systems.
 
 A downside is that message passing tends to be slower than other approaches,
 because there is an overhead in the sending and receiving of messages.
@@ -17,17 +16,17 @@ concurrent programs.
 
 The basic idea is that programs are composed of components, which might be
 either threads (i.e.~sharing an address space) or processes (with distinct
-address spaces, possibly on different computers).  These processes communicate
-only by sending and receiving messages over \emph{channels}.  In this book, we
-will be dealing with threads; but the same techniques can be used with
-processes. 
+address spaces, possibly on different computers).  These threads or processes
+communicate only by sending and receiving messages over \emph{channels}.  In
+this book, we will be dealing with threads; but the same techniques can be
+used with processes.
 
 %%%%%
 
-\section{Channels}
+\section{Defining and using channels}
 
-Think of a channel as a directional wire.  Messages are sent at one end, and
-received at the other end. 
+Think of a channel as a wire.  Messages are sent at one end, and received at
+the other end.
 
 %% \item At one end there is an output port, at the other an input port.
 %% %
@@ -53,8 +52,8 @@ received at the other end.
 %%%%%
 
 In SCL, \SCALA{Chan[A]} is the type of channels that pass data of
-type~\SCALA{A}.  This has two concrete subtypes: |SyncChan[A]|, of synchronous
-channels; and |BuffChan[A]|, of buffered (or asynchronous) channels.  We will
+type~\SCALA{A}.  This has  subtypes |SyncChan[A]|, of synchronous
+channels, and |BuffChanT[A]|, of buffered (or asynchronous) channels.  We will
 start by describing synchronous channels, and later describe buffered
 channels. 
 
@@ -90,17 +89,18 @@ thread receives a value on the channel, and prints it.
 
 %%%%%
 
-As another example, here's a thread that inputs values from the channel
-\SCALA{in}, and outputs them on the channel~\SCALA{out}:
+As another example, here's a function that produces a thread that repeatedly
+inputs values from the channel \SCALA{in}, and outputs them on the
+channel~\SCALA{out}:
 %
 \begin{scala}
-def copy[A](in: SyncChan[A], out: SyncChan[A]) = thread{
+def copy[A](in: SyncChan[A], out: SyncChan[A]) = thread("copy"){
   while(true){ val x = in?(); out!x }
 }
 \end{scala}
 %
-(The function that creates the thread is parameterised by the channels, and by
-the type~|A| of those channels.)
+(The function is parameterised by the type~|A| of data passed on the channels,
+and by the channels themselves.)
 %
 We could have written the body of \SCALA{copy} as simply:
 \begin{scala}
@@ -149,7 +149,7 @@ and the \SCALA{OutPort} of \SCALA{out}.  We therefore could have written the
 definition as:
 %
 \begin{scala}
-def copy[A](in: ??[A], out: !![A]) = thread{ 
+def copy[A](in: ??[A], out: !![A]) = thread("copy"){ 
   while(true) out!(in?()) 
 }
 \end{scala}
@@ -159,17 +159,24 @@ helps with documentation (the names of the channels also help).  In addition,
 this style provides some  type safety: if, for example, the code tries to send
 on~|in|, the compiler will give a type error. 
 
+|InPort|s and |OutPort|s can be shared: multiple threads can send at an
+\SCALA{OutPort}; and multiple threads can receive at an |InPort|.  However,
+each communication involves a \emph{single} sender and a \emph{single}
+receiver: if multiple threads try to send, the implementation of the channel
+ensures that only one succeeds at a time; and likewise for receiving.  We will
+not use any sharing of ports in this chapter, but we will in later chapters.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{Example: printing multiples of four}
 
 We now consider a slightly larger example, which is an instance of a paradigm
 known as \emph{fine-grained concurrency}: the system is built from several
-small components which are composed in parallel.  It is not a very efficient
---- or even sensible --- way to create real programs.  We include such
+small components which are composed in parallel.  It is not a very
+efficient--- or even sensible---way to create real programs.  We include such
 examples here as they are a good way to get used to thinking about
-concurrency, where multiple components work together, while keeping the
-quantity of code small.  Also, such a programs could be thought of as a model
+concurrency---where multiple components work together---while keeping the
+quantity of code small.  Also, such a program could be thought of as a model
 of an electronic circuit, with components implemented in hardware and wired
 together.
 
@@ -187,13 +194,13 @@ that copies alternate values read from \SCALA{in} to \SCALA{out}.
 \begin{figure}
 \begin{scala}
 object Mults4{
-  def console[A](in: ??[A]) = thread{ while(true) println(in?()) }
+  def console[A](in: ??[A]) = thread("console"){ while(true) println(in?()) }
 
-  def nats(out: !![Int]) = thread{ 
+  def nats(out: !![Int]) = thread("nats"){ 
     var n = 0; while(true){ out!n; n += 1 }
   }
 
-  def alts[A](in: ??[A], out: !![A]) = thread{ 
+  def alts[A](in: ??[A], out: !![A]) = thread("alts"){ 
     while(true){ out!(in?()); in?() } 
   }
 
@@ -266,39 +273,95 @@ channel stores the values until a receiver is ready to receive them.  In
 particular, the channel ensures the messages are received in the same order in
 which they are sent: the channel acts as a first-in first-out buffer.
 
-However, the implementation of buffered channels imposes a bound on the number
-of messages that can be buffered.  Suppose we did not have such a bound, and
-imagine a scenario where the sender sent messages much faster than the
-receiver could deal with them.  Then the buffered channel will hold more and
-more messages, consuming more and more memory, possibly until all available
-memory is used.  With a bounded buffered channel, once the bound is reached,
-the sender is blocked until the receiver is ready to receive one of the
-earlier messages. 
-
-%%%%%
-
-The class of buffered channels is defined as follows.
-%
+There are various types of buffered channels in SCL, collected in the trait
+|BuffChanT|: 
 \begin{scala}
-class BuffChan[A: scala.reflect.ClassTag](size: Int) extends Chan[A]
+trait BuffChanT[A] extends Chan[A]
 \end{scala}
 %
-Thus a declaration such as
+One class of buffered channels is defined as follows. 
+%
 \begin{scala}
-val chan = new BuffChan[Int](size)
+class UnboundedBuffChan[A] extends BuffChanT[A]
 \end{scala}
-defines a new buffered channel, passing |Int|s, able to hold at most |size|
-messages.
+%
+As the name suggests, these channels have unbounded capacity. In principle,
+they can store arbitrarily many messages, bounded only by the limits of
+available memory.  Thus a sender can always insert its value into the buffer
+and return immediately. 
 
 In the multiples-of-four example, we could have defined the channels as 
 %
 \begin{scala}
-  val x1, x2, x4 = new BuffChan[Int](10)
+  val x1, x2, x4 = new UnboundedBuffChan[Int]
 \end{scala}
 %
 Making the channels buffered might help to overcome inconsistencies in the
 speeds of threads.  For example, is one thread is suspended, its neighbours
-will be able to continue for a while.
+will be able to continue.
+
+A difficulty with using an unbounded buffer is that if the receiver is slower
+than the sender, messages will accumulate in the buffer, using more and more
+memory, possibly until the limits of available memory are reached.  This is
+likely to be the case in the multiples-of-four pipeline, where the thread
+printing results is likely to be slower than the other components. 
+
+There are two types of bounded buffered channels within SCL.  Such channels
+can hold a bounded number of values.  Once the bound is reached, the sender is
+blocked until the receiver receives one of the earlier messages, and so makes
+space in the channel.
+%
+The two types of bounded buffered channel are defined as:
+%
+\begin{scala}
+class OnePlaceBuffChan[A] extends BuffChanT[A]
+class BuffChan[A: scala.reflect.ClassTag](size: Int) extends BuffChanT[A]
+\end{scala}
+%
+As the name suggests, a |OnePlaceBuffChan| is able to store just a single
+piece of data.  However, |BuffChan|s are more flexible: each has a capacity
+defined by its |size| parameter.
+
+Choosing the correct capacity requires a combination of judgement and
+guesswork.  Typically, neither the sender nor the receiver will try to
+communicate at a constant rate, both because some data items will take longer
+to process, and because either thread might be descheduled.  The buffering can
+help to smooth out these irregularities.  Further, it is likely that they have
+different long-term average rates of communication.  If the sender is, on
+average, faster than the receiver, we would like enough buffering that the
+receiver rarely has to wait for an item, i.e.~the buffer rarely becomes empty;
+alternatively, if the receiver is, on average, faster than the sender, we
+would like enough buffering that the sender rarely has to wait to deposit a
+value, i.e.~the buffer rarely becomes full.  On the other hand, having too
+much buffering uses additional memory.
+
+\framebox{Experiments} 
+
+
+
+%% However, the implementation of buffered channels imposes a bound on the number
+%% of messages that can be buffered.  Suppose we did not have such a bound, and
+%% imagine a scenario where the sender sent messages much faster than the
+%% receiver could deal with them.  Then the buffered channel will hold more and
+%% more messages, consuming more and more memory, possibly until all available
+%% memory is used.  With a bounded buffered channel, once the bound is reached,
+%% the sender is blocked until the receiver is ready to receive one of the
+%% earlier messages. 
+
+%%%%%
+
+%% The class of buffered channels is defined as follows.
+%% %
+%% \begin{scala}
+%% class BuffChan[A: scala.reflect.ClassTag](size: Int) extends Chan[A]
+%% \end{scala}
+%% %
+%% Thus a declaration such as
+%% \begin{scala}
+%% val chan = new BuffChan[Int](size)
+%% \end{scala}
+%% defines a new buffered channel, passing |Int|s, able to hold at most |size|
+%% messages.
 
 The ``|[A: scala.reflect.ClassTag]|'' in the declaration of |BuffChan| needs
 some explanation. Internally, a {\scalashape BuffChan} stores the buffered
@@ -306,23 +369,22 @@ messages in an array.  This means that the runtime implementation needs to
 construct an |Array[A]|.  However, in order to do this, it needs to have what
 is known as a |ClassTag| for~|A|, essentially information that tells the
 runtime what |A| is.  If {\scalashape A} is a concrete type, e.g.~{\scalashape
-  Int}, then the runtime implementation can construct the {\scalashape
-  ClassTag} itself.  In such --- very common --- cases, you don't need to
-provide the |ClassTag|: you can happily ignore the issue.  However, if
-{\scalashape A} is declared as a polymorphic type in some enclosing
-definition, it should be given the type bound {\scalashape A:
-  scala.reflect.ClassTag}, and the compiler will ensure a {\scalashape
-  ClassTag} is available.  For example, here's a version of the earlier |copy|
-function that uses buffered channels: the type parameter |A| of |copy| needs
-to be given the type bound.
+  Int}, then compiler can provide the {\scalashape ClassTag}.  In such---very
+common---cases, you don't need to provide the |ClassTag|: you can happily
+ignore the issue.  However, if {\scalashape A} is declared as a polymorphic
+type in some enclosing definition, it should be given the type bound
+{\scalashape A: scala.reflect.ClassTag}, and the compiler will ensure a
+{\scalashape ClassTag} is available.  For example, here's a version of the
+earlier |copy| function that uses buffered channels: the type parameter |A| of
+|copy| needs to be given the type bound.
 %
 \begin{scala}
-def copy[A: scala.Reflect.ClassTag](in: BuffChan[A], out: BuffChan[A]) = thread{
-  while(true){ val x = in?(); out!x }
-}
+  def copy[A: scala.Reflect.ClassTag](in: BuffChan[A], out: BuffChan[A]) = thread{
+    while(true){ val x = in?(); out!x }
+  }
 \end{scala}
 %
-When |copy| is called with a concrete type for~|A|, the runtime will provide
-the |ClassTag|. 
+When |copy| is called with a concrete type for~|A|, the compiler will provide
+the |ClassTag|.
 
 

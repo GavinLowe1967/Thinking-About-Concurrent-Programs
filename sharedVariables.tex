@@ -1,0 +1,97 @@
+
+\heading{Caching and compiler optimisations}
+
+Recall that multiprocessor machines may cache variables, and that Java does
+not guarantee that the caches will be kept coherent, so two concurrent
+threads may operate independently on their own cached copies of the same
+variable!  And further, the compiler is allowed to optimise the code to
+something semantically equivalent as a sequential program.  The Java Memory
+Model
+%% \footnote{%
+  %% \url{http://www.cs.umd.edu/~pugh/java/memoryModel/jsr-133-faq.html}.}
+defines this more formally.
+
+However, when two threads synchronise on a channel communication, any writes
+made by one thread before the synchronisation are guaranteed to be visible to
+the other thread after the synchronisation.  
+%  reads or write a channel, the updates in its cache are
+% flushed to main memory, and cached values re-read from main
+% memory. 
+Further compiler optimisations may not reorder events to break this.
+
+
+%%%%%
+
+For example, in the code
+\begin{scala}
+val c = new SyncChan[Unit]
+var x = -1
+def p = thread{ x = 42; c!() }
+def q = thread{ c?(); <use x> }
+run(p || q)
+\end{scala}
+%
+\SCALA{q} is guaranteed to use the value |42| for \SCALA{x} written
+by~\SCALA{p} because:
+%
+\begin{itemize}
+\item 
+\SCALA{p} finishes writing before the synchronisation;
+
+\item
+The synchronisation ensures the caches are correctly updated;
+
+\item
+The compiler is not allowed to perform optimisations that reorder the accesses
+to~\SCALA{x} with those to~\SCALA{c}.
+\end{itemize}
+
+%%%%%
+
+\heading{Rule for disciplined interaction}
+
+Earlier we said that parallel threads should use \emph{disjoint} sets of
+variables.  We can weaken this slightly, to allow threads to share
+variables, as long as they do so in a disciplined way. 
+
+If two threads both access a variable (other than both reading it) then
+there should be a (direct or indirect) synchronisation between the threads
+after the first finishes accessing the variable, and before the second starts
+accessing it.  In particular, this avoids race conditions: the second thread
+``knows'' the first has finished with the variable.  The Java Memory Model
+avoids problems with caching and compiler optimisations.
+
+You should state clearly which threads may read or write variables in
+different states, and this should be done to avoid race conditions.
+
+%%%%%
+
+\heading{Objects and message passing}
+
+Reference objects can be passed across channels in the same way as simpler
+types.  (The channel passes the reference rather than the object itself.)
+
+However, this needs to be done with care: if two threads share an object,
+there is the danger of race conditions, just as with standard shared
+variables. 
+ 
+Note, in particular, that reference objects are passed by reference rather
+than by value: sometimes it is necessary to copy objects, rather than simply
+passing them, to avoid unintended sharing.
+
+Consider \SCALA{p(in, mid) || q(mid)} where
+%
+\begin{scala}
+def p(in: ??[String], mid: ![Person]) = thread{
+  val pers = new Person()
+  while(true){ val n = in?(); pers.name = n; mid!pers }
+}
+
+def q(mid: ??[Person]) = thread{
+  while(true){ val pers = mid?(); println(pers.name) }
+} 
+\end{scala}
+%
+What is wrong with this?
+
+%%%%%

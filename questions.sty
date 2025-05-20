@@ -1,3 +1,20 @@
+% Header for a question, answer or part.  Encourage pagebreak
+\def\mkHead#1{%
+  \pagebreak[3]\begin{trivlist} \item[] {#1}\nopagebreak
+}
+
+% Counter for parts
+\newcounter{partCtr}
+
+\def\thepartCtr{\alph{partCtr}}
+
+% Environment for a part of a question. 
+\newenvironment{qpart}{%
+  \refstepcounter{partCtr}
+  \mkHead{\bf Part \thepartCtr.\ }\relax
+}{\end{trivlist}\pagebreak[2]}
+
+% Counter for questions.
 \newcounter{qctr}[chapter]
 
 %% Exercises are numbered within chapters
@@ -5,8 +22,9 @@
 
 \def\mkQHead#1{%
   \refstepcounter{qctr}
-  \pagebreak[3]\begin{trivlist} \item[]%
-  {\bf #1}\nopagebreak\item[] \nopagebreak \@enumdepth=1
+  \setcounter{partCtr}{0}
+  \mkHead{\bf #1}
+  \item[] \nopagebreak \@enumdepth=1
 }
 
 \newenvironment{question}[1][\theqctr]{\mkQHead{Exercise #1}
@@ -18,8 +36,12 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Answers
 
 %% Header for answer
-\def\answerHead#1{\pagebreak[3]\begin{trivlist} \item[]%
-  {\bf Answer to Exercise #1}\nopagebreak\item[] \nopagebreak \@enumdepth=1}
+\def\answerHead#1{
+  \setcounter{partCtr}{0}
+  \mkHead{\bf Answer to Exercise #1}
+  %\pagebreak[3]\begin{trivlist} \item[]%
+  %{\bf Answer to Exercise #1}\nopagebreak
+  \item[] \nopagebreak \@enumdepth=1}
 
 %%%%%%%%%% An inline answer
 

@@ -9,6 +9,17 @@ Chapter 1: Introduction
 - exercises
 
 Chaper 2: Message passing using channels.
+- Defining and using channels
+- Example: printing multiples of four
+- Buffered channels
+- Closing channels
+- Example: producing the natural numbers
+- TODO: allow either order for inputs, outputs
+- Summary - TO DO
+- Exercises - TO DO -- maybe move some to Chapter 3.
+
+Chapter 3: Using Channels
+- Quick Sort
 - Deal with "tee" subsection
 - thread(name){...} notation -- maybe delay
 - ordering of actions -- write or move
@@ -25,6 +36,3 @@ grep "[!][[]" *.tex | egrep -v "[!]{2}"
 
 
 SCL: 
-
-TO DO: make ?[A] and ![A] deprecated.
-Add one-place buffers and unbounded buffers?

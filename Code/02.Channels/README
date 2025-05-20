@@ -8,4 +8,7 @@ QSortChannels.scala: Quicksort implemented using recursive parallelism.
 NatsCircuit.scala: Fine-grained concurrency network to print natural numbers.
 
 BoundedNatsCircuit.scala: Fine-grained concurrency network to print natural
-numbers up to some limit.  Exercise??? 
+numbers up to some limit.  Exercise???
+
+Hamming.scala: Fine-grained concurrency network to produce the Hamming
+numbers.
