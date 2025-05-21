@@ -4,7 +4,7 @@ import ox.scl._
 
 /** Object to run Quicksort, using a recursively defined network of threads. */
 object QSort{
-  // Quicksort: sort data received on in, and output on out
+  /** Quicksort: sort data received on in, and output on out. */
   def qSort(in: ??[Int], out: !![Int]): ThreadGroup = thread("QSort"){
     attempt{
       val pivot = in?()

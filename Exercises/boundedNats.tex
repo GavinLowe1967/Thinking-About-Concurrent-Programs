@@ -1,8 +1,12 @@
 \begin{questionS}
 Implement a variant of the |NatsCircuit| program from
-Figure~\ref{fig:NatsCircuit} that receives an input~|max| (say from the command
-line) and produces the natural numbers up to~|max| (inclusive), and then
-terminates cleanly.
+Figure~\ref{fig:NatsCircuit} that, given a value~|max|, produces the natural
+numbers up to~|max| (inclusive), and then terminates cleanly.  Give your
+program the following signature. 
+%
+\begin{scala}
+  def nats(max: Int, out: !![Int]): ThreadGroup 
+\end{scala}
 \end{questionS}
 
 \begin{answerS}

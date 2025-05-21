@@ -94,9 +94,9 @@ inputs values from the channel \SCALA{in}, and outputs them on the
 channel~\SCALA{out}:
 %
 \begin{scala}
-def copy[A](in: SyncChan[A], out: SyncChan[A]) = thread("copy"){
-  while(true){ val x = in?(); out!x }
-}
+  def copy[A](in: SyncChan[A], out: SyncChan[A]) = thread("copy"){
+    while(true){ val x = in?(); out!x }
+  }
 \end{scala}
 %
 (The function is parameterised by the type~|A| of data passed on the channels,
@@ -111,18 +111,18 @@ thread is yet ready to receive on |out|.
 
 %%%%%
 
-A channel is simply an \SCALA{InPort} (something from which threads can
-receive) and an \SCALA{OutPort} (something on which threads can send).  A
-channel is composed of an |InPort| and an |OutPort|.
-Note that the terminology ``|InPort|'' and ``|OutPort|'' refer to the point of
+A channel is simply an \emph{in-port} (something from which threads can
+receive) and an \emph{out-port} (something on which threads can send). 
+Note that the terminology ``in-port'' and ``out-port'' refer to the point of
 view of \emph{threads}, not channels: a thread receives values in on an
-|InPort|, and sends values out on an |OutPort|; however, a value is put into a
-channel on an |OutPort|, and passed out on an |InPort|.
+in-port, and sends values out on an out-port; however, a value is put into a
+channel on an out-port, and passed out on an in-port.
 
 Figure~\ref{fig:channel-types} outlines the relevant types.  (The definition
 of |Chan[A]| uses multiple inheritance: it inherits definitions from both
 |InPort[A]| and |OutPort[A]|.)  The types \SCALA{InPort[A]} and
-\SCALA{OutPort[A]} can be abbreviated as \SCALA{??[A]} and~\SCALA{!![A]}.
+\SCALA{OutPort[A]} can be abbreviated as \SCALA{??[A]} and~\SCALA{!![A]},
+respectively.
 
 %%%%%%
 
@@ -149,9 +149,9 @@ and the \SCALA{OutPort} of \SCALA{out}.  We therefore could have written the
 definition as:
 %
 \begin{scala}
-def copy[A](in: ??[A], out: !![A]) = thread("copy"){ 
-  while(true) out!(in?()) 
-}
+  def copy[A](in: ??[A], out: !![A]) = thread("copy"){ 
+    while(true) out!(in?()) 
+  }
 \end{scala}
 %
 This signature makes clear what the thread does with each channel, and so
@@ -159,10 +159,10 @@ helps with documentation (the names of the channels also help).  In addition,
 this style provides some  type safety: if, for example, the code tries to send
 on~|in|, the compiler will give a type error. 
 
-|InPort|s and |OutPort|s can be shared: multiple threads can send at an
-\SCALA{OutPort}; and multiple threads can receive at an |InPort|.  However,
+In-ports and out-ports can be shared: multiple threads can send at an
+out-port; and multiple threads can receive at an in-port.  However,
 each communication involves a \emph{single} sender and a \emph{single}
-receiver: if multiple threads try to send, the implementation of the channel
+receiver: if multiple  threads try to send, the implementation of the channel
 ensures that only one succeeds at a time; and likewise for receiving.  We will
 not use any sharing of ports in this chapter, but we will in later chapters.
 
@@ -255,6 +255,10 @@ numbers, on~|x2|.  The second instance of |alts| receives these, and outputs
 every other value, i.e.~the multiples of four, on~|x4|.  |console| receives
 these and prints them.  Thus the overall effect is to print the (non-negative)
 multiples of~four.
+
+\begin{instruction}
+Make sure you understand how the components cooperate together.
+\end{instruction}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

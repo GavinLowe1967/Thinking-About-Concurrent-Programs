@@ -1,29 +1,107 @@
 \chapter{Message Passing using Channels} 
 
-\input{channels1} % Channels; buffered channels
-\input{channels2} % Closing channels
-\input{usingChannels}
-
-%%%%%
-
+\input{channels1} % Channels; multiples of 4; buffered channels
+\input{channels2} % Closing channels; natural numbers
+\input{usingChannels} % merge sort; order of actions
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%%%%
 
 \section{Summary}
 
-\begin{itemize}
-\item 
-Message passing using channels;
+In this chapter we have seen the basics of message passing concurrency.  The
+idea is straightforward: threads can send messages to one another.
 
-\item
-Synchronous channels, buffered channels, ports, sending and receiving;
+We have arranged that threads have no shared variables.  This means that we
+avoid any memory races, of the form that we saw in Chapter~\ref{chap:intro}.
+In later chapters, we will relax this condition, and allow some shared
+variables.  However, we will still need to ensure disciplined access to those
+variables, and message passing will be one technique that we can use to
+coordinate the threads.  
 
-\item
-Closing channels; dealing with closed channels;
+We have seen how to use message passing using the SCL library.  Threads
+communicate via \emph{channels}, which comprise an \emph{in-port} and an
+\emph{out-port}.  Threads can send messages at an out-port, which are received
+at the corresponding in-port.  Channels can be either \emph{synchronous} or
+\emph{asynchronous} (buffered).  A port can be shared between several threads.
+Channels can be closed, for example to indicate the end of a stream of data;
+and this can be used to signal the termination of a concurrent network.  
 
-\item
-Examples: components; pipelines; fine-grained concurrency.
-\end{itemize}
+We have seen a number of examples illustrating message passing.  These have
+mostly used fine-grained concurrency, where systems are built from very small
+components.  The exercises at the end of this chapter include similar
+examples.  Our aim in these examples has been to illustrate how concurrent
+components can cooperate together.
+
+We have also seen a technique for reasoning about concurrent programs, using
+the ``happens-before'' relation ($\preceq$).
+
+%%%%% 
+
+\paragraph{Object-oriented versus thread-oriented programming}
+
+An important part of programming is \emph{modularisation}: splitting a large
+program up into manageable chunks.  The most common modularisation technique
+is object orientation, where objects encapsulate some data and operations on
+that data.  However, concurrency is also a form of modularisation, where each
+thread holds some data, and communicates the results of operations on that
+data with other threads.
+
+In object-oriented systems, many objects can exist simultaneously, each with
+its own state.  Normally, a single one is active at a time.  They communicate
+by procedure calls, which pass data and control.
+
+In message-passing concurrent systems, many threads can exist simultaneously,
+each with its own state.  Often, all are active at the same time.  They
+communicate by sending and receiving messages, which pass data.
+
+The two techniques are complementary.  In later chapters, we will sometimes
+encapsulate a thread inside an object.  And sometimes an individual thread
+will use multiple objects, either as private objects or shared with other
+threads. 
+
+%%%%% 
+
+\paragraph{Other approaches}
+
+In this book, we use Scala together with the Scala Concurrency Library (SCL).
+However, message-passing concurrency can also be used in a number of other
+languages or with different concurrency primitives.
+
+Message-passing concurrency started with the programming language {\sf occam}.
+It was developed by INMOS in the early 1980s, targeting their transputer
+microprocessors.
+
+Concurrent Scala Objects (CSO) is a library of concurrency primitives, mostly
+message-passing, developed by Bernard Sufrin.  SCL is heavily based on CSO,
+and inherits much of the same syntax.  
+
+Go\footnote{\url{https://golang.org/}} is a programming language created
+by Google that uses message passing.  It is probably the most
+mainstream such language.
+
+
+Rust supports concurrency in a number of styles, including message
+  passing\footnote{%
+    \url{https://doc.rust-lang.org/book/ch16-02-message-passing.html}}. 
+Erlang uses similar ideas, in a functional setting.
+
+Message-passing libraries are available for a number of other languages.  For
+example, JCSP\footnote{\url{http://www.cs.kent.ac.uk/projects/ofa/jcsp/}} is
+an implementation  for Java.
+
+% \item Eclectic
+% CSP\footnote{\url{http://users.comlab.ox.ac.uk/bernard.sufrin/ECSP/ecsp.pdf}}
+% is an experimental language based on CSP, and a precursor of CSO.
+
+%% \item Communicating Haskell
+%% Processes\footnote{\url{http://www.cs.kent.ac.uk/projects/ofa/chp/}} is a
+%% Haskell library to support CSP-style communication.
+
+
+% \item
+% There are various experimental languages based on Python with CSP-style
+% communication. 
+
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -32,25 +110,13 @@ Examples: components; pipelines; fine-grained concurrency.
 
 \input{Exercises/boundedNats} % bounded version of NatsCircuit
 
-\input{Exercises/merge}
-
-\input{Exercises/hamming} 
-
+\input{Exercises/hamming} % Hamming numbers
 
 \input{Exercises/pipesort} % sorting using a pipeline.
+
+\input{Exercises/quicksort}
 
 \input{Exercises/sorting} % sorting using comparators
 
 
-More exercises:
-
-quicksort
-
-fibs
-
-integrator?
-
-Bitonic part of sorting practical.
-
-%% Nats circuit from B's notes?? 
-%% \url{https://www.cs.ox.ac.uk/teaching/materials15-16/concurrentprogramming/Lectures/04-channels.pdf}
+% More exercises: Bitonic part of sorting practical?

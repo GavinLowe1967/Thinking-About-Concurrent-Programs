@@ -26,7 +26,7 @@ object Mergesort{
       x1 = in?()
       attempt{
         x2 = in?()
-        val to1, to2, from1, from2 = new SyncChan[Int]
+        val to1, to2, from1, from2 = new UnboundedBuffChan[Int]
         def controller = thread("controller"){
           to1!x1; to2!x2
           repeat{ to1!(in?()); to2!(in?()) }

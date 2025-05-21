@@ -1,11 +1,12 @@
 \section{Example: Mergesort}
+\label{sec:mergesort}
 
 We now consider another example of fine-grained concurrency, and build a
-circuit to sort a stream of integers, based on the mergesort algorithm.  The
+circuit to sort a stream of integers, based on the Mergesort algorithm.  The
 circuit inputs a steam of |Int|s (with the end of stream signalled by the
 channel closing), and then outputs a sorted version of that stream (and closes
-the channel to indicate that).  The circuit is not the most practical way to
-sort numbers; but it illustrates various ideas.
+the channel to indicate the end of the stream).  The circuit is not the most
+practical way to sort numbers, but it illustrates various ideas.
 
 More precisely, we will write a  definition with the following signature
 %
@@ -14,31 +15,16 @@ More precisely, we will write a  definition with the following signature
 \end{scala}
 %
 The function will produce a |ThreadGroup| that, when run, performs the
-sorting.  The mergesort algorithm is recursive, so the |mergesort| function
+sorting.  The Mergesort algorithm is recursive, so the |mergesort| function
 will also be recursive.
-
-%% Suppose the input stream is empty.  Then |qSort| should just close its output
-%% port to signal an empty output stream.  This can be achieved using the
-%% following outline.
-%% %
-%% \begin{scala}
-%%   def qSort(in: ??[Int], out: !![Int]): ThreadGroup = thread("QSort"){
-%%     attempt{
-%%       val pivot = in?()
-%%       ...
-%%     }{
-%%       out.endOfStream() // We've received no data, so just close
-%%     }
-%%   }
-%% \end{scala}
-%
-
 
 Suppose the input stream is empty.  Then |mergesort| should just close its
 output channel to signal an empty output stream.  Similarly, if the input
 stream contains a single value~|x1|, then |mergesort| should output~|x1| and
 then close its output channel.  This can be achieved using the following
-outline
+outline:
+%
+\begin{mysamepage}
 \begin{scala}
   def mergesort(in: ??[Int], out: !![Int]): ThreadGroup = thread("mergesort"){
     var x1 = -1; var x2 = -1
@@ -47,10 +33,11 @@ outline
       attempt{
         x2 = in?()
         ...   // Sort stream starting with £x1£ and £x2£.
-      }{ out!x1; out.endOfStream() } // Received only x1.
+      }{ out!x1; out.endOfStream() } // Received only £x1£.
     }{ out.endOfStream() } // Received empty stream.
   }
 \end{scala}
+\end{mysamepage}
 %
 The command |attempt{p}{q}| acts like~|p|, but if that throws a |Stopped|
 exception, it executes~|q|.  Thus if the initial attempt to input |x1| on |in|
@@ -84,27 +71,27 @@ recursive |mergesort| processes.
 \begin{tikzpicture}[xscale = 1.2]
 \draw (0,0) node[draw, minimum width=40mm] (controller) {\scalashape controller};
 \draw[->] (controller.west) ++ (-1,0) -- 
-   node[above]{\scalashape in} (controller.west);
+   node[above]{\scalashape\small in} (controller.west);
 \draw[<-] (controller.east)++(1,0)  -- 
-   node[above]{\scalashape out} (controller.east);
+   node[above]{\scalashape\small out} (controller.east);
 %
 \draw (controller) ++ (-1,3) node[draw] (rec1) {\scalashape mergesort};
 \draw (rec1.south)++(-0.20,0.1) node (rec1In) {};
 \draw[->] (controller.north) ++ (-1.201,0.0) -- 
-  node[above,sloped] {\scalashape to1} (rec1In);
+  node[above,sloped] {\scalashape\small to1} (rec1In);
 % Note: the 0.001 difference between x-coords is to get the label on the right
 % side.
 \draw (rec1.south)++(0.2,0.1) node (rec1Out) {};
 \draw[<-] (controller.north) ++ (-0.801,0) -- 
-  node[below,sloped] {\scalashape from1} (rec1Out);
+  node[below,sloped] {\scalashape\small from1} (rec1Out);
 %
 \draw (controller) ++ (1,3) node[draw] (rec2) {\scalashape mergesort};
 \draw (rec2.south)++(-0.2,0.1) node (rec2In) {};
 \draw[->] (controller.north) ++ (0.8,0.0) -- 
-  node[above,sloped] {\scalashape to2} (rec2In);
+  node[above,sloped] {\scalashape\small to2} (rec2In);
 \draw (rec2.south)++(0.2,0.1) node (rec2Out) {};
 \draw[<-] (controller.north) ++ (1.2,0) -- 
-  node[below,sloped] {\scalashape from2} (rec2Out);
+  node[below,sloped] {\scalashape\small from2} (rec2Out);
 \end{tikzpicture}
 \end{center}
 
@@ -137,20 +124,20 @@ results of two recursive calls to |mergesort|.
       x1 = in?()
       attempt{
         x2 = in?()
-        val to1, to2, from1, from2 = new SyncChan[Int]
+        val to1, to2, from1, from2 = new UnboundedBuffChan[Int]
         def controller = thread("controller"){
           to1!x1; to2!x2
           repeat{ to1!(in?()); to2!(in?()) }
           to1.endOfStream(); to2.endOfStream()
           merge(from1, from2, out)
         } // End of £controller£.
-        // Put system together and run it.
+        // Put the system together and run it.
         run( controller || mergesort(to1, from1) || mergesort(to2, from2) )
       }{ out!x1; out.endOfStream() } // Received only £x1£.
     }{ out.endOfStream() } // Received empty stream.
   }
 \end{scala}
-\caption{The concurrent mergesort program.}
+\caption{The concurrent Mergesort program.}
 \label{fig:mergesort}
 \end{figure}
 
@@ -166,20 +153,24 @@ variables.  The variable |closed1| is true if |in1| has been detected as
 closed; otherwise |x1| holds the last value read from |in1|, which has not yet
 been output.  A similar property holds for |closed2|, |x2|, and~|in2|.
 
+\begin{instruction}
+Make sure you understand the code in Figure~\ref{fig:mergesort}.
+\end{instruction}
+
 %%%%%  
 
-We now consider testing.  Testing is an important part of programming; but
-since concurrent programs tend to be harder than sequential ones, testing is
-particularly important in this case.
+We now consider testing.  Testing is an important part of programming.  But
+testing is particularly important for concurrent programs, because they tend
+to be somewhat harder than sequential ones.
 
-A general strategy for testing a concurrent program is to generate some random
-data, run the concurrent program on it, run a corresponding sequential program
-on it, and check that the two give the same answer.  This can be repeated many
-times.  Of course, this assumes that we have a correct sequential program for
-the same problem, but that's normally not too difficult.  In fact, this
-strategy is also useful for testing sequential programs, where we have a
-simple implementation that we are sure is correct, but we want to test a more
-sophisticated program against it.
+A fairly general strategy for testing a concurrent program is to generate some
+random data, run the concurrent program on it, run a corresponding sequential
+program on it, and check that the two give the same answer.  This can be
+repeated many times.  Of course, this assumes that we have a correct
+sequential program for the same problem, but that's normally not too
+difficult.  In fact, this strategy is also useful for testing sequential
+programs, where we have a simple implementation that we are sure is correct,
+but we want to test a more sophisticated implementation against it.
 
 The following code achieves this.
 %
@@ -207,10 +198,10 @@ $\interval{0}{\sm{MaxSize}}$; each element of |xs| is picked randomly in the
 range $\interval{0}{\sm{Max}}$.  The |sender| thread sends the elements
 of~|xs| to the |qSort| network on the |in| channel, then signals the end of
 the stream.  The |receiver| thread receives the outputs from |qSort|, and
-stores them in~|ys|.  The final line tests whether a sorted version of |xs|
-(sorted using the |sorted| function from the Scala |Array| class) contains the
-same elements as the outputs; if this doesn't hold, it prints information
-about the inputs and outputs, to help with debugging.
+stores them in~|ys|.  The final assertion tests whether a sorted version of
+|xs| (produced using the |sorted| function from the Scala |Array| class)
+contains the same elements as the outputs; if this doesn't hold, it prints
+information about the inputs and outputs, to help with debugging.
 
 We can then run |doTest| many times:
 %
@@ -308,9 +299,9 @@ channel, then $a \equiv a'$.
 
 Note that some pairs of actions may be unrelated by~$\preceq$.  For example,
 consider two actions in different threads, with no intervening channel
-communication.  In such cases, the actions can happen in either order, so, we
-need to be sure that either order is acceptable---i.e.~there is no race
-condition.
+communication.  In such cases, the actions can happen concurrently in either
+order, so, we need to be sure that either order is acceptable---i.e.~there is
+no race condition.
 
 Using this style of reasoning can also be useful for reasoning about the
 efficiency of a concurrent program.  Suppose we can find a chain of $n$
@@ -327,16 +318,16 @@ without being descheduled; then the program will run in time $O(n)$.  Thus
 finding the length of the longest such chain can give us an idea of the
 running time of the program (modulo the assumption about hardware).
 
-For example, consider the mergesort program from the previous section.  We can
-consider just the actions of sending and receiving messages: between each
-consecutive pair of such actions, a thread does $O(1)$ amount of work.  Let's
-write $A(l)$ for the number of such actions performed on an input stream of
-length~$l$.  For simplicity, let's restrict to the case where $l$ is a power
-of~2.  Then we have the following equations:
+For example, consider the Mergesort program from the previous section.  It is
+enough to consider just the actions of sending and receiving messages: between
+any consecutive pair of such actions, a thread does $O(1)$ amount of work.
+Let's write $A(l)$ for the number of such actions performed on an input stream
+of length~$l$.  For simplicity, let's restrict to  cases where $l$ is a
+power of~2.  Then we have the following equations:
 %
 \begin{eqnarray*}
 A(1) & = & 2, \\
-A(l) & = & 4l+A(l/2).
+A(l) & \le & 4l+A(l/2).
 \end{eqnarray*}
 %
 The first equation is straightforward: the one data value is inputted and
@@ -344,122 +335,16 @@ outputted.  For the second clause, note that a maximal chain is comprised of:
 the controller inputting $l$ values interleaved with $l$ sends of those values
 to the recursive threads; $A(l/2)$ actions by a recursive thread; then the
 controller receiving $l$ values from the recursive threads interleaved with
-$l$ outputs of those values.  It is then straightforward to show that $A(l)
-\le 8l$ (e.g.~via a proof by induction).  Thus we can potentially sort $l$
-inputs in time $O(l)$---unlike the $O(l \log l)$ time for a sequential
-program!  This result needs to be treated with a pinch of salt: the
-program uses nearly~$2l$ threads, and for even moderate values for~$l$, we're
-unlikely to have enough processors for every thread to run without being
-descheduled. 
+$l$ outputs of those values.  In particular, the actions of the two recursive
+threads can occur concurrently (we used buffered channels to ensure neither
+recursive thread could be held up by the controller not being ready to accept
+its outputs).  In fact, the equation gives an upper bound on $A(l)$, as it
+doesn't take account of the fact that some actions of the recursive threads
+can be concurrent with actions of the controller. 
 
- 
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\section{IMPROVE}
-
-%% \heading{Data-less channels}
-
-%% It is sometimes useful to use a channel communication solely for
-%% synchronisation between threads, rather than to pass any data.
-
-%% This can be achieved in SCL using a channel that passes data of type
-%% \SCALA{Unit}, the trivial type that contains a single value~\SCALA{()}.  
-
-%% For example:
-%% \begin{scala}
-%% val c = new SyncChan[Unit]
-%% run(thread{ print("Hello "); c!() } || thread{ c?(); println("world") })
-%% \end{scala}
-
-%% % This usage corresponds to simple events in CSP. 
-%% We can reason using the happens-before relation.
-%% \[
-%% \sm{print("Hello")} \prec \sm{c!()} \equiv \sm{c?()} \prec \sm{println("world")}.
-%% \]
-
-%% The use of |!| and |?| could be reversed (but not with a buffered channel).
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-%%%%%
-
-\heading{Other approaches}
-
-\begin{itemize}
-\item Concurrent Scala Objects (CSO) is an API developed by Bernard Sufrin.
-  SCL is heavily based on CSO.
-
-\item Go\footnote{\url{https://golang.org/}} is a programming language created
-by Google, using CSP-style channels.  It is probably the most
-mainstream such language.
-
-\item
-{\sf occam} is a programming language based on CSP, and developed by INMOS in
-the early 1980s.
-
-\item Erlang uses similar ideas, in a functional setting.
-
-\item JCSP\footnote{\url{http://www.cs.kent.ac.uk/projects/ofa/jcsp/}} is an
-implementation of CSP for Java.
-
-% \item Eclectic
-% CSP\footnote{\url{http://users.comlab.ox.ac.uk/bernard.sufrin/ECSP/ecsp.pdf}}
-% is an experimental language based on CSP, and a precursor of CSO.
-
-%% \item Communicating Haskell
-%% Processes\footnote{\url{http://www.cs.kent.ac.uk/projects/ofa/chp/}} is a
-%% Haskell library to support CSP-style communication.
-
-\item Rust supports concurrency in a number of styles, including message
-  passing\footnote{%
-    \url{https://doc.rust-lang.org/book/ch16-02-message-passing.html}}. 
-
-% \item
-% There are various experimental languages based on Python with CSP-style
-% communication. 
-\end{itemize}
-
-
-%%%%%
-
-
-\section{Summary}
-
-Other approaches
-
-Encapsulation
-
-\heading{Object-oriented versus thread-oriented programming}
-
-Objects and threads can both be thought of as forms of
-\emph{modularisation}. 
-
-In object-oriented systems, many objects can exist simultaneously, each with
-its own state.  Normally, a single one is active at a time.  They communicate
-by procedure calls, which pass data and control.
-
-In thread-oriented systems, many threads can exist simultaneously, each
-with its own state, and (often) all active at the same time.  They communicate
-by sending and receiving messages, which pass data.
-
-Sometimes an individual thread will use multiple objects.  Sometimes objects
-encapsulate threads.
-
-
-\begin{itemize}
-\item Examples: Quicksort, sorting networks.
-
-\item 
-Data-less channels.
-
-\item
-The happens-before relation.
-
-\item
-Threads and objects.
-
-\item
-Other approaches.
-\end{itemize}
+It is then straightforward to show that $A(l) \le 8l$ (e.g.~via a proof by
+induction).  Thus we can potentially sort $l$ inputs in time $O(l)$---unlike
+the $O(l \log l)$ time for a sequential program!  This result needs to be
+treated with a pinch of salt: the program uses nearly~$2l$ threads, and for
+even moderate values for~$l$, we're unlikely to have enough processors for
+every thread to run without being descheduled.

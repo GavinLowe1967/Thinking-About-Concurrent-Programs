@@ -3,12 +3,19 @@ Mults4.scala: The pipeline program to print the multiples of four.
 BoundedMults4.scala: The pipeline program to print the multiples of four up to
 some maximum value.
 
-QSortChannels.scala: Quicksort implemented using recursive parallelism. 
-
 NatsCircuit.scala: Fine-grained concurrency network to print natural numbers.
 
+Mergesort.scala: Mergesort implemented using recursive parallelism.
+
 BoundedNatsCircuit.scala: Fine-grained concurrency network to print natural
-numbers up to some limit.  Exercise???
+numbers up to some limit.  (Exercise.)
 
 Hamming.scala: Fine-grained concurrency network to produce the Hamming
-numbers.
+numbers.  (Exercise.)
+
+PipeSort.scala: Sorting using a pipeline.  (Exercise.)
+
+QSortChannels.scala: Quicksort implemented using recursive parallelism.
+(Exercise.)
+
+Sortng.scala: Sorting using comparators.  (Exercise.)

@@ -39,10 +39,10 @@ stream is closed.
 Here's a new version of |alts| that does this.
 %
 \begin{scala}
-def alts[A](in: ??[A], out: !![A]) = thread("alts"){ 
-  try{ while(true){ out!(in?()); in?() } } 
-  catch{ case _: Closed => in.close(); out.endOfStream() }
-}
+  def alts[A](in: ??[A], out: !![A]) = thread("alts"){ 
+    try{ while(true){ out!(in?()); in?() } } 
+    catch{ case _: Closed => in.close(); out.endOfStream() }
+  }
 \end{scala}
 % 
 If either sending or receiving fails, because the channel has been closed, the
@@ -186,7 +186,11 @@ parallel.  (In the first parameter of |takeWhile|, the notation \SCALA{(x:
   Int) => x <= max} represents the function that takes an |Int| argument~|x|,
 and returns the result of the test |x <= max|.)
 
-\medskip
+\begin{instruction}
+Make sure you understand how the termination signal is propagated through the
+system. 
+\end{instruction}
+%\medskip
 
 There are two other operations on channels related to closing. 
 It is possible to test whether a channel~|c| is closed using the expression
@@ -283,33 +287,52 @@ on.  In particular, it is important that |prefix 0| can send \emph{before} it
 receives any value.  If every component started by trying to receive a value,
 none would succeed, and the circuit would be deadlocked. 
 
+\begin{instruction}
+Make sure you understand how the circuit works, and how values propagate
+round.
+\end{instruction}
 
-
-
-
-%% The above version of \SCALA{tee} outputs on its \SCALA{out1} channel before
-%% its \SCALA{out2} channel.  What happens if we use this in the context of some
-%% larger system that inputs on \SCALA{out2} before \SCALA{out1}?  For example:
-%% \begin{scala}
-%% val in, out1, out2 = new SyncChan[Int]
-%% run( tee(in, out1, out2) || thread{ println(out2?() + out1?()) } )
-%% \end{scala}
+The above version of \SCALA{tee} outputs on its \SCALA{out1} channel before
+its \SCALA{out2} channel.  That definition is fine in the context of the
+circuit in question.  However, it could go wrong if used in the context of
+some larger system that inputs on \SCALA{out2} before \SCALA{out1}.  For
+example consider the following:
+%
+\begin{scala}
+  val in, out1, out2 = new SyncChan[Int]
+  def printer = thread("printer"){ println(out2?() + out1?()) } 
+  run( tee(in, out1, out2) || printer)
+\end{scala}
+%
+The printer thread will try to input on |out2| first (because |+| evaluates
+its left-hand argument first).  But that means the system will get into a
+deadlocked state, where the |tee| is blocked, trying to send on |out1|, and
+the printer is blocked trying to receive on |out2|.  (Recall that in such
+situations, typing \texttt{Ctrl}+$\backslash$ in the terminal produces a
+thread dump, giving information about the running threads, which can be useful
+for debugging.)
 
 %% % %%%%%
 
 %% Generic components should place as few assumptions as possible upon the
-%% network in which they are placed.  The following version of |tee| performs the
-%% outputs concurrently, i.e.~in either order.
-%% %
-%% \begin{scala}
-%% def tee[A](in: ??[A], out1: !![A], out2: !![A]) = thread{
-%%   while(true){ 
-%%     val v = in?()
-%%     run(thread{out1!v} || thread{out2!v}) 
-%%   }
-%% }
-%% \end{scala}
-
-%% However, creating and running two new threads is moderately expensive.  In
-%% specific settings, it might be more efficient and easier to perform the
-%% outputs in a fixed order.
+%% network in which they are placed. 
+The following version of |tee| performs the outputs concurrently, which means
+they can happen in either order.
+%
+\begin{mysamepage}
+\begin{scala}
+  def tee[A](in: ??[A], out1: !![A], out2: !![A]) = thread{
+    repeat{ 
+      val v = in?()
+      run(thread{out1!v} || thread{out2!v}) 
+    }
+  }
+\end{scala}
+\end{mysamepage}
+%
+This version of |tee| will work fine in the context of the above system.  It
+might be worth defining components in this style for generic components, or
+when you don't know the order in which two communications will happen (and
+this will be necessary in Exercise~\ref{ex:sorting}).  However, creating and
+running two new threads is moderately expensive.  In specific settings, it
+might be easier and more efficient to perform the outputs in a fixed order.

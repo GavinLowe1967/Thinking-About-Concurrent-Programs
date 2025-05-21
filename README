@@ -14,9 +14,10 @@ Chaper 2: Message passing using channels.
 - Buffered channels
 - Closing channels
 - Example: producing the natural numbers
-- TODO: allow either order for inputs, outputs
-- Summary - TO DO
-- Exercises - TO DO -- maybe move some to Chapter 3.
+- Example: Mergesort
+- Reasoning about the order of actions
+- Summary - TODO: review
+- Exercises - TO DO: review
 
 Chapter 3: Using Channels
 - Quick Sort
@@ -25,6 +26,20 @@ Chapter 3: Using Channels
 - ordering of actions -- write or move
 - sorting practical intro -- move to exercise? 
 - Various things near end
+
+Chapter 4: Example: Numerical Integration
+- Trapzeium example, probably also bag-of-tasks.  Move material on experiments 
+to appendix 
+
+Chapter 5: Alternation
+
+Chaper 6: Client-Server
+
+Chapter 7: Interacting Peers
+
+Chapter 8: Concurrent Datatypes
+- Include material from sharedVariables.tex
+ 
 
 --------------
 

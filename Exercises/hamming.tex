@@ -42,8 +42,12 @@ The Hamming numbers can be produced by a circuit as depicted below.
 \end{center}
 %
 The |prefix 1| and |tee| components are as in Figure~\ref{fig:NatsCircuit}.
-The |merge| components are as in Exercise~\ref{ex:merge}.  The |*2|, |*3|,
-and~|*5| components multiply their inputs by~$2$, $3$ and~$5$, respectively.
+The |*2|, |*3|, and~|*5| components multiply their inputs by~$2$, $3$ and~$5$,
+respectively.  The |merge| components receives two strictly increasing streams
+and merges them together into a single strictly increasing stream; note that
+this involves removing duplicate values, so this is slightly different from
+the |merge| component we used in Section~\ref{sec:mergesort}.
+
 Thus the |prefix 1| component sets things going; the |*2|, |*3|, and |*5|
 components produce appropriate multiples; and the |merge| components merge the
 streams together.
@@ -52,7 +56,7 @@ streams together.
 \item Implement the circuit using synchronous channels.  You will find that
   the system deadlocks.  Why is this?
 
-\item Adapt the network to use buffered channels where appropriate.  Is finite
+\item Adapt the network to use buffered channels, where appropriate.  Is finite
   buffering enough?
 
 \item Adapt the network so that it produces outputs only up to some given
@@ -63,8 +67,27 @@ streams together.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \begin{answerI}
-I produce the system (for the final part) as follows.  The |*2|, |*3|,
-and~|*5| components are simply instances of~|map|.
+The |*2|, |*3|, and~|*5| components are simply instances of~|map|.
+
+The |merge| function can be written as follows.  This meaintains the invariant
+that  |l| is the last value read from |left|, and |r| is the last value read
+from |right|.  In this example, closing of channels is just used to signal
+termination, so we do not need to worry about outputting remaining inputs.
+%
+\begin{scala}
+  def merge(left: ??[Int], right: ??[Int], out: !![Int]) = thread("Merge"){
+    var l = left?(); var r = right?()
+    repeat{
+      if(l < r){ out!l; l = left?() }
+      else if(l == r){ out!l; l = left?(); r = right?() }
+      else{ out!r; r = right?() }
+    }
+    left.close(); right.close(); out.endOfStream()
+  }
+\end{scala}
+
+The following function produces the system (including the latter part of the
+question).
 %
 \begin{scala}
 def system(out: !![Int], max: Int) = {
@@ -88,18 +111,19 @@ numbers less than $2n$; I say ``most'', because there might be a couple of
 Hamming numbers either still in the |*2| component or the previous |tee|
 component.  But that means that most of the Hamming numbers between $n$
 and~$2n$ have to be stored somewhere in the subcircuit between the |*2| and
-|prefix| components---and there simply isn't enough capacity for all of them.  
+|prefix| components---and there simply isn't enough capacity for all of them. 
+ 
 I use a buffered channel for the output from the |*2| component to store
 them.  In fact, the number of Hamming numbers between~$n$ and~$2n$ tends to
 infinity as $n$ tends to infinity, so we need an unbounded buffer.  The same
 is true for the |*3| and |*5| components. 
 
 To achieve termination, I inserted a |takeWhile| component just before the
-|prefix| component---but it could have been inserted pretty much anywhere.  We
-also adapt each component to close its output channels when its main loop
-terminates, and also arrange for the |takeWhile| and |merge| components to
-close their input channels; the latter is necessary, or else we can get into a
-situation where one of those components is trying to send to another, but the
-latter has terminated, so the network is deadlocked.  There's no harm in
-\emph{every} component closing its input channels. 
+|prefix| component---but it could have been inserted pretty much anywhere.
+Also, each component is adapted to close its output channels when its main
+loop terminates, and also arrange for the |takeWhile| and |merge| components
+to close their input channels; the latter is necessary, or else we can get
+into a situation where one of those components is trying to send to another,
+but the latter has terminated, so the network is deadlocked.  There's no harm
+in \emph{every} component closing its input channels.
 \end{answerI}
