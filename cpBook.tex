@@ -10,6 +10,8 @@
 \usepackage{tikz}
 \usepgflibrary{arrows}
 \tikzset{>=angle 90}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.10}
 
 \usepackage{book} % misc macros
 
@@ -52,12 +54,15 @@
 %% \newpage
 \input{intro}
 \input{channels}
-%\input{usingChannels}
+\input{trapezium}
 
 \appendix
 
 \input{scala}
+\input{experiments}
 % type params
+
+%%%%%
 
 \input{answers}
 \end{document}

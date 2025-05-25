@@ -19,17 +19,13 @@ Chaper 2: Message passing using channels.
 - Summary - TODO: review
 - Exercises - TO DO: review
 
-Chapter 3: Using Channels
-- Quick Sort
-- Deal with "tee" subsection
-- thread(name){...} notation -- maybe delay
-- ordering of actions -- write or move
-- sorting practical intro -- move to exercise? 
-- Various things near end
 
-Chapter 4: Example: Numerical Integration
+Chapter 3: Example: Numerical Integration
 - Trapzeium example, probably also bag-of-tasks.  Move material on experiments 
 to appendix 
+- Note Words: range (whole range of integration), sub-range (for a task), interval (for a trapezium)
+
+Experiments: buffering experiment; throughput
 
 Chapter 5: Alternation
 
@@ -40,6 +36,11 @@ Chapter 7: Interacting Peers
 Chapter 8: Concurrent Datatypes
 - Include material from sharedVariables.tex
  
+
+Appendices
+
+- Scala -- write
+- Experiments -- improve
 
 --------------
 

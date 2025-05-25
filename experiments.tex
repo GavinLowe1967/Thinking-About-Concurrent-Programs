@@ -1,0 +1,148 @@
+\chapter{Experimental design}
+
+
+\begin{slide}
+\heading{Experimental design}
+
+Performance is affected by a number of factors.  Hence, the results follow a
+random distribution.  We need to
+%
+\begin{itemize}
+\item
+Control the behaviour so as to reduce ``noise'' in the results as much as
+possible;
+
+\item
+Perform a statistical analysis of the results so as to understand their
+significance.
+\end{itemize}
+
+See \emph{Statistically Rigorous Java Performance Evaluation}, by Andy
+Georges, Dries Buytaert and Lieven Eeckhout.
+\end{slide}
+
+%%%%%
+
+\begin{slide}
+\heading{Experimental design}
+
+Performance of any timing experiment can be affected by other processes
+running on the same machine, causing the threads of the experiment to be
+de-scheduled. 
+
+Therefore, timing experiments should be run on a dedicated machine, with as
+few other processes (particularly CPU-intensive processes) as possible running
+at the same time.
+
+% Also, if you use a network filestore, loading class files across the network
+% can affect the run-time.  This can be avoided by ignoring the first
+% observation. 
+\end{slide}
+
+%%%%%
+
+\begin{slide}
+\heading{Independence of observations}
+
+We want different observations to be independent.  Different observations run
+on the same JVM can affect one another for several reasons:
+%
+\begin{itemize}
+\item
+Just-in-time (JIT) compilation;
+
+\item
+Garbage collection;
+
+% \item
+% Program locality affecting memory performance;
+
+\item
+The data structure being tested not being re-set to its initial state.
+\end{itemize}
+%
+Therefore each observation should normally be performed on a separate run of
+the JVM.
+\end{slide}
+
+%%%%%
+
+\begin{slide}
+\heading{Independence of observations}
+
+My normal approach is to write a stand-alone \emph{observation} program that
+reads parameters of the observation from the command line, performs the
+observation, and prints the time taken onto standard output.
+
+A separate \emph{test harness} program invokes the observation program as a
+separate operating system process, and reads the result.  For each choice of
+parameters, it repeats this and performs a statistical analysis.
+
+This means that start-up costs, such as JIT compilation, are included in the
+observation.  If steady-state performance is relevant, either do long runs, or
+start timing only once steady-state behaviour is reached.  Try to get the
+observations to match real use cases.
+\end{slide}
+
+%%%%%
+
+\begin{slide}
+\heading{Statistical analysis}
+
+Given $k$ observations $x_i$ ($0 \le i < k$), we can calculate their mean:
+\[
+m = \frac{\sum_{i = 0}^{k-1} x_i}{k}.
+\]
+
+We are actually interested in the mean $\mu$ of the underlying probability
+distribution from which the observations are made. 
+
+We can take $m$ as an estimate of $\mu$, but how accurate is it?
+
+Let $\alpha \in [0,1]$, e.g.\ $\alpha = 0.05$; we call $\alpha$ the
+significance level.  We want a \emph{confidence interval} $[m-s, m+s]$ such
+that $\mu$ is in this interval with probability~$1-\alpha$.
+
+More precisely, if we repeat this procedure multiple times, the calculated
+confidence interval will include $\mu$ a proportion $1-\alpha$ of the time. 
+\end{slide}
+
+%%%%%
+
+\begin{slide}
+\heading{Statistical analysis}
+
+See the paper by Georges et al.\ or a statistics text book for details on how
+to calculate the confidence interval.  
+
+The course website contains code to calculate the mean and confidence
+interval. 
+%% The  function
+%% \begin{scala}
+%% ox.cads.experiments.ConfidenceIntervals(xs: Array[Double], alpha: Double)
+%% \end{scala}
+%% %
+%% returns the pair $(m, s)$. 
+
+$\alpha$ is called the significance level, and $1-\alpha$ the confidence
+level.  (Earlier we took $\alpha = 0.05$, and so calculated 95\% confidence
+intervals.) 
+\end{slide}
+
+%%%%%
+
+%% \begin{slide}
+%% \heading{Obtaining decent confidence intervals}
+
+%% We need to perform enough observations that we end up with decent confidence
+%% intervals.  But running lots of experiments can be time consuming. 
+
+%% The experiments repeated each observation at least five times, and until
+%% either half the confidence interval ($s$) is less than 1\% of the mean, or 50
+%% observations had been done.  This is pragmatic: once the confidence interval
+%% is good enough, we can stop making more observations.
+
+%% %  (The function
+%% % |ox.cads.experiments.Experiments.iterateMeasurement| supports
+%% % this.)
+%% \end{slide}
