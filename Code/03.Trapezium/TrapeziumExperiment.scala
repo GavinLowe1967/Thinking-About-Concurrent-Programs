@@ -1,8 +1,6 @@
 package tacp.trapezium
 
-import ox.gavin.experiments.{Experiments,Graphs}
-// import ox.gavin.profiling.{SamplingProfiler,ProfilerSummaryTree}
-
+import tacp.util.experiments.{Experiments,Graphs}
 
 /** The main experiment program. */
 object TrapeziumExperiment{
@@ -17,22 +15,8 @@ object TrapeziumExperiment{
     br.readLine
   }
 
-  val hostname = getEnv("hostname") // java.lang.System.getenv("hostname")
-  println(s"hostname: $hostname")
-
-  /** Classpath.  Note: this needs to be edited. */
-  val cp =
-    if(hostname == "Gavin--T5500") "-cp .:/home/gavin/Scala/SCL"
-    else if(hostname == "casteret") "-cp .:/home/gavinl/Scala/SCL"
-    else{ 
-      println(s"Hostname $hostname not recognised.  Using default classpath.")
-      ""
-    }
-
-  println(s"classpath: $cp")
-
-  // Basic command
-  val cmd0 = s"scala $cp TrapeziumRun "
+  // Basic command.  Note: this assumes the relevant files are on the classpath. 
+  val cmd0 = s"scala tacp.trapezium.TrapeziumRun "
 
   /** Parameters defining statistical analysis of experiments: repeat for at
     * least 5 observations, and until 95% confidence half-interval is at most
@@ -40,13 +24,15 @@ object TrapeziumExperiment{
   val strictParams = new Experiments.Params(5, 50, 0.05, 0.01)
   // Very strict version
   val veryStrictParams = new Experiments.Params(5, 100, 0.05, 0.005)
-  // less accurate version; useful for getting the idea of the graph
+  // Less accurate version; useful for getting the idea of the graph
   val normalParams = new Experiments.Params(4, 10, 0.05, 0.02)
   // Very rough version; useful for testing the program
   val quickParams = new Experiments.Params(2, 0.05, 0.1)
 
   // var syncChan = false
   var server = false
+
+  var quick = false
 
   /** Amount of buffering to use (in experiments not concerning buffering). */
   var buffering = 0
@@ -59,11 +45,14 @@ object TrapeziumExperiment{
   // (logSize, logNumTasks) pairs, indicating the experiment should be run
   // on an integral of size 2^logSize, and with 2^logNumTasks tasks.
   def pairs =
-      if(server) Array((22,8), (24,10), (26,12), (28,14))
+      if(server)
+         Array((20,11), (22,12), (24,13), (26,14), (28,15)) 
+         // Array((19,10), (21,11), (23,12), (25,13), (27,14)) 
+  // Array((22,8), (24,10), (26,12), (28,14))
         // Array((29,12), (29,13), (29,14) /*, (29,15), (29,16)*/) 
         // Array((22,8), (24,10), (26,12), (26,11), (28,14), (28,13))
-      else Array((26, 13), (24, 12), (22, 11))
-
+      else //Array((26, 13), (24, 12), (22, 11))
+        Array((18,9), (20,10), (22,11), (24,12), (26,13))
 
   /** Do a measurement corresponding to each command in cmds.
     * @param params the statistical parameters to use.
@@ -106,23 +95,28 @@ object TrapeziumExperiment{
       "scaled ticks = false"
     )
 
+  val dir = "Graphs"
+
   /** Output graphString to screen and to file fname. */
   def outputToFile(fname: String, graphString: String) = {
     println(graphString)
-    Graphs.writeStandAloneFile(fname, graphString)
-    println("Output written to "+fname)
+    val fname1 = s"$dir/$fname"
+    Graphs.writeStandAloneFile(fname1, graphString)
+    println("Output written to "+fname1)
   }
 
   /* ---------------- Actual experiments, first example----------------- */
 
   /** Run experiment where the number of workers is all powers of two up to
     * maxLogP. */
-  def logScaleExperiment(maxLogP: Int, params: Experiments.Params) = {
-    val maxTime = if(server) 12000 else 16000 // ms
-    val ps = (0 to maxLogP).map(1 << _).reverse.toArray
+  def logScaleExperiment(params: Experiments.Params) = {
+    val maxLogP = if(server) 8 else 6
+    val maxTime = if(server) 12000 else 20000 // ms
+    val ps = (0 to maxLogP).map(1 << _).toArray
+    val buffering = -1
 
     val logSizes = 
-      if(server) Array(18, 20, 24, 28) else Array(16, 18, 20, 24)
+      if(server) Array(18, 20, 24, 28) else Array(14, 16, 18, 20, 24)
     val sizes = logSizes.map(k => 1L << k)
     val plots = sizes.length
     val results = new Array[Array[(Double,Double)]](plots)
@@ -131,7 +125,7 @@ object TrapeziumExperiment{
       val reps = if(server) (1L << 28)/size else (1L << 27)/size
       val cmd1 = s"$cmd0 --size $size --reps $reps --buffering $buffering "
       val cmds = ps.map(p => cmd1+" -p "+p)
-      results(i) = doMeasurements(cmds, params, maxTime*10)
+      results(i) = doMeasurements(cmds, params, maxTime)
     }
 
     // Produce graphs
@@ -140,9 +134,7 @@ object TrapeziumExperiment{
         Array("xlabel = Number of workers", "legend pos = north west",
           "xmin = 1", "ymin = 0", "ymax = "+maxTime, "log basis x=2")
     val labels = logSizes.map(k => "$n = 2^{"+k+"}$")
-    val graphString = 
-      Graphs.makeLogXGraph(options, labels, ps, results)
-      // Graphs.makeLogXGraph(options, Array("Time"), ps, Array(results))
+    val graphString = Graphs.makeLogXGraph(options, labels, ps, results)
     outputToFile("trapeziumExperimentLogScale.tex", graphString)
   }
 
@@ -170,15 +162,6 @@ object TrapeziumExperiment{
     val plotLabels = pairs.map{ case (logSize, _) => "$n = 2^{"+logSize+"}$" }
     val graphString = 
       Graphs.makeLinearGraph(options, plotLabels, numsWorkers, results)
-    // val logSize = 28 
-    // val cmds = numsWorkers.map(p => cmd0+" -p "+p+" --size "+(1<<logSize))
-    // val results = doMeasurements(cmds, params)
-
-    // // Produce graphs
-    // val options = commonOptions++Array("xlabel = Number of workers")
-    // val graphString = 
-    //   Graphs.makeLinearGraph(
-    //     options, Array("$n = 2^{"+logSize+"}$"), numsWorkers, Array(results))
     outputToFile("trapeziumExperimentLinearScale.tex", graphString)
   }
 
@@ -191,14 +174,18 @@ object TrapeziumExperiment{
     val TMax = 4000 // Maximum time we'll consider, in ms
     // numsTasks gives the numbers of tasks
     val tasksPerWorker = (0 to 8).map(1<<_).toArray 
+    val numWorkers = if(server) 64 else 8
     val numsTasks = tasksPerWorker.map(_*numWorkers)
+    val buffering = -1
     val cmd1 = cmd0+(if(monitors) "--bagOfTasksMonitors" else "--bagOfTasks")+ 
       s" -p $numWorkers --buffering $buffering "
 
     // sizes gives the number of intervals in the integral
-    val logSizes = Array(20, 22, 24, 26, 28)
+    val logSizes = 
+      if(server) Array(22, 24, 26, 28, 30) else Array(20, 22, 24, 26, 28)
     val sizes = logSizes.map(k => 1L << k)
     val n = numsTasks.length
+    val total = if(server) 1L << 31 else 1L << 28
     // Array for results, in millis
     val results = Array.ofDim[(Double,Double)](sizes.length, n)
     for(j <- 0 until sizes.length){
@@ -223,12 +210,14 @@ object TrapeziumExperiment{
   /** Experiment to find optimal number of workers in the bag-of-tasks
     * example. */
   def bagOfTasksNumWorkers(params: Experiments.Params, monitors: Boolean) = {
-    val TMax = 2000 
-    val total = if(server) 1<<29 else 1<<26
+    val TMax = 5000 
+    val total = if(server) 1<<29 else 1<<27
+    val buffering = -1
     val cmd1 = cmd0+(if(monitors) " --bagOfTasksMonitors" else " --bagOfTasks")+
       s" --buffering $buffering "
     // Numbers of workers; it might be better to start from 4 = 1<<2 workers
-    val numsWorkers = (0 to 8).map(1 << _).toArray
+    val maxLogNumWorkers = if(server) 8 else 6
+    val numsWorkers = (0 to maxLogNumWorkers).map(1 << _).toArray
     val plots = pairs.length
     val results = new Array[Array[(Double,Double)]](plots)
 
@@ -246,7 +235,8 @@ object TrapeziumExperiment{
     val options = commonOptions++
       Array("title = Experiment on the numerical integration bag-of-tasks "+
                 "example.",
-            "xlabel = Number of workers", "log basis x=2", "ymax = "+TMax)
+        "xlabel = Number of workers", "log basis x=2",
+        "ymin = 0", "ymax = "+TMax)
     val plotLabels = pairs.map{ case (logSize, logNumTasks) =>
       "$n = 2^{"+logSize+"}$; $2^{"+logNumTasks+"}$ tasks" }
     val graphString = 
@@ -315,42 +305,50 @@ object TrapeziumExperiment{
     assert(cmds.length == labels.length)
     val results = new Array[Array[(Double,Double)]](cmds.length)
     for(i <- 0 until cmds.length){
-      val cmd1 = cmds(i)
-      val cmds1 = cmd1 +: sizes.map(size => cmd1+" --buffering "+size)
+      // val cmd1 = cmds(i)
+      val cmds1 = sizes.map(size => cmds(i)+" --buffering "+size)
       results(i) = doMeasurements(cmds1, params, 30000)
     }
+    // sizes uses -1 to represent unbounded buffering.  Change this to
+    // "\infty" for the x-axis labels.
+    val sizes1 = sizes.map(size => if(size < 0) "$\\infty$" else size.toString)
     val options = commonOptions++
       Array("title = Experiment on the benefits of buffering", 
         "xlabel = Amount of buffering",  "xtick = data",
-        "symbolic x coords="+(0+:sizes).map(_.toString).mkString("{",",","}") )
-    Graphs.makeLinearGraph(options, labels, 0 +: sizes, results)
+        "symbolic x coords="+ sizes1.mkString("{",",","}") )
+    Graphs.makeLinearGraph(options, labels, sizes1, results)
   }
 
 
   /** Experiment with different amounts of buffering for different sizes (fixed
     * number of workers). */
   def bufferingExperiment(params: Experiments.Params) = {
-    val logIntervals = if(server) Array(18,19,20,24) else Array(15,16,17,18)
-    val intervals = logIntervals.map(1L << _) // (_ << 12)
+    val logIntervals = 
+      if(quick){ if(server) Array(19,20) else Array(16,20) } 
+      else if(server) Array(18,19,20,24) else Array(14,16,18,20,24) //Array(15,16,17,18)
+    val intervals = logIntervals.map(1L << _) 
     val p = if(server) 64 else 8
     val cmd1 = s"$cmd0 -p $p "
-    val total = if(server) 1<<28 else 1<<26 // size * reps
+    val total = if(server) 1<<28 else 1<<27
     val cmds = intervals.map(n => s"$cmd1 --size $n --reps "+(total/n))
-    val buffs = (0 to 5).toArray.map(1 << _)   // Amounts of buffering
+    val buffs = // Amounts of buffering
+      if(quick) Array(0,1,2,4,-1) else Array(0,1,2,4,8,16,-1)  
     val plotLabels = logIntervals.map("$n = 2^{"+_+"}$")
     val graphString = bufferHelper(cmds, plotLabels, buffs, params)
     outputToFile("trapeziumBuffering.tex", graphString)
   }
 
   def bagOfTasksBufferingExperiment(params: Experiments.Params) = {
-    val logTasksPerWorker = Array(2,8,10,11,12)
+    val logTasksPerWorker = if(server) Array(2,8,10,11) else Array(2,8,10,11,12)
     val tasksPerWorker = logTasksPerWorker.map(1 << _)
     val p = if(server) 64 else 8 // # workers
     val numsTasks = tasksPerWorker.map(_ * p)  // numbers of tasks
     val size = 1L << 24; val reps = (1L << 26)/size
     val cmd1 = s"$cmd0 --bagOfTasks -p $p --size $size --reps $reps "
     val cmds = numsTasks.map(n => s"$cmd1 --numTasks $n")
-    val buffs = (0 to 4).toArray.map(1 << _)   // Amounts of buffering
+    val buffs =  // Amounts of buffering
+      if(quick) Array(0,1,2,4,-1) else Array(0,1,2,4,8,16,-1)
+      // (0 to 4).toArray.map(1 << _)  
     val plotLabels = logTasksPerWorker.map(n => "$2^{"+n+"}$ tasks per worker")
     val graphString = bufferHelper(cmds, plotLabels, buffs, params)
     outputToFile("trapeziumBagOfTasksBuffering.tex", graphString)
@@ -399,7 +397,7 @@ object TrapeziumExperiment{
       case "--doBuffer" => doBufferExperiment = true; i += 1
       case "--doBagBuffer" => doBagBufferExperiment = true; i += 1
 
-      case "--quick" => params = quickParams; i += 1
+      case "--quick" => params = quickParams; quick = true; i += 1
       case "--strict" => params = strictParams; i += 1
       case "--veryStrict" => params = veryStrictParams; i += 1
       case "--server" => server = true; i += 1
@@ -410,7 +408,6 @@ object TrapeziumExperiment{
         println("Unrecognised argument: "+arg+"\n"+helpString); sys.exit()
     }
 
-
     // Now run the experiments
     if(!doLog && !doLinear && !doNumTasks && !doBagNumWorkers &&
          !doBagNumWorkersLinear && !doSyncChanExperiment && 
@@ -420,7 +417,7 @@ object TrapeziumExperiment{
     if(doBufferExperiment) bufferingExperiment(params)
     if(doBagBufferExperiment) bagOfTasksBufferingExperiment(params)
     // Number of workers, log scale
-    if(doLog) logScaleExperiment(if(server) 9 else 6, params)
+    if(doLog) logScaleExperiment(params)
     // Number of workers, linear scale
     if(doLinear){
       // val ps =

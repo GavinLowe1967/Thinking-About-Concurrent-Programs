@@ -1,0 +1,201 @@
+\section{Encapsulation}
+\label{sec:bag-of-tasks-encapsulation}
+
+In the previous code, the design decisions concerning the use of
+message-passing concurrency were interleaved with the computation itself.  If
+we decided to implement the concurrency in a different way---for example, to
+use one of the techniques we'll see later in the course---we would have to
+change the code in several different places.  This is a very small program, so
+it doesn't matter too much here; but it would be an issue in bigger programs.
+
+It would be better to encapsulate each relevant design decision within a
+single object, so that changes will involve just that object.  Each such
+object will be designed to allow concurrent calls of its methods, and to avoid
+race conditions.  
+
+Further, reasoning about correctness will (mostly) involve reasoning about a
+single object at a time: code outside that object can use it without worrying
+about how it is implemented.  We will see this idea of encapsulation a lot
+later in the book.  We will encapsulate a datatype---such as a queue or a
+mapping---inside an object that provides thread-safe operations on the
+datatype; code outside the object can mostly use the datatype in the same way
+as in a sequential setting.  
+
+%%%%%
+
+For the example of this chapter, we will define concurrent objects with the
+interfaces given in Figure~\ref{fig:BoT-interfaces}.  The |BagOfTasks| objects
+have an operation to allow a worker thread to get a task.  We have made the
+design decision to return the special value |null| in the case that there are
+no more tasks.  An alternative would be to throw a |Stopped| exception, as
+earlier; but using |null| seems cleaner, and is appropriate because |null| is
+easily distinguished from a real task.  The |Collector| objects have an
+operation to allow a worker to submit its final subtotal, and an operation to
+get the overall total.
+
+%%%%%%
+
+\begin{figure}
+\begin{scala}
+  /** The bag-of-tasks object. */
+  trait BagOfTasks{
+    /** Get a task.  Returns £null£ if there are no more tasks. */
+    def getTask(): Task 
+  }  
+
+  /** A collector object that combines sub-results from the workers. */
+  trait Collector{
+    /** Add x to the result. */
+    def add(x: Double) 
+
+    /** Get the result, once the computation has finished. */
+    def get: Double 
+  }
+\end{scala}
+\caption{The interfaces for the bag-of-tasks and collector objects.}
+\label{fig:BoT-interfaces}
+\end{figure}
+
+%%%%%
+
+It is straightforward to adapt the definition of a worker to use such objects.
+The definition is parameterised by the |BagOfTasks| and |Collector|.  It calls
+the |getTask| operation on the |BagOfTasks| to get a task, exiting its main
+loop when it receives |null|.  It then uses the |add| operation on the
+|Collector| to return its subtotal.
+%
+\begin{mysamepage}
+\begin{scala}
+  private def worker(bag: BagOfTasks, collector: Collector) = thread("worker"){
+    var myTotal = 0.0; var done = false
+    while(!done) bag.getTask() match{
+      case null => done = true
+      case (left, right, taskSize, delta) =>
+        myTotal += integral(left, right, taskSize, delta)
+    }
+    collector.add(myTotal)
+  }
+\end{scala}
+\end{mysamepage}
+
+Below we will define an implementation |BagOfTasksChannels| of |BagOfTasks|,
+and an implementation |CollectorChannels| of |Collector|.  The main |apply|
+method creates the two objects, runs the workers, and then gets the
+final result from the collector.
+\begin{scala}
+  def apply(): Double = {
+    val bag = new BagOfTasksChannels(a, b, n, nTasks, numWorkers, buffering)
+    val collector = new CollectorChannels(nWorkers, buffering)
+    val workers = || (for (i <- 0 until nWorkers) yield worker(bag, collector))
+    run(workers)
+    collector.get
+  }
+\end{scala}
+
+%%%%%
+
+An implementation of |BagOfTasks| using message passing is in
+Figure~\ref{fig:bagOfTasksObject}.  This contains a server thread that sends
+|Task|s on the private |toWorkers| channel.  Once all proper tasks have been
+sent, it sends |null| multiple times, once for each worker.  A worker can
+obtain a task (either a proper task or |null|) by receiving on |toWorkers|.
+Note that |toWorkers| is a private channel within the object: this ensures
+that client code can interact with the object only as intended.
+
+%%%%%
+
+\begin{figure}
+\begin{scala}
+class BagOfTasksChannels(
+  a: Double, b: Double, n: Long, nTasks: Int, numWorkers: Int, buffering: Int)
+    extends BagOfTasks{
+  /** Channel from the server to the workers, to distribute tasks. */
+  private val toWorkers = mkChan[Task](buffering)
+
+  /** Get a task.  Return £null£ if there are no more tasks. */
+  def getTask(): Task = toWorkers?() 
+
+  /** A server process that distributes tasks. */
+  private def server = thread("bag of tasks"){
+    val delta = (b-a)/n; var remainingIntervals = n; var left = a
+    for(i <- 0 until nTasks){
+      val taskSize = ((remainingIntervals-1) / (nTasks-i) + 1).toInt
+      remainingIntervals -= taskSize; val right = left+taskSize*delta
+      toWorkers!(left, right, taskSize, delta); left = right
+    }
+    for(i <- 0 until numWorkers) toWorkers!null
+  }
+
+  fork(server)  // Start the server running.
+}
+\end{scala}
+\caption{An implementation of {\scalashape BagOfTasks} using message passing.}
+\label{fig:bagOfTasksObject}
+\end{figure}
+
+%%%%%
+
+The server is started by the command |fork(server)|, which is executed as part
+of the construction of the |BagOfTasksChannels| object.
+%
+More generally, if |t| is a |ThreadGroup|, then |fork(t)| or |t.fork| starts a
+new thread (or threads) running which executes~|t|.  However---unlike with
+|run(t)|---the new thread runs in parallel to the current thread.  In
+Figure~\ref{fig:bagOfTasksObject}, the construction of the
+|BagOfTasksChannels| object returns after the |fork(server)|, but leaves a
+thread running the |server| code.
+
+%%%%% \heading{Encapsulating the collector}
+
+An implementation of |Collector| using message passing is in
+Figure~\ref{fig:collector}.  This again contains a server thread, which is set
+running as part of the construction of the object.  The |add(x)| method
+sends~|x| to the server, which adds it to its running total.  The |get|
+operation receives the final result from the server.
+
+%%%%%
+
+\begin{figure}
+\begin{scala}
+  /** A collector object that receives sub-results from the workers, and adds
+    * them up. */
+  private class CollectorChannels(buffering: Int) extends Collector{
+    /** Channel from workers to the server. */
+    private val toController = mkChan[Double](buffering)
+
+    /** Channel that sends the final result. */
+    private val resultChan = new SyncChan[Double]
+
+    /** Add x to the result. */
+    def add(x: Double) = toController!x
+
+    /** Get the result. */
+    def get: Double = resultChan?()
+    
+    /** A collector, that accumulates the sub-results. */
+    private def server = thread("collector"){
+      var result = 0.0
+      for(i <- 0 until nTasks) result += (toController?())
+      resultChan!result
+    }
+
+    fork(server)    // Start the server running.
+  }
+\end{scala}
+\caption{An implementation of {\scalashape Collector} using message passing.}
+\label{fig:collector}
+\end{figure}
+
+%%%%%
+
+
+There is a slight subtlety in the implementation of the collector.  Recall
+that the main |apply| operation calls |get| after all the workers have
+terminated.  It would be incorrect to make |result| an object variable, and
+for the |get| method to just read that variable, because that would constitute
+a race.  It is possible that the |server| thread has received a subtotal
+from the final worker thread, but not yet added it to |result|, so the |apply|
+operation would receive the wrong value!  With the code
+in~\ref{fig:collector}, we can be sure that the correct value is sent: the
+|get| operation is blocked until the server has received all the subtotals.
+

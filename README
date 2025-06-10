@@ -25,6 +25,12 @@ Chapter 3: Example: Numerical Integration
 to appendix 
 - Note Words: range (whole range of integration), sub-range (for a task), interval (for a trapezium)
 
+-- Note (27/05/2025): scala tacp.trapezium.TrapeziumExperiment --doBagBuffer
+   on home machine seems to suggest unbounded buffers help when tasks are too
+   small; but the same experiment on casteret suggests the opposite!
+
+
+
 Experiments: buffering experiment; throughput
 
 Chapter 5: Alternation
@@ -39,7 +45,7 @@ Chapter 8: Concurrent Datatypes
 
 Appendices
 
-- Scala -- write
+- Scala -- write; case classes
 - Experiments -- improve
 
 --------------

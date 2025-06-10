@@ -1,133 +1,159 @@
 \chapter{Experimental design}
+\label{app:experiments}
 
+In this appendix, we describe how to design good experiments, and the basics
+of statistical analysis.  
 
-\begin{slide}
-\heading{Experimental design}
+Typically, our experiments will seek to find how the running time of a program
+is affected by various parameters of our program.  Some of these parameters
+can be considered as inputs, such as the size of the input data.  But some of
+the parameters are tuneable, such as the number of threads used.  We want to
+know how to choose values for the tuneable parameters, based on the input
+parameters, so as to make the program run quickly. 
 
-Performance is affected by a number of factors.  Hence, the results follow a
-random distribution.  We need to
-%
-\begin{itemize}
-\item
-Control the behaviour so as to reduce ``noise'' in the results as much as
-possible;
+\framebox{See} \emph{Statistically Rigorous Java Performance Evaluation}, by
+Andy Georges, Dries Buytaert and Lieven Eeckhout.
 
-\item
-Perform a statistical analysis of the results so as to understand their
-significance.
-\end{itemize}
+You should aim to make experimental results reproducible.  You should document
+how you ran the experiment, and details of the hardware on which it was
+performed.
 
-See \emph{Statistically Rigorous Java Performance Evaluation}, by Andy
-Georges, Dries Buytaert and Lieven Eeckhout.
-\end{slide}
-
-%%%%%
-
-\begin{slide}
-\heading{Experimental design}
-
-Performance of any timing experiment can be affected by other processes
+The results of a timing experiment can be affected by other processes
 running on the same machine, causing the threads of the experiment to be
-de-scheduled. 
+de-scheduled.  This will introduce \emph{noise} into the results, so they do
+not reflect the true performance of the program under investigation, and will
+not be reproducible.
+%
+We should aim to reduce this noise in our experiments as much as possible.
+Therefore, timing experiments should normally be run on a dedicated machine,
+with as few other processes (particularly CPU-intensive processes) as possible
+running at the same time.
 
-Therefore, timing experiments should be run on a dedicated machine, with as
-few other processes (particularly CPU-intensive processes) as possible running
-at the same time.
+Nevertheless, it will not be possible to eliminate noise completely.
+Therefore, for each choice of parameters, we should make multiple
+\emph{observations} (i.e.,~perform multiple runs), and then perform a
+statistical analysis of the results.
 
-% Also, if you use a network filestore, loading class files across the network
-% can affect the run-time.  This can be avoided by ignoring the first
-% observation. 
-\end{slide}
-
-%%%%%
-
-\begin{slide}
-\heading{Independence of observations}
-
-We want different observations to be independent.  Different observations run
-on the same JVM can affect one another for several reasons:
+We want different observations to be independent.  However, different
+observations performed on the same instance of the Java Virtual Machine (JVM)
+can affect one another for several reasons.
 %
 \begin{itemize}
 \item
-Just-in-time (JIT) compilation;
+Just-in-time compilation is performed by the Java runtime, while running the
+program, to compile frequently used parts into native machine code.  This
+technique can significantly improve the speed of a program.  However, as it is
+performed while the program is running, it takes a while to have an effect.
+That means that if multiple observations are run on the same instance of the
+JVM, those done after the just-in-time compilation will tend to be faster.
 
 \item
-Garbage collection;
-
-% \item
-% Program locality affecting memory performance;
+The JVM periodically performs garbage collection, identifying parts of its
+memory that are no longer needed, and freeing them up.  However, the garbage
+collection uses computational resources, and so can slow up the main program.
+This can mean that different observations are not independent.
 
 \item
-The data structure being tested not being re-set to its initial state.
+If the program files are stored on a networked filestore, the first
+observation will need to load those files across the filestore, making it
+slower than later observations.
+
+\item
+If the program uses a large data structure, it can be hard to be sure whether
+that data structure has been correctly reset to its initial state at the end
+of each observation.  I experienced this issue once when profiling a program
+that used a hash table from the Scala Application Programming Interface.  At
+the end of each observation, I cleared the hash table.  However, the first
+observation tended to be noticeably faster than later ones, I think because
+the hash table hadn't been returned to its original size.  When I changed the
+program to create a new hash table for every observation, this phenomenon
+disappeared. 
 \end{itemize}
 %
-Therefore each observation should normally be performed on a separate run of
-the JVM.
-\end{slide}
+In order to achieve independence between observations, each observation should
+normally be performed on a separate run of the JVM.
 
 %%%%%
-
-\begin{slide}
-\heading{Independence of observations}
 
 My normal approach is to write a stand-alone \emph{observation} program that
 reads parameters of the observation from the command line, performs the
 observation, and prints the time taken onto standard output.
-
+%
 A separate \emph{test harness} program invokes the observation program as a
-separate operating system process, and reads the result.  For each choice of
-parameters, it repeats this and performs a statistical analysis.
+separate operating system process, and reads the result from it.  For each
+choice of parameters, it repeats this and performs a statistical analysis.
+%
+The book website includes code to support running experiments in this way.
 
 This means that start-up costs, such as JIT compilation, are included in the
 observation.  If steady-state performance is relevant, either do long runs, or
 start timing only once steady-state behaviour is reached.  Try to get the
 observations to match real use cases.
-\end{slide}
 
 %%%%%
 
-\begin{slide}
-\heading{Statistical analysis}
+\section{Statistical analysis}
 
-Given $k$ observations $x_i$ ($0 \le i < k$), we can calculate their mean:
-\[
+Given $k$ observations $x_i$ (for $0 \le i < k$), we can calculate their
+mean~$m$:
+%
+\begin{eqnarray*}
 m = \frac{\sum_{i = 0}^{k-1} x_i}{k}.
-\]
+\end{eqnarray*}
+%
+We are actually interested in the mean of the underlying probability
+distribution from which the observations are made, denoted~$\mu$.  
+%
+We can take $m$ as an estimate of $\mu$; but how accurate is it?
 
-We are actually interested in the mean $\mu$ of the underlying probability
-distribution from which the observations are made. 
-
-We can take $m$ as an estimate of $\mu$, but how accurate is it?
-
-Let $\alpha \in [0,1]$, e.g.\ $\alpha = 0.05$; we call $\alpha$ the
-significance level.  We want a \emph{confidence interval} $[m-s, m+s]$ such
-that $\mu$ is in this interval with probability~$1-\alpha$.
-
+We would like to identify an interval around~$m$ such that we can be
+reasonably confident that $\mu$ is in that interval.
+%
+More precisely, we pick a value~$\alpha \in [0,1]$ which we call the
+\emph{significance level}.  The value $1-\alpha$ is known as the
+\emph{confidence level}, often expressed as a percentage.  In the experiments
+described in the body of the book, we took $\alpha = 0.05$, so the confidence
+level was $95\%$.  We want a \emph{confidence interval} $[m-s, m+s]$ such that
+$\mu$ is in this interval with probability~$1-\alpha$.
+%
 More precisely, if we repeat this procedure multiple times, the calculated
 confidence interval will include $\mu$ a proportion $1-\alpha$ of the time. 
-\end{slide}
+
+There are standard ways of calculating this confidence interval, which can be
+found in a statistics textbook or online.  However, the book website includes
+code to calculate means and confidence intervals. 
+
+We want to obtain confidence intervals that are small enough to give us useful
+information.  This normally requires quite a lot of observations.  Informal
+experiments can help to find how many observations will be necessary; but
+don't cherry-pick results.  Typically, the size of the confidence interval
+obtained from $k$ observations falls roughly proportional to $1/\sqrt{k}$.
+One option is to perform some fixed number of observations per data point; my
+experience is that between 50 and 200 tends to work well.  An alternative
+approach is to stop making observations, before the maximum, once the
+confidence interval is sufficiently small, say at most 2\% of the mean.
 
 %%%%%
 
-\begin{slide}
-\heading{Statistical analysis}
+%% \begin{slide}
+%% \heading{Statistical analysis}
 
-See the paper by Georges et al.\ or a statistics text book for details on how
-to calculate the confidence interval.  
+%% See the paper by Georges et al.\ or a statistics text book for details on how
+%% to calculate the confidence interval.  
 
-The course website contains code to calculate the mean and confidence
-interval. 
-%% The  function
-%% \begin{scala}
-%% ox.cads.experiments.ConfidenceIntervals(xs: Array[Double], alpha: Double)
-%% \end{scala}
-%% %
-%% returns the pair $(m, s)$. 
+%% The course website contains code to calculate the mean and confidence
+%% interval. 
+%% %% The  function
+%% %% \begin{scala}
+%% %% ox.cads.experiments.ConfidenceIntervals(xs: Array[Double], alpha: Double)
+%% %% \end{scala}
+%% %% %
+%% %% returns the pair $(m, s)$. 
 
-$\alpha$ is called the significance level, and $1-\alpha$ the confidence
-level.  (Earlier we took $\alpha = 0.05$, and so calculated 95\% confidence
-intervals.) 
-\end{slide}
+%% $\alpha$ is called the significance level, and $1-\alpha$ the confidence
+%% level.  (Earlier we took $\alpha = 0.05$, and so calculated 95\% confidence
+%% intervals.) 
+%% \end{slide}
 
 %%%%%
 

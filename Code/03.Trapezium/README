@@ -8,9 +8,40 @@ TrapeziumBag.scala: Implementation using bag-of-tasks.
 TrapeziumBagObjects.scala: Implementation using bag-of-tasks, encapsulating
 the bag and the collector in classes.
 
+TrapeziumBagObjects-Stopped.scala: variant of the above, using Stopped
+exceptions.
+
 TrapeziumTest.scala: Tester for the above three.
 
 TrapeziumRun.scala: program to perform a single run, based on command-line
 arguments.
 
 TrapeziumExperiment: harness for various experiments.
+Usage: scala TrapeziumExperiment <options>.
+The options setting the experiment are as follows:
+--doLog: do an experiment with a logarithmic scale;
+--doLinear: do an experiment with a linear number of workers;
+--doBagNumTasks: do an experiment on the number of tasks per worker in the bag-of-tasks example;
+--doBagNumWorkers: do an experiment on the number of workers in the bag-of-tasks example, using a logarithmic scale
+--doBagNumWorkersLinear: do an experiment on the number of workers in the bag-of-tasks example, using a linear scale.
+--doBuffer: do an experiment on the use of buffering.
+--doBagBuffer: do an experiment on the use of buffering in the bag-of-tasks example.
+Other options are as follows:
+--quick: do a small number of samples for each choice of parameters;
+--strict: do a large number of samples for each choice of parameters;
+--veryStrict: do an larger number of samples for each choice of parameters;
+--server: choose the parameters suitable for use on a server machine;
+--help: print this help.
+
+
+
+Commands to use with TrapeziumExperiment
+
+ scala  tacp.trapezium.TrapeziumExperiment --doBuffer --strict
+
+Add "--quick" for testing
+
+Add "--server" on server
+
+1048576
+16777216

@@ -19,12 +19,11 @@ class TrapeziumBagObjects(
   /** A worker, which repeatedly receives tasks from the BagOfTasks, estimates
     * the integral, and adds the result to the Collector. */
   private def worker(bag: BagOfTasks, collector: Collector) = thread("worker"){
-    var myTotal = 0.0; var done = false
-    while(!done) bag.getTask() match{
-      case null => done = true
-      case (left, right, taskSize, delta) =>
-        assert(taskSize > 0)
-        myTotal += integral(left, right, taskSize, delta)
+    var myTotal = 0.0
+    repeat{
+      val (left, right, taskSize, delta) = bag.getTask()
+      assert(taskSize > 0)
+      myTotal += integral(left, right, taskSize, delta)
     }
     collector.add(myTotal)
   }
@@ -33,7 +32,7 @@ class TrapeziumBagObjects(
   def apply(): Double = {
     val bag: BagOfTasks = 
       if(useMonitor) new BagOfTasksMonitor(a, b, n, nTasks) 
-      else new BagOfTasksChannels(a, b, n, nTasks, nWorkers, buffering)
+      else new BagOfTasksChannels(a, b, n, nTasks, buffering)
     val collector: Collector = 
       if(useMonitor) new CollectorMonitor
       else new CollectorChannels(nWorkers, buffering)
@@ -55,7 +54,7 @@ trait BagOfTasks{
 
 /** The bag of tasks object implemented using channels. */
 class BagOfTasksChannels(
-  a: Double, b: Double, n: Long, nTasks: Int, numWorkers: Int, buffering: Int)
+  a: Double, b: Double, n: Long, nTasks: Int, buffering: Int)
     extends BagOfTasks{
 
   /** Channel from the controller to the workers, to distribute tasks. */
@@ -63,7 +62,7 @@ class BagOfTasksChannels(
 
   /** Get a task.
     * @throws Stopped exception if there are no more tasks. */
-  def getTask(): Task = toWorkers?() 
+  def getTask(): Task = toWorkers?()
 
   /** A server process, that distributes tasks. */
   private def server = thread("bag of tasks"){
@@ -82,7 +81,7 @@ class BagOfTasksChannels(
       toWorkers!(left, right, taskSize, delta)
       left = right
     }
-    for(i <- 0 until numWorkers) toWorkers!null
+    toWorkers.endOfStream()
   }
 
   // Start the server running
@@ -115,7 +114,7 @@ class BagOfTasksMonitor(a: Double, b: Double, n: Long, nTasks: Int)
     var myI = -1
     synchronized{ myI = i; i += 1} // get and increment i
     if(myI < nTasks) getTask(myI)
-    else null
+    else throw new Stopped
   }
 }
 

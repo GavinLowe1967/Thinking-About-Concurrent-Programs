@@ -62,7 +62,7 @@ This is illustrated in Figure~\ref{fig:trapezium} with $n = 4$
 The integral over the interval $[a+i\delta, a+(i+1)\delta]$ can then be
 approximated by 
 \[\mstyle
-\frac{f(a+i\delta)+f(a+(i+1)\delta)}{2} * \delta.
+\frac{f(a+i\delta)+f(a+(i+1)\delta)}{2} \times \delta.
 \]
 In other words, we approximate the graph of the function over this interval by
 a straight line between the endpoints.  This is illustrated in
@@ -70,12 +70,16 @@ Figure~\ref{fig:trapezium} for the interval $[a+2\delta, a+3\delta]$.  The red
 blobs give the values of the function at the endpoints; the function is
 approximated by the red line; and so the integral is approximated by the area
 of the pink region.  For this interval, the approach gives a slight
-underapproximation. 
+overapproximation. 
 
 Summing over all intervals then gives us the following approximation:
 \begin{eqnarray*}
-\int_a^b f(x) \, dx  & \approx & 
-  \left( \frac{f(a)+f(b)}{2} + \sum_{i=1}^{n-1} f(a+i\delta) \right) * \delta.
+\int_a^b f(x) \, dx  & = & 
+  \sum_{i = 0}^{n-1} \int_{a+i\delta}^{a+(i+1)\delta} f(x)\, dx \\
+& \approx & 
+  \sum_{i=0}^{n-1} \frac{f(a+i\delta) + f(a+(i+1)\delta)}{2} \times \delta \\
+& = &
+  \left( \frac{f(a)+f(b)}{2} + \sum_{i=1}^{n-1} f(a+i\delta) \right) \times \delta.
 \end{eqnarray*}
 
 Figure~\ref{fig:trapezium-sequential} gives straightforward sequential code to
@@ -120,23 +124,20 @@ class SeqTrapezium(f: Double => Double, a: Double, b: Double, n: Int)
 \label{fig:trapezium-sequential}
 \end{figure}
 
-%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{A parallel implementation}
 
-Here's the idea of a parallel implementation.  We use some number |nWorkers|
+Here is the idea of a parallel implementation.  We use some number |nWorkers|
 of \emph{worker threads}.  We then split the interval $[a,b]$ into the same
-number of equal-size sub-ranges, so each worker works on one sub-range.  A
-\emph{controller} thread tells each worker which range to work on.  Each
+number of equal-size subranges, so each worker works on one subrange.  A
+\emph{controller} thread tells each worker which subrange to work on.  Each
 worker sends its subresult back to the controller, which adds them up to give
 the overall result.
 
 This is a form of \emph{data parallelism}.  We split the data (the value
 of~$f$ over the relevant range) between the workers.  Each worker calculates a
 subresult on its part of the data, and then we combine the subresults. 
-
-%% (This pattern is sometimes known as a \emph{farm}, and the controller as a
-%% \emph{farmer}.) 
 
 %%%%%
 
@@ -168,7 +169,9 @@ subresults from all the workers.
 
 Figure~\ref{fig:trapezium-1} gives some of the code.  The companion object
 |Trapezium| factors out some definitions that we will reuse in a later
-implementation. 
+implementation.  (We take the parameter |n| of |Trapezium|---the number of
+intervals---to be a |Long|, because we want to experiment with large
+arguments; in practice, an |Int| would be large enough.)
 
 %%%%%
 
@@ -192,7 +195,8 @@ object Trapezium{
 
 /** Parallel implementation of the trapezium rule. */
 class Trapezium(
-  f: Double => Double, a: Double, b: Double, n: Long, nWorkers: Int, buffering: Int = 0)
+  f: Double => Double, a: Double, b: Double, 
+  n: Long, nWorkers: Int, buffering: Int = 0)
     extends TrapeziumT(f, a, b){
   require(n >= nWorkers)
 
@@ -201,7 +205,7 @@ class Trapezium(
   /** Channel from the controller to the workers, to distribute tasks. */
   private val toWorkers: Chan[Task] = mkChan[Task](buffering)
 
-  /** Channel from the workers to the controller, to return sub-results. */
+  /** Channel from the workers to the controller, to return subresults. */
   private val toController: Chan[Double] = mkChan[Double](buffering)
 
   /** A worker, which receives arguments from the controller, estimates the
@@ -211,7 +215,6 @@ class Trapezium(
     val result = integral(left, right, taskSize, delta)
     toController!result
   }
-
   ...
 }
 \end{scala}
@@ -223,23 +226,30 @@ class Trapezium(
 
 We want to experiment to see whether using buffered channels is advantageous.
 We use the function~|mkChan| to make a channel passing data of type~|A|, where
-the parameter |buffering| indicates the amount of buffering (with |0|
+the parameter |buffering| indicates the amount of buffering, with |0|
 indicating a synchronous channel, and a negative value indicating an unbounded
-buffered channel).
+buffered channel.
 
 The controller needs to tell each worker the range \SCALA{[l,r]} to work on,
 the number \SCALA{taskSize} of intervals in its range, and the size
 \SCALA{delta} of each interval (so $\sm{taskSize} \times \sm{delta} \approx
 \sm{r} - \sm{l}$).  We can pass this information as a 4-tuple \SCALA{(l, r,
   taskSize, delta)}.  We define a type |Task| to represent such 4-tuples, and
-a channel |toWorkers| to pass |Task|s.
+create a channel |toWorkers| to pass |Task|s.  
 
-Each worker returns a \SCALA{Double} to the controller, so we define a channel
+Each worker returns a \SCALA{Double} to the controller, so we create a channel
 |toController| to pass such values.
 
 The definition of a worker is then straightforward: it receives a task on the
-|toWorkers| channel; calculates the approximation to the integral; and sends
+|toWorkers| channel, calculates the approximation to the integral, and sends
 the result back on the |toController| channel.
+
+In earlier chapters, we used channels to pass only simple values, such as
+|Int|s.  However, |Task|s (like all tuples) are reference objects.  When a
+reference object is sent on a channel, the value that is actually passed is a
+reference to the object (i.e.~its address in memory): the object itself is not
+copied.  This means that even if an object encapsulates a lot of data, it is
+not expensive to send on a channel.
 
 %%%%%
 
@@ -249,7 +259,7 @@ the result back on the |toController| channel.
   private var result = 0.0
 
   /** A controller, who distributes tasks to the clients, and accumulates the
-    * sub-results into £result£. */
+    * subresults into £result£. */
   private def controller = thread("controller"){
     val delta = (b-a)/n    // Size of each interval.
     var remainingIntervals = n    // Number of intervals not yet allocated.
@@ -289,19 +299,20 @@ maintains a variable |remainingIntervals| that represents the number of
 intervals still to allocate.  In the first loop, |nWorkers-i| represents the
 number of tasks to send.  Then the next task contains $\lceil
 \sm{remainingIntervals/(nWorkers-i)} \rceil$ intervals, i.e.~rounding up the
-average (the expression defining |taskSize| calculates this using integer
-arithmetic; the ``|/|'' is integer division; the final ``|toInt|'' is
+average; the expression defining |taskSize| calculates this using integer
+arithmetic: the ``|/|'' is integer division.  (The final ``|toInt|'' is
 necessary only because we took |n| to be a |Long|, and so the result of the
-division is also a |Long|).
+division is also a |Long|.)
 
 The second loop in the controller receives subresults from the workers, 
 and accumulates them into the object variable |result|.
 
 The function |system| constructs the system.  The definition of |workers|
-builds a sequence of worker threads using a |for| expression (see Scala
+builds a sequence of workers using a |for| expression (see Scala
 box~\ref{sb:for-expression}).  It then combines them together in parallel
 using an indexed form of parallel composition: if |ts| is a sequence of
-|ThreadGroup|s, then \SCALA{\|\| ts} represents their parallel composition.
+|ThreadGroup|s, then \SCALA{\|\| ts} represents their parallel composition,
+and is itself a |ThreadGroup|.
 
 \framebox{for expressions}
 
@@ -317,8 +328,8 @@ approach is to run both the sequential and concurrent implementations on the
 same integral, and test whether they give the same result.  In particular, my
 approach was to generate random polynomials for the function~|f| to integrate,
 and random values for |a|, |b|, |n| and |numWorkers| (within sensible ranges).
+We can then run many such tests.
 
-%%  (This assumes the sequential implementation is correct.)
 However, it turns out that this approach doesn't quite work.  If we use both
 implementations to approximate $\int_0^3 x^2 \mbox{d}x$ using $100$ intervals,
 the sequential algorithm always gives
@@ -334,28 +345,19 @@ but sometimes gives
   9.000449999999997.
 \]
 
-%% \begin{quote}
-%%   9.000449999999999
-%%   9.000449999999997
-%%   9.000449999999999
-%%   9.000449999999999
-%%   9.000449999999997 
-%% \end{quote}
-
 %%%%%
-
 
 The difference in results can be explained by rounding errors, and in
 particular that machine addition is not associative (you can verify this by
 getting Scala to evaluate the expressions |(1E10 + (-1E10)) + 1E-10| and
 \SCALA{1E10 + (-1E10 + 1E-10)}: the former gives the expected result, but the
-latter evaluates to |0.0|, because rounding errors cause the final term to be
-lost). 
+latter evaluates to |0.0|, because rounding errors in the right-hand addition
+cause the final term to be lost).
 %
 In the sequential algorithm, the values for the intervals are added up from
 left to right.  But in the concurrent algorithm, they are added up in a
 different order, giving a different result.  Further, in different runs of the
-concurrent algorithm, the sub-results are returned to the controller in
+concurrent algorithm, the subresults are returned to the controller in
 different orders, and so added up in different orders, giving different
 results.
 
@@ -364,19 +366,19 @@ results.
 Instead, we can compare whether sequential result |seqResult| and the
 concurrent result |concResult| are approximately equal using a test such as
 \begin{scala}
-assert(
-  seqResult != 0.0 && Math.abs((seqResult-concResult)/seqResult) < 1E-7 ||
-    Math.abs(seqResult-concResult) < 1E-10, ...)
+  assert(
+    seqResult != 0.0 && Math.abs((seqResult-concResult)/seqResult) < 1E-7 ||
+      Math.abs(seqResult-concResult) < 1E-10, ...)
 \end{scala}
 %
-The second clause tests whether the relative result is less than one part in
-$10^7$; the first clause guards against division by~$0$; the third clause is
-necessary to cover the case where both the sequential and concurrent results
-are small, the relative error isn't quite small enough to satisfy the second
-clause, but the absolute error is very small.  (I originally omitted the third
-clause, but one test produced a false error.) 
-
-We can then run many such tests.
+The second clause tests whether the relative error is less than one part
+in~$10^7$; the first clause guards against division by~$0$; the third clause
+is necessary to cover the case where both the sequential and concurrent
+results are small, the relative error isn't quite small enough to satisfy the
+second clause, but the absolute error is very small.  (I originally omitted
+the third clause, but one test produced a false error.)  If this test passes,
+we can be pretty confident that any difference between |seqResult| and
+|concResult| is caused only by rounding errors.
 
 Incidentally, when I first ran these tests, they threw up other false errors,
 because I hadn't thought carefully enough about preconditions of different

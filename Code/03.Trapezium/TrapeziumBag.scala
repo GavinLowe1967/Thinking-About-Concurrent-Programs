@@ -24,13 +24,14 @@ class TrapeziumBag(
   /** A worker, which repeatedly receives arguments from the distributor,
     * estimates the integral, and sends the result to the collector. */
   private def worker = thread("worker"){
-    var myTotal = 0.0
+    var myTotal = 0.0 //; var count = 0
     repeat{
       val (left, right, taskSize, delta) = toWorkers?()
-      assert(taskSize > 0)
+      assert(taskSize > 0) //; count += 1
       myTotal += integral(left, right, taskSize, delta)
     }
     toController!myTotal
+    //print(count)
   }
 
   /** A distributor, who distributes tasks to the clients. */

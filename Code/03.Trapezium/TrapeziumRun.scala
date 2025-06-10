@@ -1,6 +1,6 @@
 package tacp.trapezium
 
-import ox.gavin.profiling.{SamplingProfiler,ProfilerSummaryTree}
+import tacp.util.profiling.{SamplingProfiler,ProfilerSummaryTree}
 
 // Profile using something like 
 // scala -cp .:/home/gavin/Scala/CSO:/home/gavin/Scala/Util TrapeziumRun -p 16 --numTasks 6400 --bagOfTasks --profile
@@ -19,7 +19,7 @@ object TrapeziumRun{
   def main(args: Array[String]) = {
     var p = -1 // # workers
     var reps = 1 // # repetitions
-    var buffering = -1 // amount of buffering
+    var buffering = 0 // amount of buffering
     var bagOfTasks = false; var numTasks = -1
     var bagOfTasksMonitors = false
     var size: Long = 1L<<28 // Number of intervals

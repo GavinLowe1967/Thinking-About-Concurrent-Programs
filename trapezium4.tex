@@ -1,0 +1,176 @@
+\subsection{Tuning experiments}
+
+Figure~\ref{fig:bag-of-tasks-experiment} shows timing results for the
+bag-of-tasks example.  Each plot considers a particular choice for the number
+of intervals, |n|, and the number of tasks, |nTasks|.  The x-axis considers
+different numbers of workers, and the y-axis gives the times taken.  Each run
+used unbounded buffered channels.  Each observation performed $2^{27}/\sm{n}$
+runs.
+
+%%%%%
+
+\begin{figure}
+\begin{center}
+\input{trapeziumBagNumsWorkersExperiment}
+\end{center}
+\caption{Experiments on the bag-of-tasks example.}
+\label{fig:bag-of-tasks-experiment}
+\end{figure}
+
+%%%%%
+
+It is useful to consider the quantity $\sm n / \sm{nTasks}$ for each plot,
+i.e.~the number of intervals per tasks, which runs from $2^9$ to $2^{13}$ by
+factors of~$2$.  This is a good measure of the computational cost of each
+task.   For smaller values of this measure, the program achieves poor scaling,
+being slower for eight workers than for four.  This is consistent with what we
+saw earlier: the low computational cost of each task means that the channels
+become congested.  However, for higher values of this measure, the program
+scales better.  
+
+%%%%%
+
+Figure~\ref{fig:bag-of-tasks-experiment-2} gives results for experiments
+considering the number of tasks to give each worker.  Each run used eight
+workers, and unbounded buffered channels.  Each plot considers a particular
+value for the number of intervals,~|n|.  The x-axis gives the average number
+of tasks per worker.  Each observation is based on $2^{28}/\sm{n}$ runs.
+
+\begin{figure}
+% scala  tacp.trapezium.TrapeziumExperiment --doBagNumTasks --strict
+\begin{center}
+\input{trapeziumBagExperiment}
+\end{center}
+\caption{Experiments on the bag-of-tasks example, considering the number of
+  tasks per worker.}
+\label{fig:bag-of-tasks-experiment-2}
+\end{figure}
+
+Each plot shows a decrease in time as the number of tasks per worker increases
+from two to about sixteen.  Having more tasks allows for better load
+balancing.  However, beyond a certain point, increasing the number of tasks
+makes the program slower: at this point, the channel communication is becoming
+a bottleneck again.
+
+Most of the plots show that using an average of two tasks per worker is slower
+than just one, which may seem surprising.  I investigated this by arranging
+for each worker to print the number of tasks it processed.  When the average
+is one task per worker, it is nearly always the case that each worker indeed
+executes exactly one task; the difference in times taken by workers is not
+very large in this case.  However, when the average is two tasks per worker,
+it is normally the case that at least one (slow) worker performs only one
+task, and so another worker performs three; the latter worker therefore takes
+considerably longer than the others, and this increases the overall running
+time.
+
+It is worth noting that each of the plots has a fairly wide U-shape.  For the
+lower three plots, there is little difference between $2^4$ and $2^7$ tasks
+per worker.  This is a good situation, as it suggests the program is fairly
+stable with respect to changes in speed of workers, for example caused by
+different hardware. 
+
+
+\framebox{casteret}
+
+%We start by considering how many tasks to include.  
+
+
+%%%%%
+
+%% \begin{slide}
+%% \heading{Interpreting the results}
+
+%% \begin{itemize}
+%% \item Most of the plots have an initial downwards slope: having more tasks
+%% gives more scope for load balancing.
+
+%% \item Most of the plots hit a threshold, after which the time rises sharply:
+%% at this threshold, the communication time becomes the dominant factor.
+%% Each threshold corresponds to a task taking about 2ms.
+
+%% Informal profiling shows that with $n = 2^{18}$, 64 workers and 4096 tasks (64
+%% tasks per worker), that each worker spends less than 1\% of its time
+%% calculating the integral: most of its time is spent waiting for a task or
+%% waiting to send its result back to the controller. 
+%% % scala -cp .:/home/gavinl/Scala/CSO:/home/gavinl/Scala/Util TrapeziumRun -p
+%% % 64 --bagOfTasks --profile --reps 50 --size 262144 --numTasks 4096
+
+%% Communication is expensive: avoid having too many communications. 
+
+%% \end{itemize}
+%% \end{slide}
+
+%%%%%
+
+%% \begin{slide}
+%% \heading{Varying the number of workers}
+
+%% The graphs on the next two slides consider the effect of varying the number of
+%% workers.
+%% %
+%% \begin{itemize}
+%% \item Each plot chooses a particular value for $n$, and a particular number
+%% |nTasks| of tasks; the integral is repeated $2^{29}/n$ times; in most cases
+%% |nTasks| is chosen to correspond to the minimum point on the corresponding
+%% plot of the previous graph.
+
+%% \item For each plot, we consider a variable number of workers.
+%% \end{itemize}
+%% \end{slide}
+
+
+%%%%%
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%%%%
+
+%% \begin{slide}
+%% \begin{tikzpicture}
+%% \begin{axis}[
+%% %  title = Timing experiment on the numerical integration example,
+%%   ylabel = Time (ms),
+%%   legend pos = north west,
+%%   height = 0.98\textheight,
+%%   width = 0.98\textwidth,
+%%   scaled ticks = false,
+%% %  title = Experiment on the numerical integration bag-of-tasks example.,
+%%   xlabel = Number of workers, ymax = 2200
+%% ]
+%% \input{TrapeziumExperiments/trapeziumBagNumsWorkersLinearExperimentBody}
+%% \end{axis}
+%% \end{tikzpicture}
+%% \end{slide}
+
+%%%%%
+
+%% \begin{slide}
+%% \heading{Interpreting the results}
+
+%% Most of the plots have a minimum with between 32 and 64 workers.  However,
+%% the minima tend to be at around 50 threads, somewhat smaller than the number
+%% of machine threads available.  It seems that the amount of computation in
+%% these examples isn't enough to justify using all the machine threads
+%% available. 
+
+%% %% examining this range at a closer scale shows the  
+
+
+%% %%  (plus the distributor
+%% %% and collector), matching the number of machine threads.  (In the second graph,
+%% %% the confidence intervals overlap, so we can't be sure about the precise
+%% %% position of the minimum.)
+
+%% %% One exception is where there are insufficient tasks per worker to
+%% %% achieve good load balancing, so there's a bit of a fall-off in
+%% %% performance.
+
+%% %% Another exception is a case where there are too many tasks, and so the
+%% %% communication overheads dominate.
+%% %% Communication is expensive: avoid having too many communications. 
+
+%% Note that the running times are 30--35\% faster than with the implementation
+%% of the previous chapter: the bag-of-tasks technique works!
+%% \end{slide}

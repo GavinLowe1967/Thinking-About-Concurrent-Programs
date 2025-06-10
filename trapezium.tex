@@ -1,28 +1,48 @@
 \chapter{Example: Numerical Integration}
 
-
-%%%%%
-
 \input{trapezium1} % up to testing
 \input{trapezium2} % experiments
+\input{trapezium3} % bag of tasks
+\input{trapezium4} % experiments
+\input{trapezium5} % encapsulation 
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+\section{Summary}
 
-\begin{slide}
-\heading{Summary}
+In this chapter we have studied a data parallel problem.  The approach to such
+problems is to split the input data between different worker threads, and to
+combine the results together.  Many compute-intensive problems fall into this
+class, so it is a very useful pattern.  It  requires that there is some
+meaningful way to split the data between workers, and to combine the results
+in an inexpensive way.
+
+We arranged for a controller thread to distribute tasks to workers, using two
+different approaches.  In the first approach, the controller sent each worker
+a single task.  (In fact, in this case we could have included the task as a
+parameter of the |worker| function; but we wanted to illustrate this technique
+of distributing tasks.)  In the second approach, the bag of tasks, the
+controller distributed multiple tasks to workers; this helped to balance the
+load between workers, overcoming differences in speed.
+
+We tested each implementation against a corresponding sequential algorithm.
+This is a very common technique.  A wrinkle here is that rounding errors
+caused the two algorithms to give slightly different results.  
+
+\framebox{TO DO}
 
 \begin{itemize}
-\item
-Data parallel;
+%% \item
+%% Data parallel;
 
-\item
-Workers and controllers;
+%% \item
+%% Workers and controllers;
 
 %% \item
 %% Closing channels;
 
-\item
-Testing against a sequential implementation;
+%% \item
+%% Testing against a sequential implementation;
 
 \item
 Choosing the number of processes and the amount of buffering;
@@ -32,6 +52,72 @@ Beware of having too many communications: the channel will act as a bottleneck;
 
 \item
 Experimental design.
+
+%% \item
+%% Bag of tasks;
+
+\item
+Choosing the size of tasks;
+
+\item
+Communication is expensive: avoid having too many communications;
+
+\item
+Encapsulation;
+
+%% \item Bag of tasks with replacement.
 \end{itemize}
-\end{slide}
+
+In Section~\ref{sec:bag-of-tasks-encapsulation}, we encapsulated the bag of
+tasks and the collector inside objects.  This meant that we could concentrate
+on that part of the implementation in isolation from other parts; and the
+other parts of the program could use these objects without concern for how
+they were implemented.  Further, this technique means that we could replace
+those objects by other objects that produce the same external behaviour, but
+perhaps using different concurrency techniques \framebox{forward ref here}.
+
+Encapsulation like this will be an important theme in later chapters.  We will
+arrange for nearly all of the concurrency to be encapsulated within such
+objects.  This will make it much easier to justify correctness: local
+correctness arguments that depend on a fairly small amount of code are easier
+than global arguments that encompass a large program.  The correctness
+property of such objects will be that the operation calls appear to take place
+in a one-at-a-time order, without interfering with one another.
+
+A variant on the bag-of-tasks pattern allows new tasks to be placed back into
+the bag.  This can be the case where some tasks can be solved directly, but
+other tasks lead to two or more recursive subtasks.  The latter case can be
+tackled by returning subtasks to the bag.  We will need some extra machinery
+to support returning tasks to the bag, which we will see in
+Chapter~\ref{chap:alts}; exercises in that chapter investigate this technique.
+
+%% \emph{Adaptive quadrature} is an alternative approach that proceeds as
+%% follows.  In order to calculate the integral $\int_a^b f(x) \mbox{d}x$,
+%% compute the midpoint $mid = (a+b)/2$ and estimate three integrals, from $a$ to
+%% $mid$, from $mid$ to~$b$, and from $a$ to~$b$, each using the trapezium rule
+%% with a single interval.  If the sum of the former two estimates is within some
+%% value $\epsilon$ of the third, then we take that third estimate as being the
+%% result.  Otherwise, recursively estimate the integrals over the two
+%% sub-intervals $a$ to~$mid$ and $mid$ to~$b$, and sum the results.
+
+%% The latter case can be implemented by returning the two sub-intervals $(a,
+%% mid)$ and $(mid, b)$ to the bag.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section*{Exercises}
+
+\input{Exercises/pi.tex}
+
+\input{Exercises/matrix} % Matrix multiplication Q (sheet 1.5)
+
+\framebox{?} Count \# common values (sheet 1.6) --- I think the best way to
+solve this problem is to use a shared hash table; but that will appear later
+in the book. 
+
+\framebox{?} Maximum in array.
+
+
+
 

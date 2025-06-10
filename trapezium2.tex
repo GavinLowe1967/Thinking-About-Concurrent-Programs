@@ -1,288 +1,135 @@
-\begin{slide}
-\heading{Tuning}
+\section{Tuning}
 
-We want to tune the program to run quickly.  There are two questions to
-consider: 
+\framebox{Rewrite}
+
+We want to tune the program so that it runs quickly.  The main question we
+want to consider is how many worker threads to use in order to minimise the
+running time.
+%%  A secondary question is
+%% whether we should use buffered channels. 
+We can run some experiments to try to obtain (at least) a partial answer to
+this question, although the answer is likely to vary with the architecture.
 %
-\begin{itemize}
-\item How many workers should we use?
+Appendix~\ref{app:experiments} describes how to run good experiments, and
+explains some of the statistical terminology used below. 
 
-\item Should we use buffered channels?
-\end{itemize}
+We consider |n| (the number of intervals) as an input: under different
+circumstances, we might want to use different values for~|n|.  We want to
+understand how the optimal number of workers depends upon~|n|.
+
+Most of the experiments in this section were run on an eight-core machine, with
+two 2.40GHz Intel(R) Xeon(R) E5620 CPUs.
 %
-We can run some experiments to try to obtain (at least) partial answers to
-these; although the answers are likely to vary with the architecture.
-
-We consider $n$ (the number of intervals) as an input: under different
-circumstances, we might want to use different values for~$n$.
-
-%% Each experiment was as follows:
-%% %
-%% \begin{itemize}
-%% \item The experiments were run on a 32-core server (two 2.1GHz Intel(R)
-%% Xeon(R) E5-2683 CPUs with hyperthreading enabled).
-
-%% \item 
-%% Each instance estimated $\int_{-100000}^{+100000} x^2 \cos x \, \mbox{d}x$.
-%% \end{itemize}
-
-\end{slide}
-
-%%%%%
-
-\begin{slide}
-\heading{How many workers to use?}
-
-The experiments to decide the number of workers were as follows.
+I'll also briefly mention similar experiments on a a 32-core server, with two
+2.1GHz Intel(R) Xeon(R) E5-2683 CPUs with hyperthreading enabled
+(hyperthreading is a hardware technique that allows a single physical core to
+act like two logical cores, executing two threads concurrently).
 %
-\begin{itemize}
-\item The experiments were run on a 32-core server (two 2.1GHz Intel(R)
-Xeon(R) E5-2683 CPUs with hyperthreading enabled).
-
-\item 
-Each instance calculated an approximation of $\int_{-100000}^{+100000} x^2
-\cos x \, \mbox{d}x$.
-
-\item
-Various different sizes of $n$ were used between $2^{16}$ and $2^{28}$; each
-observation calculated the integral $2^{28}/n$ times (so all observations were
-about the same amount of work).
-
-\item
-Each instance used buffered channels with capacity 16.
-
-\item
-For each choice of $n$, various values of |nWorkers| were used.
-
-\item
-For each choice of parameters, multiple observations were made, and the mean
-and 95\% confidence interval calculated.
-\end{itemize}
-\end{slide}
+In each case, the program calculated approximations to the integral 
+$\int_{-100000}^{+100000} x^2 \cos x \, \mbox{d}x$.
 
 %%%%%
 
-\begin{slide}
-\label{slide:not-bag-of-tasks}
-% scala -cp .:/home/gavinl/Scala/SCL:/home/gavinl/Scala/Util
-% TrapeziumExperiment  --buffering 16 --doLog --strict --server on casteret
-\begin{tikzpicture}
-\begin{semilogxaxis}[
-%  title = Timing experiment on the numerical integration example,
-  ylabel = Time (ms),
-  legend pos = north west,
-  height = 0.98\textheight,
-  width = 0.98\textwidth,
-  scaled ticks = false,
-  xlabel = Number of workers,
-  xmin = 1,
-  ymin = 0,
-  ymax = 12000,
-  log basis x=2
-]
-\input{trapeziumExperimentLogScaleBody}
-\end{semilogxaxis}
-\end{tikzpicture}
-\end{slide}
-
-%%%%%
-
-\begin{slide}
-\heading{Discussion of results}
-
-
-\begin{itemize}
-\item The amount of computation each worker performs is $O(1/\sm{nWorkers})$.
-  But the amount of communication grows as $O(\sm{nWorkers})$.  
-
-\item Each of the plots initially falls roughly proportional to
-$1/\sm{nWorkers}$, which is proportional to $\sm{taskSize}$, i.e.~the
-per-thread computation time.  
-
-\item For larger values of |nWorkers|, the graphs seem to grow roughly
-  proportional to |nWorkers|: the communication costs dominate.
-
-%% The plots don't fall quite this quickly because
-%% the communication and thread initialisation overheads grow proportional to
-%% |nWorkers|.
-\end{itemize}
-\end{slide}
-
-%%%%%
-
-
-\begin{slide}
-\heading{Discussion of results}
-
-\begin{itemize}
-\item
-For small values of $n$ (up to about $2^{20}$), the optimal number of workers
-is \emph{less} than the number of machine threads.  
-
-Informal profiling with $n = 2^{18}$ and 64 workers shows that each worker
-spends less than 25\% of its time calculating the integral: most of its
-time is spent waiting for a task or waiting to send its result back to the
-controller.
-% scala -cp .:/home/gavinl/Scala/SCL:/home/gavinl/Scala/Util TrapeziumRun -p  64 --profile --reps 100 --size 262144 --buffering 16
-
-
-The extra computation is dwarfed by the communication overheads. 
-
-%% Extra threads reduce the per-thread computation time; but this is out-weighed
-%% by the thread-creation and communication overheads.  In addition, the
-%% controller acts as a bottleneck.
-
-%% Beyond the optimal point, performance falls off rapidly: the thread-creation
-%% and communication overheads dominate, and these are proportional to the number
-%% of threads. 
-
-\item
-For larger values of $n$, the optimal number of workers is \emph{more} than
-the number of machine threads (although the graphs are quite flat in this
-range).  
-
-Having more program threads than machine threads seems to give the
-scheduler more chance for load balancing (rather like the pattern we will
-look at in the next chapter). 
-\end{itemize}
-\end{slide}
-
-%%%%%
-
-\begin{slide}
-\heading{Experiment concerning buffering}
-
-We can carry out a similar experiment concerning the amount of buffering.
-Some details:
+Figure~\ref{fig:trapeziumExperimentLogScale} gives results for an experiment
+to investigate how many workers to use.  
 %
-\begin{itemize}
-\item Various different sizes of $n$;
+Each plot considers a particular value for |n|, given in the key.
+%
+The x-axis gives the number of workers used, and the y-axis gives the time
+taken.  
 
-\item 64 worker threads;
+Each \emph{observation} of the program evaluated the integral $2^{28}/\sm n$
+times; that means that each observation used $2^{28}$ intervals, so the
+different plots correspond to about the same amount of computation (and so fit
+nicely in the same axes).  Unbounded buffered channels were used in each case.
 
-\item Different amounts of buffering, including 0 (i.e.~a synchronous
-  channel);
-
-\item Other details as for the previous experiment.
-\end{itemize}
-\end{slide}
-
-%%%%%
-
-
-\begin{slide}
-\begin{tikzpicture}
-\begin{axis}[
-%  title = Timing experiment on the numerical integration example,
-  ylabel = Time (ms),
-  legend pos = north east,
-  height = 0.98\textheight,
-  width = 0.98\textwidth,
-  scaled ticks = false,
-  %title = Experiment on the benefits of buffering,
-  xlabel = Amount of buffering,
-  xtick = data,
-  ymax = 11500,
-  symbolic x coords={0,1,2,4,8,16,32}
-]
-\input{trapeziumBufferingBody}
-\end{axis}
-\end{tikzpicture}
-\end{slide}
+Each data point corresponds to multiple observations of the program.  The
+graph displays the mean of those observations, and a 95\% confidence interval
+(see Appendix~\ref{app:experiments}).  More precisely, each point corresponds
+to enough observations such that the size of the confidence interval is at
+most 2\% of the mean, or 50 observations, whichever is smaller.  In fact, most
+confidence intervals are too small to be plotted; and where they are plotted,
+they are barely visible.
 
 %%%%%
 
-\begin{slide}
-\heading{Discussion of results}
-
-Buffering helps for examples with more workers than the optimal number (for
-the given~$n$).  Curiously, buffering of size~1 makes things slower, however.
-
-For examples with a more appropriate number of workers (for the given~$n$),
-buffering makes very little difference, in this case.  However, it might make
-more difference in other examples, particularly where the time to produce and/or
-process a task is more variable.
-\end{slide}
-
-% \begin{slide}
-% \heading{Experimental results}
-
-% The following table shows the time taken (in ms) to run the system, with
-% \SCALA{n=63000}, on an 8 processor machine, with Just In Time compilation
-% turned \emph{off} (averaged over 200 runs).
-% %
-% \begin{trivlist}\item[]\def\tabcolsep{1.7mm}
-% \begin{tabular}{*{19}{c}}
-% nWorkers: & 1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 & 10 & 12 & 15 & 20\\
-% time: & 165 & 108 & 85 & 70 & 60 & 55 & 52 & 51 & 59 & 59 & 55 & 52 & 51\\[2mm]
-% \end{tabular}
-% \end{trivlist}
-
-% How can we explain the figures?
-% \end{slide}
-
-% %%%%%
-
-% \begin{selfnote}
-% The fastest is when each worker is on a separate processor.  (In this case the
-% controller doesn't do much work.  In an example where the controller does a
-% lot of work, the fastest might be when the $\# workers = \# processors - 1$.) 
-
-% In an ideal world, it would be $1/nWorkers$ for $nWorkers \le 8$.  But there's an
-% overhead, both per extra process and overall.
-
-% Once $nWorkers > 8$, the processes have to compete for the processors, and the
-% extra time for the context switches makes it slower overall.
-
-% I don't really understand why it gets faster again for 15 and 20.
-% \end{selfnote}
-
-%% n = 630000, 100 times each, JIT off
-
-%% nWorkers = 1      Time taken: 156.061
-%% nWorkers = 2      Time taken: 109.354
-%% nWorkers = 3      Time taken: 87.591
-%% nWorkers = 4      Time taken: 70.119
-%% nWorkers = 5      Time taken: 60.185
-%% nWorkers = 6      Time taken: 55.064
-%% nWorkers = 7      Time taken: 52.063
-%% nWorkers = 8      Time taken: 51.971
-%% nWorkers = 9      Time taken: 56.148
-%% nWorkers = 10     Time taken: 58.047
-%% nWorkers = 12     Time taken: 59.018
-%% nWorkers = 15     Time taken: 56.04
-%% nWorkers = 20     Time taken: 57.163
+\begin{figure}
+% scala  tacp.trapezium.TrapeziumExperiment --doLog --strict
+\begin{center}
+\input{trapeziumExperimentLogScale}
+\end{center}
+\caption{Experiment to investigate how many workers to use.}
+\label{fig:trapeziumExperimentLogScale}
+\end{figure}
 
 %%%%%
 
-% \begin{slide}
-% \heading{Experimental results}
+Most of the plots have a U-shape.  Initially, increasing the number of workers
+makes the program faster, as each worker has to consider fewer intervals.
+However, beyond a particular point, increasing the number of workers becomes
+counter-productive.  The aim is to find the minimum point on the curve.
+U-shapes like these are very common in timing experiments.
 
-% The following table shows the time taken (in ms) to run the system, with
-% \SCALA{n=1260000} (20 times more than the previous experiment), on the same
-% machine, with Just In Time compilation turned \emph{on} (again averaged over
-% 200 runs).
-% %
-% \begin{trivlist}\item[]\def\tabcolsep{1.5mm}%
-% \begin{tabular}{*{19}{c}}
-% nWorkers: & 1 & 2 & 3 & 4 & 5 & 6 & 7 & 8  & 9 & 10 & 12 & 15 & 20 \\
-% time:  & 152 & 157 & 134 & 117 &  100 & 80 & 74 & 69 & 63 & 64 & 64 & 65 & 67
-% % time:   & 76 & 79 & 64 & 56 & 48 & 43 & 39 & 37 & 37 & 36 & 37 & 37 & 39
-% \end{tabular}
-% \end{trivlist}
-% %
-% The Just In Time compilation has an odd effect!
-% \end{slide}
+Given that these experiments were run on a machine with eight cores, you might
+have expected the program to get faster as the number of program threads
+increases up to eight.  However, that isn't the case.  Consider the plot for
+$\sm n = 2^{14}$.  This shows that the program is faster with two workers than
+one; however, it gets slower if the number of workers is increased to~four;
+and beyond that it gets much slower.  A similar phenomenon occurs with $\sm n
+= 2^{16}$ and $\sm n = 2^{18}$, where the program is fastest with four
+threads, but slower beyond that.  
 
-% %%%%%
+The reason for this is that each channel is acting as a bottleneck.
+Profiling, in the case of eight workers with $\sm n = 2^{14}$, shows that the
+threads spend about 99\% of their time trying to send or receive values, and
+only about 1\% of their time actually performing useful computation.  There is
+a limit to how quickly values can be sent on the channels; the worker threads
+compete with one another to send and receive.  Decreasing the number of
+workers means fewer messages are sent, so the channels become less of a
+bottleneck; this means that each task is larger and so takes longer, but the
+benefits outweigh the disadvantages.  
 
-% \begin{slide}
-% \heading{Comments}
+The behaviour for $\sm n = 2^{20}$ and $\sm n = 2^{24}$ is much better, with
+performance improving up to eight threads.  Profiling shows that, with eight
+workers, the proportion of time threads spend trying to send or receive
+is less than 40\% and less than 20\% in these cases, respectively.
 
-% In this case, we could have constructed the workers with the
-% appropriate values for \SCALA{f, l, r, taskSize, delta}, rather than having the
-% controller distribute them.  However, we wanted to illustrate the
-% pattern of having a controller distribute work to the workers.
-% \end{slide}
+
+Other experiments show that in cases where the channels act as a bottleneck, 
+using buffered channels helps a little bit.  However, buffering makes little
+difference in the well-tuned cases.
+ 
+By the way, I ran similar experiments on the 32-core server (with 64 machine
+threads).  I obtained similar results, except the channels were,
+unsurprisingly, more of a bottleneck: the optimal number of workers was 64
+only with larger values of~|n|, around~$2^{28}$.
+
+% Code/trapeziumBuffering.tex
+
+
+%% \begin{slide}
+%% \label{slide:not-bag-of-tasks}
+%% % scala -cp .:/home/gavinl/Scala/SCL:/home/gavinl/Scala/Util
+%% % TrapeziumExperiment  --buffering 16 --doLog --strict --server on casteret
+%% \begin{tikzpicture}
+%% \begin{semilogxaxis}[
+%% %  title = Timing experiment on the numerical integration example,
+%%   ylabel = Time (ms),
+%%   legend pos = north west,
+%%   height = 0.98\textheight,
+%%   width = 0.9\textwidth,
+%%   scaled ticks = false,
+%%   xlabel = Number of workers,
+%%   xmin = 1,
+%%   ymin = 0,
+%%   ymax = 12000,
+%%   log basis x=2
+%% ]
+%% \input{trapeziumExperimentLogScaleBody}
+%% \end{semilogxaxis}
+%% \end{tikzpicture}
+%% \end{slide}
+
+%%%%%
 
 %%%%%
