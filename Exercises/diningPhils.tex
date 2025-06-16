@@ -1,0 +1,138 @@
+\begin{question}
+\label{ex:diningPhils}
+The aim of this question is to investigate some variants of the dining
+philosophers, which aim to avoid deadlocks, as discussed in
+Section~\ref{sec:avoid-deadlocks}.  You should implement and test each of the
+three variants below.
+%
+\begin{enumerate}
+\item \textbf{A right-handed philosopher.}
+In the standard version of the dining philosophers, all the philosophers are
+left-handed: they pick up their left fork first.  Implement a variant where
+one of the philosophers is right-handed, i.e.\ they pick up their right fork
+first.
+
+\item \textbf{Using a butler.} Now consider a variant using an extra
+  thread, which represents a butler.  The butler makes sure that no more than
+  four philosophers are ever simultaneously seated.
+
+\item \textbf{Using timeouts.} Now consider a variant where, if a
+  philosopher is unable to obtain their second fork, they put down their first
+  fork, and retries later.  In the version in the body of this chapter, all
+  delays are a few hundred milliseconds, so the delay here should be of a
+  similar order.  You will need to use the |sendWithin| operation, described
+  earlier. 
+
+If the system reaches a state where all philosophers are blocked, it's
+possible that they all put down their forks at the same time, and then all
+retry at the same time, leading to them being blocked again.  How can we avoid
+this (with high probability)?
+\end{enumerate}
+\end{question}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{answerI}
+In the answers below, I'll elide code that is identical to that in the body of
+the chapter.
+
+\begin{enumerate}
+\item
+The following code makes philosopher~$0$ right-handed.
+%
+\begin{scala}
+  def phil(me: Int, left: !![Cmd], right: !![Cmd]) = thread("Phil"+me){
+    repeat{
+      ... // Thinks, and then sits.
+      if(me == 0){
+        right!Pick; println(s"$me picks up right fork"); pause()
+        left!Pick; println(s"$me picks up left fork"); pause()
+      }
+      else{
+        left!Pick; println(s"$me picks up left fork"); pause()
+        right!Pick; println(s"$me picks up right fork"); pause()
+      }
+      ... // Drops forks, and leaves.
+    }
+  }
+\end{scala}
+
+%%%%%
+
+\item We can use the following channels for a philosopher to signal to the
+  butler that they want to sit down or are leaving.
+\begin{scala}
+  private val sit, leave = new SyncChan[Unit]
+\end{scala}
+%
+The definition of a philosopher is easily adapted to use these channels.%
+\begin{scala}
+  def phil(me: Int, left: !![Cmd], right: !![Cmd]) = thread("Phil"+me){
+    repeat{
+      think()
+      sit!(()); println(s"$me sits"); pause()
+      ... // Picks up forks, eats, drops forks.
+      leave!(()); println(s"$me leaves")
+    }
+  }
+\end{scala}
+%
+The butler keeps track of how many philosophers are currently seated.  When
+there are already $\sm N - 1$ seated, the butler prevents the final
+philosopher from sitting down by refusing a communication on |sit|.  As a
+sanity-check, the code below checks that, when a philosopher leaves, there was
+at least one philosopher previously seated.
+%
+\begin{scala}
+   def butler = thread("butler"){
+    var seated = 0 // Number currently seated.
+    serve(
+      seated < N-1 && sit =?=> { _ => seated += 1 }
+      | leave =?=> { _ => assert(seated > 0); seated -= 1 }
+    )
+  }
+\end{scala}
+%
+The definition of |system| includes |butler| as an additional parallel
+component. 
+
+%%%%%
+
+\item
+If a philosopher is unable to obtain their second fork, they drop their first
+fork, and then wait for a random amount of time before trying again.  This
+randomness makes it more likely that the philosophers get out of sync, and so
+succeed next time.  
+%
+\begin{scala}
+  /** Time to wait for second fork. */
+  private def waitTime = 300+Random.nextInt(200)
+
+  /** Time to wait after failing to get second fork. */
+  private def backoffTime = 200+Random.nextInt(800)
+\end{scala}
+
+\begin{scala}
+  def phil(me: Int, left: !![Cmd], right: !![Cmd]) = thread("Phil"+me){
+    repeat{
+      ... // Thinks, and then sits. 
+      var done = false
+      while(!done){
+        left!Pick; println(s"$me picks up left fork"); pause()
+        if(right.sendWithin(waitTime)(Pick)){
+          println(s"$me picks up right fork"); pause()
+          println(s"$me eats"); eat()
+          left!Drop; pause(); right!Drop; pause()
+          println(s"$me leaves"); done = true
+        }
+        else{
+          println(s"$me fails to get right fork"); pause()
+          left!Drop; Thread.sleep(backoffTime)
+        }
+      } // End of £while£ loop.
+    }
+  }
+\end{scala}
+\end{enumerate}
+\end{answerI}
+

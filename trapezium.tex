@@ -15,7 +15,7 @@ problems is to split the input data between different worker threads, and to
 combine the results together.  Many compute-intensive problems fall into this
 class, so it is a very useful pattern.  It  requires that there is some
 meaningful way to split the data between workers, and to combine the results
-in an inexpensive way.
+efficiently.
 
 We arranged for a controller thread to distribute tasks to workers, using two
 different approaches.  In the first approach, the controller sent each worker
@@ -29,44 +29,53 @@ We tested each implementation against a corresponding sequential algorithm.
 This is a very common technique.  A wrinkle here is that rounding errors
 caused the two algorithms to give slightly different results.  
 
-\framebox{TO DO}
+We also ran experiments to understand how best to choose parameters such as
+the number of workers and the number of tasks.  The main error one can make
+here is to take tasks to be too small.  This leads to the channels becoming
+bottlenecks, and the program being inefficient.  It can be best to run fewer
+threads than the number of machine threads available, so as to avoid these
+bottlenecks.  Each task should be large enough that workers spend nearly all
+their time actually performing the tasks, as opposed to trying to send and
+receive messages.  
 
-\begin{itemize}
+%% \framebox{TO DO}
+
+%% \begin{itemize}
+%% %% \item
+%% %% Data parallel;
+
+%% %% \item
+%% %% Workers and controllers;
+
+%% %% \item
+%% %% Closing channels;
+
+%% %% \item
+%% %% Testing against a sequential implementation;
+
 %% \item
-%% Data parallel;
+%% %% Choosing the number of processes and the amount of buffering;
+
+%% %% \item
+%% %% Beware of having too many communications: the channel will act as a bottleneck;
+
+%% %% \item
+%% %% Experimental design.
+
+%% %% \item
+%% %% Bag of tasks;
 
 %% \item
-%% Workers and controllers;
+%% Choosing the size of tasks;
 
 %% \item
-%% Closing channels;
+%% Communication is expensive: avoid having too many communications;
 
 %% \item
-%% Testing against a sequential implementation;
+%% Encapsulation;
 
-\item
-Choosing the number of processes and the amount of buffering;
-
-\item
-Beware of having too many communications: the channel will act as a bottleneck;
-
-\item
-Experimental design.
-
-%% \item
-%% Bag of tasks;
-
-\item
-Choosing the size of tasks;
-
-\item
-Communication is expensive: avoid having too many communications;
-
-\item
-Encapsulation;
-
-%% \item Bag of tasks with replacement.
-\end{itemize}
+%% %% \item Bag of tasks with replacement.
+%% \end{itemize}
 
 In Section~\ref{sec:bag-of-tasks-encapsulation}, we encapsulated the bag of
 tasks and the collector inside objects.  This meant that we could concentrate

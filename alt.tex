@@ -1,0 +1,128 @@
+\chapter{Alternation} 
+\label{chap:alts}
+
+\input{alt1} % Introduction
+\input{alt2} % Dining Philosophers
+\input{alt3} % With outports
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Misc}
+
+\begin{slide}
+\heading{\protect\SCALA{alt}s versus shared channels}
+
+Sometimes a shared channel can produce the same effect as an \SCALA{alt}.
+
+For example, consider a variant of the dining philosophers where each
+philosopher has channels \SCALA{pick} and \SCALA{drop} for each of its
+forks, and where each fork has single \SCALA{pick} and \SCALA{drop}
+channels, on which it can receive messages from either of the adjacent
+philosophers:
+%
+\begin{scala}
+  def Fork(me: Int, pick: ??[Unit], drop: ??[Unit]) = thread("Fork"+me){
+    repeat{ pick?(); drop?() }
+  }
+\end{scala}
+%
+%% Note that the \SCALA{pick} communication could be from either neighbouring
+%% philosopher, so these need to be |ManyOne| channels.
+Note that we need separate |pick| and |drop| channels.
+\end{slide}
+
+%%%%%
+
+
+\begin{slide}
+\heading{Restrictions}
+
+\begin{itemize}
+%% \item
+%% An alt may not have two simultaneously enabled branches using the
+%% same port.
+
+%% \item An alt may not use a port that is shared, either with another alt or
+%% with a non-alt read or write.
+
+\item A port may not be simultaneously feasible in two alts or |serve|s.
+  (But it may be feasible in an alt/|serve|, and also used by a thread with
+  a simple send or receive.)
+
+\item Both ports of a channel may not simultaneously be feasible in alts or
+  |serve|s.
+\end{itemize}
+%
+The implementation  detects violations. 
+\end{slide}
+
+%%%%%
+
+\begin{slide}
+\heading{Generalised \protect\SCALA{alt}s}
+
+\SCALA{alt}s (and \SCALA{serve}s) can be constructed from collections of
+branches.
+
+Here is a generalization of the tagger:
+%
+\begin{scala}
+def tagger[T](ins: List[??[T]], out: !![(Int, T)]) = thread{
+  serve ( 
+    | (for (i <- 0 until ins.length) yield ins(i) =?=> { x => out!(i, x) })
+  )
+  for (in <- ins) in.close
+  out.endOfStream
+}
+\end{scala}
+
+This will terminate when all input channels are closed, or \SCALA{out} is
+closed. 
+\end{slide}
+
+%%%%%
+
+\begin{slide}
+\heading{Caveat}
+
+alts and |serve|s are fairly heavyweight constructs.  Don't use them unless
+there's a good reason to do so, i.e.~you really want to be able to communicate
+on either of two channels.
+Sometimes it's easier and more efficient to force communications to happen in
+a particular order.
+\end{slide}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Summary}
+
+
+\begin{itemize}
+\item
+\SCALA{alt}s;
+
+\item
+Syntax: using inports and outports; guards; \SCALA{serve}; generalised alts;
+% timeouts; \SCALA{orelse}; \SCALA{prialt} (and \SCALA{priserve})
+
+\item
+Example: dining philosophers;
+
+\item
+Logging;
+
+%% \item
+%% \SCALA{alt}s versus \SCALA{ManyOne} channels;
+
+\item
+Restrictions on use of \SCALA{alt}s. 
+\end{itemize}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section*{Exercises}
+
+\input{Exercises/diningPhils} % DP practical
+
+Adaptive quadrature 

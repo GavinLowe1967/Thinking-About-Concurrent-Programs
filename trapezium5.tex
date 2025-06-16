@@ -43,7 +43,7 @@ get the overall total.
     def getTask(): Task 
   }  
 
-  /** A collector object that combines sub-results from the workers. */
+  /** A collector object that combines subresults from the workers. */
   trait Collector{
     /** Add x to the result. */
     def add(x: Double) 
@@ -84,7 +84,7 @@ method creates the two objects, runs the workers, and then gets the
 final result from the collector.
 \begin{scala}
   def apply(): Double = {
-    val bag = new BagOfTasksChannels(a, b, n, nTasks, numWorkers, buffering)
+    val bag = new BagOfTasksChannels(a, b, n, nTasks, nWorkers, buffering)
     val collector = new CollectorChannels(nWorkers, buffering)
     val workers = || (for (i <- 0 until nWorkers) yield worker(bag, collector))
     run(workers)
@@ -157,8 +157,6 @@ operation receives the final result from the server.
 
 \begin{figure}
 \begin{scala}
-  /** A collector object that receives sub-results from the workers, and adds
-    * them up. */
   private class CollectorChannels(buffering: Int) extends Collector{
     /** Channel from workers to the server. */
     private val toController = mkChan[Double](buffering)
@@ -172,7 +170,7 @@ operation receives the final result from the server.
     /** Get the result. */
     def get: Double = resultChan?()
     
-    /** A collector, that accumulates the sub-results. */
+    /** A collector, that accumulates the subresults. */
     private def server = thread("collector"){
       var result = 0.0
       for(i <- 0 until nTasks) result += (toController?())

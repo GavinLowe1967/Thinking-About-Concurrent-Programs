@@ -29,6 +29,8 @@
 \def\mstyle{\scalacolour}
 \everymath{\mstyle}
 
+\def\ignore#1{}
+
 \usepackage{questions} 
 
 \renewcommand{\textfraction}{.15}
@@ -53,12 +55,11 @@
 %% \pagenumbering{arabic}
 %% \newpage
 \input{intro}
+\ignore{
 \input{channels}
 \input{trapezium}
-
-\chapter{Alternation}
-\label{chap:alts}
-Adaptive quadrature and quicksort examples.
+}
+\input{alt}
 
 \appendix
 

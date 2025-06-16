@@ -185,11 +185,11 @@ object TrapeziumExperiment{
       if(server) Array(22, 24, 26, 28, 30) else Array(20, 22, 24, 26, 28)
     val sizes = logSizes.map(k => 1L << k)
     val n = numsTasks.length
-    val total = if(server) 1L << 31 else 1L << 28
+    val total = if(server) 1L << 30 else 1L << 28
     // Array for results, in millis
     val results = Array.ofDim[(Double,Double)](sizes.length, n)
     for(j <- 0 until sizes.length){
-      val size = sizes(j); val reps = (1L <<  28)/size
+      val size = sizes(j); val reps = total/size
       val cmd2 = cmd1+" --size "+size+" --reps "+reps
       val cmds = numsTasks.map(cmd2+" --numTasks "+_)
       results(j) = doMeasurements(cmds, params, TMax)

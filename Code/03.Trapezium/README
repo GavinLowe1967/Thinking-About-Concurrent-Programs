@@ -9,7 +9,7 @@ TrapeziumBagObjects.scala: Implementation using bag-of-tasks, encapsulating
 the bag and the collector in classes.
 
 TrapeziumBagObjects-Stopped.scala: variant of the above, using Stopped
-exceptions.
+exceptions.  ** Remove?? **
 
 TrapeziumTest.scala: Tester for the above three.
 
@@ -33,15 +33,6 @@ Other options are as follows:
 --server: choose the parameters suitable for use on a server machine;
 --help: print this help.
 
+Pi.scala: Estimation of pi (exercise).
 
-
-Commands to use with TrapeziumExperiment
-
- scala  tacp.trapezium.TrapeziumExperiment --doBuffer --strict
-
-Add "--quick" for testing
-
-Add "--server" on server
-
-1048576
-16777216
+Matrix.scala: Matrix multiplication (exercise)

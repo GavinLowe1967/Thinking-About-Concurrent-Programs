@@ -1,0 +1,11 @@
+specialFunctions.java: Code from which SpecialFunctions.scala adapted.  Used
+only for testing.
+
+SpecialFunctions.scala: Functions used in the calculation of confidence
+intervals.
+
+ConfidenceIntervals.scala: Code to calculate confidence intervals.
+
+Experiments.scala: Code to help run experiments.
+
+Graphs.scala: Code to produce graphs, for processing using LaTeX. 

@@ -45,7 +45,7 @@ Chapter 8: Concurrent Datatypes
 
 Appendices
 
-- Scala -- write; case classes
+- Scala -- write; case classes; Option types
 - Experiments -- improve
 
 --------------
@@ -54,6 +54,7 @@ TO DO
 
 Check for correct usage of ??[A] and !![A]:
 fgrep -n "?[" *.tex | fgrep -v "??"
+fgrep -n "?\`" *.tex 
 grep "[!][[]" *.tex | egrep -v "[!]{2}"
 
 

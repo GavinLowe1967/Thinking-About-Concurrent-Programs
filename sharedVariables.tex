@@ -84,7 +84,7 @@ passing them, to avoid unintended sharing.
 Consider \SCALA{p(in, mid) || q(mid)} where
 %
 \begin{scala}
-def p(in: ??[String], mid: ![Person]) = thread{
+def p(in: ??[String], mid: !![Person]) = thread{
   val pers = new Person()
   while(true){ val n = in?(); pers.name = n; mid!pers }
 }
