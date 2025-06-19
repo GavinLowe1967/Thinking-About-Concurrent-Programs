@@ -1,10 +1,10 @@
-At present, we can write threads that try to send or receive on a
-\emph{single} channel.  However, it's often useful to be able to try to send
-or receive on either of two or more channels: the \emph{alternation}, or
-\emph{alt}, construct does that for us.
+At present, we can write definitions of threads that try to send or receive on
+a \emph{single} channel.  However, it's often useful for a thread to be able
+to try to send or receive on either of two or more channels: the
+\emph{alternation}, or \emph{alt}, construct does that for us.
 %
-We will start by describing the basic syntax of alternation, and then use it
-in examples.
+In this chapter, we will study alternation: we will start by describing the
+basic syntax of alternation in SCL, and then use it in examples.
 
 %%%%%
 
@@ -12,11 +12,7 @@ We start by describing how a thread can try to receive from any one of several
 different in-ports.  The construct
 %
 \begin{scala}
-  alt( 
-    in£$_1$£ =?=> {f£$_1$£}
-    | ...
-    | in£$_n$£ =?=> {f£$_n$£}
-  )
+  alt( in£$_1$£ =?=> {f£$_1$£} | ... | in£$_n$£ =?=> {f£$_n$£} )
 \end{scala}
 %
 waits until one of the in-ports \SCALA{in}$_1$, \ldots, \SCALA{in}$_n$
@@ -25,8 +21,13 @@ relevant function |f|$_i$ to~$v$.  If |in|$_i$ is an in-port passing data
 of type~|A|, then $\sm f_i$ must be a function that takes an argument of
 type~|A|. 
 
-Here's a very simple example.  (The notation |x => c| represents a function
-that, given argument~|x|, performs~|c|.)
+In such constructs, it is common to define each function using a
+\emph{function literal}: the notation |x => c| (pronounced ``|x|~maps
+to~|c|'') represents a function that, given argument~|x|, performs~|c|.  Thus,
+if a branch |in =?=> { x => c }| receives a value~|v|, then the argument~|x|
+of the function gets bound to~|v|, and |c| is performed.
+
+Here's a very simple example. 
 %
 \begin{scala}
   alt(
@@ -34,35 +35,35 @@ that, given argument~|x|, performs~|c|.)
     | c2 =?=> { x => println(s"$x received on c2") }
   )
 \end{scala}
+%
+In each case, the variable~|x| gets bound to the value received, and then the
+|println| statement is performed. 
 
 %%%%%
 
-The following thread repeatedly inputs from one of two input ports, tags the
-value input, and outputs it.
+The following thread repeatedly receives a value from one of two input ports,
+tags the value, and outputs it.
 %
-\begin{mysamepage}
+%\begin{mysamepage}
 %  def tagger[T](l: ??[T], r: ??[T], out: !![(Int, T)]) = thread{
 \begin{scala}
   repeat{
-    alt ( l =?=> { x => out!(0, x) }
-        | r =?=> { x => out!(1, x) }
-    )
+    alt ( l =?=> { x => out!(0, x) } | r =?=> { x => out!(1, x) } )
   }
 \end{scala}
-\end{mysamepage}
+%\end{mysamepage}
+
 %
-Exercise: design a corresponding de-tagger.  \framebox{??}
+%Exercise: design a corresponding de-tagger.  \framebox{??}
 
 %%%%% \heading{Guards}
 
 It's sometimes useful to specify that a particular in-port should be
-considered only if some condition, or \emph{guard}, is true.  In the construct
+considered only if some boolean condition, or \emph{guard}, is true.  In the
+construct
 %
 \begin{scala}
-  alt( guard£$_1$£ && in£$_1$£ =?=> {f£$_1$£}
-     | ...
-     | guard£$_n$£ && in£$_n$£ =?=> {f£$_n$£}
-  )
+  alt( guard£$_1$£ && in£$_1$£ =?=> {f£$_1$£} | ... | guard£$_n$£ && in£$_n$£ =?=> {f£$_n$£} )
 \end{scala}
 %
 a communication on each |in|$_i$ is possible only if the corresponding
@@ -70,15 +71,16 @@ a communication on each |in|$_i$ is possible only if the corresponding
   && in =?=> ...}.  Each guard is evaluated once, and should not have side
 effects.
 
-If a guard evaluates to true and the inport is open, we say that the
+If a guard evaluates to true and the in-port is open, we say that the
 corresponding branch is \emph{feasible}.  If no branch is feasible, the alt
 throws an |AltAbort| exception (a subclass of \SCALA{Stopped}): this
 corresponds to the case where the alt will never be able to communicate.
 
-If a branch is feasible and the inport is available for communication, then we
-say that the branch is \emph{ready}.
+If a branch is feasible and the in-port is available for communication
+(i.e.,~another thread is trying to send on the channel), then we say that the
+branch is \emph{ready}.
 %
-The alt waits until a branch is ready, and receives from the inport.  If
+The alt waits until a branch is ready, and receives from the in-port.  If
 several are ready, it chooses between them.  If all the branches become
 infeasible (because of channels being closed), the alt throws an |AltAbort|
 exception.
@@ -116,18 +118,18 @@ The construct
 is very similar to the previous |repeat{ alt(...) }| construct, but with two
 differences.
 
-One difference is that the earlier construct creates a new alternation object
-(from a class |Alt|) on each iteration, whereas the |serve| creates a single
-alternation object which is used repeatedly.
+One difference is that the earlier construct creates a new alternation object,
+from class |ox.scl.channel.Alt|, on each iteration, whereas the |serve|
+creates a single alternation object which is used repeatedly.
 
 %%%%% \heading{Fairness}
 
-The implementation of an alt tests whether its branches are ready in the order
-given.  In the |repeat{alt(...)}| construct, a new alt object is created
+The implementation of  |alt| tests whether the branches are ready in the order
+given.  In the |repeat{alt(...)}| construct, a new |Alt| object is created
 for each iteration, so if the first branch is repeatedly ready, it will be
 repeatedly selected, and the other branches will be starved.
 
-By contrast, the |serve| aims to be fair.  It uses the same alt on each
+By contrast, the |serve| aims to be fair.  It uses the same |Alt| on each
 iteration.  It remembers which branch was selected on the previous iteration,
 and tests whether branches are ready starting from the following one (looping
 round).
@@ -147,25 +149,29 @@ Here's the tagger again:
   serve( l =?=> { x => out!(0, x) } | r =?=> { x => out!(1, x) } )
 \end{scala}
 %
-Note that this is fair to its two input ports: once one becomes ready, the
+This is fair to its two input ports: once one becomes ready, the
 |serve| will receive from it after at most one communication on the other
 port.
 %
 The |serve| loop terminates when either both |l| and~|r| are closed, or |out|
 is closed. 
 
+Henceforth, we will use the word ``alternation'' to mean either an |alt| or
+|serve| construct. 
+
+
 %%%%% \heading{About fairness}
 
 Fairness crops up in a number of scenarios in concurrent programming.
 %
-A typical fairness property is that if a particular option is continually
-logically possible, then it eventually happens.  Fairness for an alt
-construct means that if a particular branch is continually ready, and the
-alt performs enough iterations, then eventually that branch is selected.
+A typical fairness property is that if a particular option is continuously
+logically possible, then it eventually happens.  Fairness for an alternation
+means that if a particular branch is continuously ready, and the alternation
+performs enough iterations, then eventually that branch is selected.
 
 Note that ``fair'' doesn't necessarily mean equal shares: a construct that
 chooses option~$A$ 99\% of the time, and chooses option~$B$ 1\% of the time is
-fair despite not giving equal shares.
+fair, despite not giving equal shares.
 
 Fairness is psychologically attractive: certainly, being fair to other people
 in everyday life is a good thing.  However, it's not always appropriate in a
@@ -173,3 +179,28 @@ concurrent program.  In some scenarios, achieving fairness has a performance
 overhead.  And sometimes fairness can be achieved only by a more complicated
 program.  You should consider whether or not fairness is desirable.  Often you
 can achieve higher throughput, and a simpler program, without fairness.
+
+%%%%%  Generalised
+
+There are generalised versions of the alternation operators that take an
+arbitrary sequence of branches~|bs|, denoted \SCALA{alt( \|(bs) )} and
+\SCALA{serve( \|(bs) )}.  For example, given an array |ins| of in-ports, we can
+form a generalisation of the tagger as follows.  It is built from a sequence
+of branches that is generated using a |for| expression.
+% 
+\begin{scala}
+  serve( | (for (i <- 0 until ins.length) yield ins(i) =?=> { x => out!(i, x) }) )
+\end{scala}
+%
+The branches are indexed by the variable~|i|; we will sometimes refer to an
+alternation like this as \emph{indexed}.  This is fair to each in-port: if a
+particular in-port is continually ready, it will be selected within at most
+|ins.length| iterations.  The construct terminates when all the ports in |ins|
+are closed, or |out| is closed.
+
+
+There is a restriction on the use of alternations.  A port may not be
+simultaneously feasible in two alternations; in other words, a port may not be
+shared between alternations.  The implementation detects such misuses, and
+throws an exception.  However, a port may be shared between an alternation and
+a thread performing a simple receive via the ``|?|'' operation.

@@ -2,23 +2,46 @@
 \label{chap:alts}
 
 \input{alt1} % Introduction
-\input{alt2} % Dining Philosophers
-\input{alt3} % With outports
+\input{alt2} % Dining Philosophers, logging.
+\input{alt3} % Avoiding deadlocks, With outports
+\input{alt4} % quicksort bag of tasks example.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Misc}
+\section{Summary}
 
-\begin{slide}
-\heading{\protect\SCALA{alt}s versus shared channels}
+In this chapter, we have studied \emph{alternation} constructs, whereby a
+thread can try to communicate on any one of several different ports.  We
+have seen several examples using alternation.  In particular, we saw how it
+could be used to implement a bag of tasks with replacement. 
 
-Sometimes a shared channel can produce the same effect as an \SCALA{alt}.
+There is quite a lot of syntax involved with alternations: |alt| and |serve|;
+in-port branches and out-port branches; guards; and indexed alternations.  You
+should make sure you are familiar with the syntax.
 
-For example, consider a variant of the dining philosophers where each
-philosopher has channels \SCALA{pick} and \SCALA{drop} for each of its
-forks, and where each fork has single \SCALA{pick} and \SCALA{drop}
-channels, on which it can receive messages from either of the adjacent
-philosophers:
+There are two restrictions on the use of alternations: a port may not be
+simultaneously feasible in two alternations; and both ports of a channel may
+not be simultaneously feasible in alternations.  (Each restriction represents
+a design choice, to make the implementation of alternation simpler and more
+efficient.)
+
+Along the way, we discussed how to use logging to help with debugging; later
+we will use similar techniques for testing.  We also discussed how to identify
+possible deadlocks as cycles of waiting, and how to avoid them.
+
+As a caveat, you should note that alternations are fairly heavyweight
+constructs.  Under the bonnet, the implementation has to do quite a lot of
+work to identify whether any of its ports is ready for communication.  Don't
+use an alternation unless there is a good reason to do so, i.e.,~you really
+need a thread to be able to communicate on either of two channels.  Sometimes
+it's easier and more efficient to force communications to happen in a
+particular order, rather than allowing multiple different orders.
+
+Sometimes a shared channel can produce the same effect as an \SCALA{alt}.  For
+example, we could construct a variant of the dining philosophers where each
+philosopher has channels \SCALA{pick} and \SCALA{drop} for each of its forks,
+and where each fork has single \SCALA{pick} and \SCALA{drop} channels, on
+which it can receive messages from either of the adjacent philosophers:
 %
 \begin{scala}
   def Fork(me: Int, pick: ??[Unit], drop: ??[Unit]) = thread("Fork"+me){
@@ -28,101 +51,18 @@ philosophers:
 %
 %% Note that the \SCALA{pick} communication could be from either neighbouring
 %% philosopher, so these need to be |ManyOne| channels.
-Note that we need separate |pick| and |drop| channels.
-\end{slide}
-
-%%%%%
-
-
-\begin{slide}
-\heading{Restrictions}
-
-\begin{itemize}
-%% \item
-%% An alt may not have two simultaneously enabled branches using the
-%% same port.
-
-%% \item An alt may not use a port that is shared, either with another alt or
-%% with a non-alt read or write.
-
-\item A port may not be simultaneously feasible in two alts or |serve|s.
-  (But it may be feasible in an alt/|serve|, and also used by a thread with
-  a simple send or receive.)
-
-\item Both ports of a channel may not simultaneously be feasible in alts or
-  |serve|s.
-\end{itemize}
-%
-The implementation  detects violations. 
-\end{slide}
-
-%%%%%
-
-\begin{slide}
-\heading{Generalised \protect\SCALA{alt}s}
-
-\SCALA{alt}s (and \SCALA{serve}s) can be constructed from collections of
-branches.
-
-Here is a generalization of the tagger:
-%
-\begin{scala}
-def tagger[T](ins: List[??[T]], out: !![(Int, T)]) = thread{
-  serve ( 
-    | (for (i <- 0 until ins.length) yield ins(i) =?=> { x => out!(i, x) })
-  )
-  for (in <- ins) in.close
-  out.endOfStream
-}
-\end{scala}
-
-This will terminate when all input channels are closed, or \SCALA{out} is
-closed. 
-\end{slide}
-
-%%%%%
-
-\begin{slide}
-\heading{Caveat}
-
-alts and |serve|s are fairly heavyweight constructs.  Don't use them unless
-there's a good reason to do so, i.e.~you really want to be able to communicate
-on either of two channels.
-Sometimes it's easier and more efficient to force communications to happen in
-a particular order.
-\end{slide}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\section{Summary}
-
-
-\begin{itemize}
-\item
-\SCALA{alt}s;
-
-\item
-Syntax: using inports and outports; guards; \SCALA{serve}; generalised alts;
-% timeouts; \SCALA{orelse}; \SCALA{prialt} (and \SCALA{priserve})
-
-\item
-Example: dining philosophers;
-
-\item
-Logging;
-
-%% \item
-%% \SCALA{alt}s versus \SCALA{ManyOne} channels;
-
-\item
-Restrictions on use of \SCALA{alt}s. 
-\end{itemize}
-
+Note that we need separate |pick| and |drop| channels, so that when one of the
+philosophers is holding the fork, the other cannot pick it up.  However, such
+a technique isn't always applicable. 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section*{Exercises}
+ 
+\input{Exercises/changeMachine} % Change machine 
+
+\input{Exercises/unboundedBuff} % Unbounded buffer 
 
 \input{Exercises/diningPhils} % DP practical
 
-Adaptive quadrature 
+\input{Exercises/adaptive} % Adaptive quadrature

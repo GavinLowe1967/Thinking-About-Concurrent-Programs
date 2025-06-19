@@ -1,0 +1,39 @@
+\begin{question}
+% \Programming\
+Implement an unbounded buffer:
+%
+\begin{scala}
+def buff[T](in: ??[T], out: !![T]) = thread{ ... }
+\end{scala}
+%
+The buffer should always be willing to input on \SCALA{in}; it should output
+data on \SCALA{out} in the order in which they were received, and should be
+willing to output whenever it has input data that have not yet been output. 
+%
+You might want to use an instance of a \SCALA{scala.collection.mutable.Queue}
+to store the current values held in the buffer.
+\end{question}
+
+%%%%%
+
+\begin{answerI}
+My code is below. 
+\begin{scala}
+  def buff[T](in: ??[T], out: !![T]) = thread{
+    val queue = new scala.collection.mutable.Queue[T]
+    serve(
+      in =?=> { x => queue.enqueue(x) }
+      | queue.nonEmpty && out =!=> { queue.dequeue() }
+    )
+    in.close(); out.endOfStream()
+  }
+\end{scala}
+%
+Note that in the second branch, it is important that the alternation evaluates
+the expression |q.dequeue()| only \emph{after} another thread has committed to
+communicating on~|out|: otherwise the dequeued value would be lost if no
+communication takes place. 
+
+A good way to test this is to arrange for one thread to pass in values, and
+another thread to receive output values, and to check that the two agree.
+\end{answerI}

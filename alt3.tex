@@ -1,16 +1,130 @@
-\section{Alts with out-ports}
+
+\section{Avoiding Deadlocks}
+\label{sec:avoid-deadlocks}
+
+\def\waitingFor{\vdash}
+
+The deadlock in the Dining Philosophers example corresponds to a cycle of
+waiting.  Each philosopher is trying to pick up their right-hand fork, and is
+waiting for that fork.  Each fork is waiting for their right-hand philosopher
+to put it down.  Let's write $t_1 \waitingFor t_2$ to signify that thread
+$t_1$ is blocked, waiting for thread~$t_2$.  Then we have the following cycle
+of waiting:
+\[\mstyle
+\sm{phil}(0) \waitingFor \sm{fork}(4) \waitingFor \sm{phil}(4) \waitingFor
+  \sm{fork}(3) \waitingFor \ldots \waitingFor \sm{fork}(0) \waitingFor
+  \sm{phil}(0).
+\]
+This corresponds to an anti-clockwise cycle in
+Figure~\ref{fig:dining-philosophers-2}.
+
+In fact, deadlocks correspond to cycles of waiting more generally.  Consider a
+system based on message passing, and suppose that for every channel~$c$, there
+is some thread that sometimes sends on~$c$, and some thread that sometimes
+receives on~$c$ (or else the system is badly configured).  Consider a
+deadlocked state, and suppose no thread has terminated or is performing an
+infinite amount of internal computation.  Then necessarily every thread is
+trying to send or receive on a channel.  Pick a thread $t_1$.  It is trying to
+send or receive on some channel~$c_1$, so necessarily there is some
+thread~$t_2$ that sometimes receives or sends (respectively) on~$c_1$; hence
+$t_1$ is waiting for~$t_2$, i.e.~$t_1 \waitingFor t_2$.  By the same argument,
+there is some thread $t_3$ such that $t_2 \waitingFor t_3$.  Continuing in
+this way, we can construct an infinite sequence of threads such that each is
+waiting on the next.  However, there are necessarily finitely many threads, so
+this infinite sequence must contain the same thread twice, and so contains a
+waiting cycle.
+
+If the system uses an alt, then a thread may be waiting for either of two or
+more threads.  For example, in the dining philosophers example, a fork in its
+initial state is waiting for either its left- or right-hand philosopher
+(although there is no deadlocked system state corresponding to this state for
+the fork).  In such cases, a deadlocked state may contain multiple waiting
+cycles, and breaking any one of them would remove the deadlock.  A similar
+fact is true when a channel is shared by several receivers, so a sender might
+be waiting for any one of those receivers; and similarly when a channel is
+shared by several senders.
+
+There are a couple of ways of adapting the dining philosophers example so as
+to remove the possibility of deadlock.  Each involves removing the possibility
+of a waiting cycle.  Exercise~\ref{ex:diningPhils} asks you to implement
+these. 
+
+Note that whenever a philosopher is holding a fork but trying to drop it, that
+action is never blocked.  Thus a philosopher that is waiting must be trying to
+pick up a fork, but that fork is held by another philosopher.  That fork,
+then, is waiting for the latter philosopher to drop it.  And the latter
+philosopher must be waiting to pick up the next fork.  Continuing in this way,
+we see that any waiting cycle must involve \emph{all} the philosophers and
+forks. 
+
+One way to avoid deadlocks is to introduce a ``butler'' thread that ensures
+that there are never more than four philosophers seated.  We argue by
+contradiction that there is then no deadlocked state.  Suppose otherwise.  Not
+all philosophers can be seated, by design.  Without loss of generality,
+suppose philosopher~$0$ is not currently seated.  Then necessarily that
+philosopher cannot be holding fork~$0$ or fork~$4$.  But this then removes the
+possibility of a waiting cycle, because neither of those forks is waiting for
+philosopher~$0$.  This contradicts the observation in the previous paragraph
+that any waiting cycle most involve all the threads.
+
+In the earlier version of the dining philosophers example, all philosophers
+picked up their left fork before their right fork.  Another way to avoid the
+deadlock is for some (but not all) of the philosophers to pick up their right
+fork first.  If that is the case, there must be an adjacent pair of
+philosophers neither of whom picks up their shared fork first.  Without loss
+of generality, suppose philosopher~$0$ picks up fork~$4$ before fork~$0$, and
+philosopher~$1$ picks up fork~$1$ before fork~$0$.  This then removes the
+possibility of a waiting cycle.  If either philosopher~$0$ or philosopher~$1$
+holds fork~$0$ then they have necessarily already picked up their other fork,
+and so can drop a fork.  Alternatively, if neither philosopher holds fork~$0$,
+then that fork cannot be part of a waiting cycle.
+
+Another way to avoid deadlocks is to detect that a potential deadlock has been
+reached, and to react to remove that possibility, by backtracking.  For
+example, if a philosopher holds one fork, but is unable to pick up their
+second fork, they could drop their first fork, and try again later (this is
+probably how real philosophers would act).
+
+Within SCL, this could be achieved using a timeout.  Each channel has an
+operation
+%
+\begin{scala}
+  def sendWithin(millis: Long)(x: A): Boolean 
+\end{scala}
+%
+This tries to send~|x| for up to |millis| milliseconds; but if no receiver is
+ready within that time (or no space is available, in the case of a buffered
+channel), it times out.  The operation returns a |Boolean| to indicate whether
+the send was successful.  Likewise there is an operation
+%
+\begin{scala}
+  def receiveWithin(millis: Long): Option[A] =
+\end{scala}
+%
+that tries to receive a value for up to |millis| milliseconds.  If it
+successfully receives a value~|x|, the operation returns~|Some(x)|; otherwise
+it returns~|None| to indicate a timeout.  There are also operations
+|sendWithinNanos| and |receiveWithinNanos| where the time is given in
+nanoseconds.
+
+The last part of Exercise~\ref{ex:diningPhils} asks you to implement this
+technique of timing out and dropping the fork.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Alts with Out-ports}
 
 So far, we have only seen alts that provide a choice between in-ports.
 However, it is also possible to use an out-port in an alt, using the following
-syntax:%
+syntax for a branch:
 %
 \begin{scala}
   bool && out =!=> { expression }
 \end{scala}
 %
 If the (optional) boolean guard |bool| is true, when the out-port |out| is
-ready for communication, the |expression| is evaluated and the result sent.
-
+ready for communication, |expression| is evaluated and the result sent.
+%
 Sometimes it's necessary to do something \emph{after} the value has been sent,
 using a continuation, with the following syntax.
 %
@@ -18,58 +132,66 @@ using a continuation, with the following syntax.
    bool && outport =!=> { expression } ==> { command }
 \end{scala}
 
-For example, here's another definition for the |tee| function, which produces
+Here's another definition for the |tee| function, which produces
 a thread that inputs on one in-port, and outputs on two out-ports, in either
 order. 
 %
-\begin{mysamepage}
+%\begin{mysamepage}
 \begin{scala}
-def tee[T](in: ??[T], out1: !![T], out2: !![T]) = thread{
-  repeat{ 
-    val v = in?()
-    alt( out1 =!=> { v } ==> { out2!v }
-       | out2 =!=> { v } ==> { out1!v }
-    )
+  def tee[T](in: ??[T], out1: !![T], out2: !![T]) = thread{
+    repeat{ 
+      val v = in?()
+      alt( out1 =!=> { v } ==> { out2!v } | out2 =!=> { v } ==> { out1!v } )
+    }
   }
-}
 \end{scala}
 %
 This sends~|v| on whichever out-port is ready first, and then sends~|v| on the
 other out-port.
-\end{mysamepage}
+%\end{mysamepage}
 
 %%%%%% A two-place buffer
 
-Inports and outports can be mixed within an \SCALA{alt}.
+In-ports and out-ports can be mixed within an \SCALA{alt}.
 %
 The following code copies data from |in| to |out|, and can hold up to two
 pieces of data at a time: it is a two-place buffer. 
 %
 \begin{scala}  
-  /** Two place buffer. */
-  def buff2[T](in: ??[T], out: !![T]): Unit = {
-    val x = in?(); buff2A(in, out, x)
+  def buff2X[T](in: ??[T], out: !![T]): ThreadGroup = {
+    def empty(): Unit = { val x = in?(); full(x) }
+    def full(x: T): Unit = {
+      alt( out =!=> { x } ==> { empty() } | in =?=> { y => out!x; full(y) } )
+    }
+    thread{ attempt{empty()}{} }
   }
-  /** Two place buffer holding £x£. */
-  def buff2A[T](in: ??[T], out: !![T], x: T): Unit = {
-    alt(
-      out =!=> { x } ==> { buff2(in, out) }
-      | in =?=> { y => out!x; buff2A(in, out, y) }
-    )
-  }  
 \end{scala}
+%%   /** Two place buffer. */
+%%   def buff2[T](in: ??[T], out: !![T]): Unit = {
+%%     val x = in?(); buff2A(in, out, x)
+%%   }
+%%   /** Two place buffer holding £x£. */
+%%   def buff2A[T](in: ??[T], out: !![T], x: T): Unit = {
+%%     alt(
+%%       out =!=> { x } ==> { buff2(in, out) }
+%%       | in =?=> { y => out!x; buff2A(in, out, y) }
+%%     )
+%%   }  
+%% \end{scala}
 %
-Note how when it is holding a value~|x|, it can either output~|x|, or input a
-new value~|y|, at which point it is full so must output~|x|, after which it is
-just holding~|y|.
+This runs a thread that executes |empty()|, catching |Stopped| exceptions.
+Note how when it is holding a value~|x| (in state |full(x)|), it can either
+output~|x|, or input a new value~|y|, at which point it is full so must
+output~|x|, after which it is just holding~|y|.
 
 
 Here's an alternative definition.  The variable \SCALA{empty} records whether
 the buffer is empty.  When $\sm{empty} = \sm{false}$,\, \SCALA{x} stores the
 next value to be output.
 %
+\begin{mysamepage}
 \begin{scala}
-  def buff2Alt[T](in: ??[T], out: !![T]) = {
+  def buff2Alt[T](in: ??[T], out: !![T]) = thread{
     var x: T = null.asInstanceOf[T]  // Contents, possibly invalid.
     var empty = true // Is the buffer empty?
     serve(
@@ -79,7 +201,9 @@ next value to be output.
     )
   }
 \end{scala}
+\end{mysamepage}
 %
+\noindent
 In the first branch, the code \SCALA{\{ empty = true; x \}} is an expression
 whose value is~|x|, but which has the side effect of setting |empty| to |true|. 
 The last two branches could be merged, and an \SCALA{if} statement used. 
@@ -88,5 +212,34 @@ The last two branches could be merged, and an \SCALA{if} statement used.
     | in =?=> { v => if(empty){ x = v; empty = false } else { out!x; x = v } }
 \end{scala}
 
+%% --- Moved to exercise
+%% Here's another example, namely a thread that receives data on |in|, and
+%% outputs it on |out|.  It acts as a buffer, internally holding data in a
+%% |Queue| from the Scala Application Programming Interface.  It is equivalent to
+%% an |UnboundedBuffChan| (although the latter doesn't use a separate thread
+%% internally).
+%% %
+%% \begin{scala}
+%%   def buffer[A](in: ??[A], out: !![A]) = thread("buffer"){
+%%     val q = new scala.collection.mutable.Queue[A]
+%%     serve(
+%%       in =?=> { x => q.enqueue(x) }
+%%       | q.nonEmpty && out =!=> { q.dequeue() }
+%%     )
+%%     in.close(); out.endOfStream()
+%%   }
+%% \end{scala}
+%% %
+%% Note that in the second branch, it is important that the alternation evaluates
+%% the expression |q.dequeue()| only \emph{after} another thread has committed to
+%% communicating on~|out|: otherwise the dequeued value would be lost if no
+%% communication takes place. 
 
-\framebox{Quicksort}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+As with in-ports, an out-port may not be simultaneously feasible in two
+alternations.  Further, both ports of a channel may not simultaneously be
+feasible in alternations, i.e.~you can't have one alternation trying to send
+on a channel, and another alternation trying to receive on the same channel.
+The implementation detects violations of these two restrictions, and throws an
+exception.

@@ -6,37 +6,44 @@ import ox.scl._
 object Buff2{
 
   /** Two place buffer. */
-  def buff2[T](in: ??[T], out: !![T]): Unit = {
-    val x = in?(); buff2A(in, out, x)
+  def buff2[T](in: ??[T], out: !![T]): ThreadGroup = {
+    def empty() = { val x = in?(); full(x) }
+    def full(x: T): Unit = {
+      alt( out =!=> { x } ==> { empty() } | in =?=> { y => out!x; full(y) } )
+    }
+    thread{ attempt{empty()}{} }
   }
-  /** Two place buffer holding x. */
-  def buff2A[T](in: ??[T], out: !![T], x: T): Unit = {
-    alt(
-      out =!=> { x } ==> { buff2(in, out) }
-      | in =?=> { y => out!x; buff2A(in, out, y) }
-    )
-  }  
+
+  // /** Two place buffer. */
+  // def buff2[T](in: ??[T], out: !![T]): Unit = {
+  //   val x = in?(); buff2A(in, out, x)
+  // }
+  // /** Two place buffer holding x. */
+  // def buff2A[T](in: ??[T], out: !![T], x: T): Unit = {
+  //   alt(
+  //     out =!=> { x } ==> { buff2(in, out) }
+  //     | in =?=> { y => out!x; buff2A(in, out, y) }
+  //   )
+  // }  
 
   /** Two place buffer, using alternation. */
-  def buff2Alt[T](in: ??[T], out: !![T]) = {
-    var x: T = null.asInstanceOf[T]  // contents, possibly invalid
-    var empty = true // is the buffer empty?
+  def buff2Alt[T](in: ??[T], out: !![T]) = thread{
+    var x: T = null.asInstanceOf[T]  // Contents, possibly invalid.
+    var empty = true // Is the buffer empty?
     serve(
       !empty && out =!=> { empty = true; x }
-      | empty && in =?=> { 
-        v => x = v; empty = false 
-      }
+      | empty && in =?=> { v => x = v; empty = false }
       | !empty && in =?=> { v => out!x; x = v }
     )
   }
 
   /** One-place buffer. */
-  def buff1[T](in: ??[T], out: !![T]) = {
-    var x: T = null.asInstanceOf[T]  // contents, when empty = false
-    var empty = true // is the buffer empty?
+  def buff1[T](in: ??[T], out: !![T]) = thread{
+    var x: T = null.asInstanceOf[T]  // Contents, when empty = false.
+    var empty = true // Is the buffer empty?
     serve(
-      !empty && out =!=> { empty = true; /* println(s"alt sends $x");*/ x }
-      | empty && in =?=> { v => x = v; /* println(s"alt receives $x");*/ empty = false }
+      !empty && out =!=> { empty = true; x }
+      | empty && in =?=> { v => x = v; empty = false }
     )
   }
 
@@ -63,11 +70,17 @@ object Buff2Test{
 
     def receive: Int = out?()
 
-    thread("Buffer"){ 
-      if(instance == 0) attempt{ Buff2.buff2(in,out) }{}
+    fork(if(instance == 0) Buff2.buff2(in,out) 
       else if(instance == 1) Buff2.buff2Alt(in, out) 
-      else Buff2.buff1(in, out)
-    }.fork
+      else Buff2.buff1(in, out) 
+    )
+    // else thread("Buffer"){ 
+    //   // if(instance == 0) attempt{ Buff2.buff2(in,out) }{}
+    //   // else
+    //   //   if(instance == 1) Buff2.buff2Alt(in, out)
+    //   // else
+    //     Buff2.buff1(in, out)
+    // }.fork
 
     def shutdown = { in.close(); out.close() }
   }

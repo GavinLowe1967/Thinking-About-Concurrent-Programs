@@ -1,0 +1,407 @@
+\section{Example: Bag of Tasks with Replacement}
+\label{sec:quicksort-bag}
+
+In Chapter~\ref{chap:trapezium} we say the bag-of-tasks pattern, where workers
+repeatedly obtain a task, and perform it.  We now consider a variant, where
+workers can return subtasks to the bag.  Thus, if a worker obtains a
+task~$t$, it will perform some work itself, and (maybe) return some subtasks to
+the bag; these together must equate to completing~$t$.
+
+In particular, we will use the bag-of-tasks with replacement pattern to
+produce a concurrent implementation of the Quicksort sorting algorithm.
+Figure~\ref{fig:quicksort-seq} gives a sequential implementation of the
+algorithm.  
+
+%%%%%
+
+\begin{figure}
+\begin{scala}
+/** Trait implemented by different implementations of Quicksort. */
+trait QuicksortT{
+  protected val a: Array[Int]
+
+  /** Partition £$\sm a\interval{\sm l}{\sm r}$£, returning the index of the pivot. */
+  protected def partition(l: Int, r: Int): Int = {
+    assert(r-l > 1)
+    val x = a(l); var i = l+1; var j = r
+    while(i < j){
+      while(i < j && a(i) <= x) i += 1
+      while(i < j && a(j-1) > x) j -= 1
+      if(i < j){ // £$\sm a(\sm i) > \sm x \land \sm a(j\sm -1) \le \sm x$£, so swap.
+        val t = a(i); a(i) = a(j-1); a(j-1) = t 
+      }
+    }
+    // Swap pivot into position £i-1£, and return that index.
+    a(l) = a(i-1); a(i-1) = x; i-1
+  }
+}
+
+/** Sequential implementation of Quicksort. */
+class Quicksort(protected val a: Array[Int]) extends QuicksortT{
+  /** Sort a. */
+  def sort() = qsort(0, a.length)
+
+  /** Sort the segment a[l..r). */
+  private def qsort(l: Int, r: Int): Unit =
+    if(r-l > 1){ val m = partition(l, r); qsort(l,m); qsort(m+1,r) }
+}
+\end{scala}
+\caption{A sequential implementation of Quicksort.}
+\label{fig:quicksort-seq}
+\end{figure}
+
+%%%%%
+
+The function |partition(l, r)| partitions the non-empty segment $\sm
+a\interval{\sm l}{\sm r}$.  It picks some element~|x| from the segment, and
+permutes the elements of the segment so that it looks like this:
+\[\mstyle
+\begin{array}{rllclcll}
+   & 0 & \ms{l} & & \ms{k} &  & \ms{r} & \ms{N} \\ \cline{2-7}
+\multicolumn{1}{r\|}{\ms{a}:\;} & \qquad\qquad & 
+  \multicolumn{2}{\|c\|}{\quad \le \ms{x} \quad} & 
+  \multicolumn{1}{c\|}{\ms{x}} &
+  \multicolumn{1}{c\|}{\quad > \ms{x} \quad} &
+  \multicolumn{1}{c\|}{\qquad\qquad}  \\ \cline{2-7}
+\end{array}
+\]
+More precisely, it returns an index~|k| such that
+\[\mstyle
+\sm a\interval{\sm l}{\sm k} \le \sm a(\sm k) < 
+  \sm a\interval{\sm k+1}{\sm r} 
+\land \sm l \le \sm k < \sm r.
+\]
+
+The implementation of~|partition| chooses the first element |a(l)| as the
+pivot~|x|.  The main loop keeps |x| in position~|l|; it is swapped into the
+correct position only at the end.  The loop maintains the invariant
+\[\mstyle
+\sm a\interval{\sm l+1}{\sm i} \le \sm x = \sm a(\sm l) < 
+  \sm a\interval{\sm j}{\sm r} 
+\land \sm l < \sm i \le \sm j \le \sm r,
+\]
+which we can picture as follows.
+\[\mstyle
+\begin{array}{rllclcllll}
+   & 0 & \ms{l} & \ms{l+1} & & \ms{i} &  & \ms{j} & \ms{r} & \ms{N} 
+\\ \cline{2-9}
+\multicolumn{1}{r\|}{\ms{a}:\;} & \qquad\qquad & 
+  \multicolumn{1}{\|c\|}{\ms{x}} &
+  \multicolumn{2}{c\|}{\quad \le \ms{x} \quad} & 
+  \multicolumn{2}{c\|}{\quad?\quad} &
+  \multicolumn{1}{c\|}{\quad > \ms{x} \quad} &
+  \multicolumn{1}{c\|}{\qquad\qquad}  \\ \cline{2-9}
+\end{array}
+\]
+(We include the |partition| function in the |QuicksortT| trait, to avoid
+repeating code; each of our implementations will extend this trait.)
+
+Most of the work is done by the function |qsort(l, r)|, which sorts the
+segment $\sm a\interval{\sm l}{\sm r}$.  If the interval contains at most one
+element, then it is already sorted.  Otherwise, the function calls partition,
+and then recursively sorts the two subintervals.  The main |sort| function
+calls |qsort| on the whole array.
+
+\begin{instruction}
+Make sure you understand the code in Figure~\ref{fig:quicksort-seq}.
+\end{instruction}
+
+%%%%%%%%%%
+
+\subsection{Basic Concurrent Implementation}
+
+We will create two concurrent implementations of the Quicksort algorithm, each
+based upon the bag-of-tasks pattern.  The implementation in this section will
+be straightforward, but rather inefficient; we will produce a more efficient
+implementation in the next section.
+
+Each task will be represented by a pair |(l,r)|, and will represent the task
+of sorting the interval $\sm a\interval{\sm l}{\sm r}$, rather like the
+earlier function |qsort(l, r)|.  We define
+\begin{scala}
+  type Task = (Int, Int)
+\end{scala}
+%
+If the interval $\sm a\interval{\sm l}{\sm r}$ contains at least two elements,
+the worker will partition it, and then return to the bag two subtasks
+corresponding to the two subintervals.  Once these subtasks are completed, the
+interval $\sm a\interval{\sm l}{\sm r}$ will be sorted.
+
+We need to think about termination.  The whole array will be sorted when the
+bag is holding no tasks, and no worker is working on a task.  Thus the server
+implementing the bag needs to keep track of how many workers are working on
+tasks.  It can increment this count when it issues a task, and can decrement
+the count when a worker returns two subtasks.  However, when a worker receives
+a task containing at most one element, the worker will return no subtasks, so
+it needs a different way to indicate that the task is complete.
+
+We encapsulate the bag of tasks in an object~|Bag|, as in
+Figure~\ref{fig:quicksort-bag-1}.   The operation |get| allows a worker to get
+a task.  The operation |add| allows a worker to return two subtasks to the
+bag.  The operation |done| allows a worker to signal that it has completed a
+task (without returning subtasks).  
+
+%%%%%%%%%%
+
+\begin{figure}
+\begin{scala}
+  object Bag{
+    private val getC = new SyncChan[Task]
+    private val addC = new SyncChan[(Task,Task)]
+    private val doneC = new SyncChan[Unit]
+
+    /** Get a £Task£. */
+    def get(): Task = getC?()
+
+    /** Add £Task£s £t1£ and £t2£ to the bag. */  
+    def add(t1: Task, t2: Task): Unit = addC!(t1,t2)
+
+    /** Indicate that the current thread has completed its last £Task£. */
+    def done(): Unit = doneC!()
+
+    private def server = thread("server"){
+      val queue = new scala.collection.mutable.Queue[Task]
+      queue.enqueue((0, a.length)); var busyWorkers = 0
+      serve(
+        queue.nonEmpty && getC =!=> { busyWorkers += 1; queue.dequeue() }
+        | busyWorkers > 0 && addC =?=> { case (t1,t2) => 
+            queue.enqueue(t1); queue.enqueue(t2); busyWorkers -= 1 }
+        | busyWorkers > 0 && doneC =?=> { _ => busyWorkers -= 1 }
+      )
+      assert(queue.isEmpty && busyWorkers == 0)
+      getC.endOfStream()
+    }
+
+    fork(server)
+  } 
+\end{scala}
+\caption{The bag of tasks in the basic concurrent implementation of Quicksort.}
+\label{fig:quicksort-bag-1}
+\end{figure}
+
+%%%%%%%%%%
+
+The |Bag| object encapsulates a server thread.  Each operation is implemented
+by a single communication between the worker and the server.  Note, in
+particular, that the |add| operation sends both subtasks in a single message,
+rather than two separate messages: this roughly halves the cost of the
+operation. 
+
+The server itself stores the pending tasks in a queue (although we could have
+used a different collection class, such as a stack).  It also uses a variable
+|busyWorkers| to record the number of workers currently working on a task.
+Most of the implementation is then fairly straightforward.  The main |serve|
+loop terminates when all the guards are false, namely when the queue is empty
+and $\sm{busyWorkers} = 0$: this is the termination condition we identified
+earlier.  Note in particular how that second and third branches each has a
+guard |busyWorkers > 0| in order to achieve this termination condition: and we
+should certainly expect this condition to hold whenever a worker tries to send
+on |addC| or |doneC|.  When the |serve| loop terminates the server performs
+|endOfStream| on the |getC| channel, to signal to the workers that there are
+no more tasks to complete.
+%
+\begin{instruction}
+Make sure you understand the implementation of |Bag|.
+\end{instruction}
+
+The main implementation is in Figure~\ref{fig:quicksort-bag-of-tasks-1}.  Each
+worker repeatedly gets a task from the bag.  If the task contains more than
+one element, the worker partitions it, and returns the two subtasks to the
+bag.  Otherwise, it informs the bag that the task is complete via the |done|
+operation.  The worker terminates when the |get| operation throws a |Stopped|
+exception, which corresponds to the termination condition described earlier.
+The main |sort| function simply runs |numWorkers| workers.  
+
+%%%%%%%%%%
+
+\begin{figure}
+\begin{scala}
+/** Basic concurrent implementation. */
+class ConcurrentQuicksort1(protected val a: Array[Int], numWorkers: Int)
+    extends QuicksortT{
+  type Task = (Int, Int)
+
+  object Bag{
+    £\ldots£ // as in Figure £\ref{fig:quicksort-bag-1}£.
+  }
+
+  /** A single worker. */
+  private def worker = thread("worker"){
+    repeat{
+      val (l,r) = Bag.get()
+      if(r-l > 1){ val m = partition(l, r); Bag.add((l,m), (m+1,r)) }
+      else Bag.done()
+    }
+  }
+
+  /** Sort £a£. */
+  def sort() = run(|| (for(i <- 0 until numWorkers) yield worker))
+}
+\end{scala}
+\caption{The basic implementation of Quicksort using a bag of tasks.}
+\label{fig:quicksort-bag-of-tasks-1}
+\end{figure}
+
+%%%%%
+
+The implementation can be tested by checking that it produces the same results
+as the sequential implementation from Figure~\ref{fig:quicksort-seq}.  We can
+create a random array of |Int|s, clone it, run the two algorithms on the two
+copies, and check the two results contain the same elements.  This can be
+repeated many times.
+
+Unfortunately, this implementation performs poorly.  On an array containing a
+million values, it is about 100 times slower than the sequential algorithm.
+The main reason for this is that there are simply too many messages sent over
+channels, and this creates a very large overhead.  For example, consider a
+subtask containing just two elements; this will lead to one message issuing
+that task, two messages returning the two subtasks, two messages issuing those
+subtasks, and two messages indicating that those subtasks are done, for a
+total of seven messages.  The following subsection seeks to improve this.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection{Improved Concurrent Implementation} 
+
+We can improve the implementation in several ways.
+%
+\begin{enumerate}
+\item \label{obs:quicksort-1}
+  Rather than returning two subtasks to the bag, a worker could return
+  just one, and complete the second task itself.  This means that we save a
+  message in each such case.
+
+\item There is no point in returning subtasks to the bag if they contain at
+  most one element, since those subtasks require no additional work.  This
+  greatly reduces the number of messages corresponding to such subtasks.  We
+  call subtasks with at most one element \emph{trivial}. 
+
+\item\label{obs:quicksort-3} If a worker receives a task that is fairly small,
+  it is more efficient for the worker to complete the whole task itself, using
+  the sequential algorithm, rather than creating new subtasks.
+\end{enumerate}
+
+Figure~\ref{fig:quicksort-bag-2} gives a new definition of the bag of tasks.
+The only change corresponds to observation~\ref{obs:quicksort-1} above.  Now
+the |add| operation returns a single task; the server does not decrement
+|busyWorkers| as a result, as the relevant worker is still working on the
+other subtask. 
+
+%%%%%%%%%%%%%%%%
+
+\begin{figure}
+\begin{scala}
+  object Bag{
+    private val getC = new SyncChan[Task]
+    private val addC = new SyncChan[Task]
+    private val doneC = new SyncChan[Unit]
+
+    def get(): Task = getC?()
+
+    def add(t: Task): Unit = addC!t
+
+    def done(): Unit = doneC!()
+
+    private def server = thread("server"){
+      val queue = new scala.collection.mutable.Queue[Task]
+      queue.enqueue((0, a.length)); var busyWorkers = 0
+      serve(
+        queue.nonEmpty && getC =!=> { busyWorkers += 1; queue.dequeue() }
+        | busyWorkers > 0 && addC =?=> { t => queue.enqueue(t) }
+        | busyWorkers > 0 && doneC =?=> { _ => busyWorkers -= 1 }
+      )
+      assert(queue.isEmpty && busyWorkers == 0)
+      getC.endOfStream()
+    }
+
+    fork(server)
+  } 
+\end{scala}
+\caption{The bag of tasks in the improved concurrent algorithm.}
+\label{fig:quicksort-bag-2}
+\end{figure}
+
+%%%%%
+
+The main implementation is in Figure~\ref{fig:quicksort-bag-of-tasks-2}.  For
+the purposes of observation~\ref{obs:quicksort-3}, above, we consider a task
+to be small if it contains fewer than |Limit| elements, where |Limit| is
+defined as the minimum of $20,000$ and $\sm{a.size} / (10 \times
+\sm{numWorkers})$.  My informal experiments suggested that for tasks smaller
+than about $20,000$, it is faster for the worker to complete the whole task
+itself than to create subtasks.  The latter term means that for very large
+arrays, each worker can sort larger segments sequentially; the value ensures
+that on average each worker sorts slightly fewer than ten segments
+sequentially, which seems enough to give reasonable load balancing.  If
+out-and-out performance was important, we could run further experiments to
+tune these figures.
+
+%%%%%
+
+\begin{figure}
+\begin{scala}
+class ConcurrentQuicksort2(protected val a: Array[Int], numWorkers: Int)
+    extends QuicksortT{
+  type Task = (Int, Int)
+
+  object Bag{
+    £\ldots£ // As in Figure £\ref{fig:quicksort-bag-2}£.
+  }
+
+  /** Upper limit on the size of tasks sorted sequentially. */
+  val Limit = 20_000 max (a.size / (10*numWorkers))
+
+  /** Sequential implementation. */
+  private def qsort(l: Int, r: Int): Unit =
+    if(r-l > 1){ val m = partition(l, r); qsort(l,m); qsort(m+1,r) }
+
+  /** A single worker. */
+  private def worker = thread("worker"){
+    var l = -1; var r = -1
+    repeat{
+      if(l == r){ val task = Bag.get(); l = task._1; r = task._2; assert(r-l > 1)}
+      }  
+      if(r-l < Limit){ qsort(l,r); r = l; Bag.done() }
+      else{
+        val m = partition(l, r)
+        if(m-l > 1){ // Continue with £(l,m)£.
+          if(r-(m+1) > 1) Bag.add((m+1,r))
+          r = m
+        }
+        else if(r-(m+1) > 1) l = m+1 // Continue with £(m+1,r)£.
+        else{ r = l; Bag.done() } // This segment finished.
+      }
+    }
+  }
+
+  def sort() = if(a.size > 1) run(|| (for(i <- 0 until numWorkers) yield worker))
+}
+\end{scala}
+\caption{The improved implementation of Quicksort using a bag of tasks.}
+\label{fig:quicksort-bag-of-tasks-2}
+\end{figure}
+
+%%%%%
+
+The worker maintains two variables |l| and~|r|, with $\sm l \le \sm r$.  If
+$\sm l < \sm r$, then this worker is still responsible for the segment $\sm
+a\interval{\sm l}{\sm r}$.  But if $\sm l = \sm r$, the worker has no current
+task.  In the latter case, the worker obtains a new task from the bag, and
+unpacks it.  In either case, if the task is smaller than |Limit|, it sorts it
+sequentially, sets~|r| to~|l| to record that the task is done, and signals
+that fact to the bag.  Otherwise, it partitions the segment, to obtain a pivot
+index~|m|.  If the subsegment $\sm a\interval{\sm l}{\sm m}$ is not trivial,
+it continues with that subsegment, and returns the task for the other
+subsegment to the bag if it is not trivial.  Otherwise, if the subsegment $\sm
+a\interval{\sm m+1}{\sm r}$ is not trivial, it continues with that subsegment.
+Otherwise, the task is complete, so it updates |r| to record that, and signals
+that fact to the bag.
+
+%This implementation is far faster than the previous concurrent implementation.
+For arrays of size 1,000,000, using eight workers, this implementation is
+slightly faster than the sequential implementation, so about 100 times
+faster than the previous concurrent implementation.  For arrays of size
+10,000,000, it is about four times faster than the sequential
+implementation; and for arrays of size 100,000,000, it is about five times
+faster.

@@ -1,13 +1,13 @@
 \begin{question}
 \label{ex:diningPhils}
-The aim of this question is to investigate some variants of the dining
-philosophers, which aim to avoid deadlocks, as discussed in
+The aim of this question is to investigate some variants of the Dining
+Philosophers example that aim to avoid deadlocks, as discussed in
 Section~\ref{sec:avoid-deadlocks}.  You should implement and test each of the
 three variants below.
 %
 \begin{enumerate}
 \item \textbf{A right-handed philosopher.}
-In the standard version of the dining philosophers, all the philosophers are
+In the standard version of the Dining Philosophers, all the philosophers are
 left-handed: they pick up their left fork first.  Implement a variant where
 one of the philosophers is right-handed, i.e.\ they pick up their right fork
 first.
@@ -16,17 +16,17 @@ first.
   thread, which represents a butler.  The butler makes sure that no more than
   four philosophers are ever simultaneously seated.
 
-\item \textbf{Using timeouts.} Now consider a variant where, if a
-  philosopher is unable to obtain their second fork, they put down their first
-  fork, and retries later.  In the version in the body of this chapter, all
-  delays are a few hundred milliseconds, so the delay here should be of a
-  similar order.  You will need to use the |sendWithin| operation, described
-  earlier. 
+\item \textbf{Using timeouts.} Now consider a variant where, if a philosopher
+  is unable to obtain their second fork within a reasonable time, they put
+  down their first fork and try again later.  In the version in the body of this
+  chapter, all delays are a few hundred milliseconds, so the period spent
+  attempting to pick up the second fork should be of a similar order.  You
+  will need to use the |sendWithin| operation, described earlier.
 
 If the system reaches a state where all philosophers are blocked, it's
 possible that they all put down their forks at the same time, and then all
 retry at the same time, leading to them being blocked again.  How can we avoid
-this (with high probability)?
+this happening repeatedly?
 \end{enumerate}
 \end{question}
 
@@ -70,9 +70,9 @@ The definition of a philosopher is easily adapted to use these channels.%
   def phil(me: Int, left: !![Cmd], right: !![Cmd]) = thread("Phil"+me){
     repeat{
       think()
-      sit!(()); println(s"$me sits"); pause()
+      sit!(); println(s"$me sits"); pause()
       ... // Picks up forks, eats, drops forks.
-      leave!(()); println(s"$me leaves")
+      leave!(); println(s"$me leaves")
     }
   }
 \end{scala}

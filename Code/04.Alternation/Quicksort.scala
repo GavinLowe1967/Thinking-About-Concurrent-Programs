@@ -8,7 +8,7 @@ trait QuicksortT{
   protected val a: Array[Int]
 
   /** Partition a[l..r), returning the index of the pivot.  Return i such that
-    * a[[l..i) <= a(i) < a[i+1..r) and l <= i < r.  Permute only the segment
+    * a[l..i) <= a(i) < a[i+1..r) and l <= i < r.  Permute only the segment
     * a[l..r). */
   protected def partition(l: Int, r: Int): Int = {
     assert(r-l > 1)
@@ -73,7 +73,7 @@ class ConcurrentQuicksort1(protected val a: Array[Int], numWorkers: Int)
       getC.endOfStream()
     }
 
-    server.fork
+    fork(server)
   } // End of Bag.
 
   /** A single worker. */
@@ -86,9 +86,7 @@ class ConcurrentQuicksort1(protected val a: Array[Int], numWorkers: Int)
   }
 
   /** Sort a. */
-  def sort() = {
-    run(|| (for(i <- 0 until numWorkers) yield worker))
-  }
+  def sort() = run(|| (for(i <- 0 until numWorkers) yield worker))
 }
 
 // =======================================================
@@ -96,7 +94,6 @@ class ConcurrentQuicksort1(protected val a: Array[Int], numWorkers: Int)
 /** Improved concurrent implementation. */
 class ConcurrentQuicksort2(protected val a: Array[Int], numWorkers: Int)
     extends QuicksortT{
-  require(a.size > 1)
 
   /** A Task is a pair (l,r), representing the task of making progress on the
     * interval a[l..r). */
@@ -139,7 +136,7 @@ class ConcurrentQuicksort2(protected val a: Array[Int], numWorkers: Int)
       }
     }
 
-    server.fork
+    fork(server)
   } // End of Bag.
 
   /** Lower limit on size of task for which subtasks should be returned to the
@@ -153,10 +150,11 @@ class ConcurrentQuicksort2(protected val a: Array[Int], numWorkers: Int)
   private def worker = thread("worker"){
     var l = -1; var r = -1
     // A value of l and r with l < r indicates that this worker is still
-    // responsible for the segment a[l..r).  However, if r <= l, the worker
+    // responsible for the segment a[l..r).  However, if l = r, the worker
     // has no current segment.
     repeat{
-      if(r-l <= 1){ 
+      assert(l <= r)
+      if(l == r){ 
         val task = Bag.get(); l = task._1; r = task._2; assert(r-l > 1) 
       }  
       if(r-l < Limit){ qsort(l,r); r = l; Bag.done() }
@@ -173,10 +171,7 @@ class ConcurrentQuicksort2(protected val a: Array[Int], numWorkers: Int)
   }
 
   /** Sort a. */
-  def sort() = {
-    run(|| (for(i <- 0 until numWorkers) yield worker))
-  }
-
+  def sort() = if(a.size > 1) run(|| (for(i <- 0 until numWorkers) yield worker))
 }
 
 
@@ -188,7 +183,7 @@ object QuicksortTest{
   import java.lang.System.nanoTime
 
   // Max size of array; max value in arrays.
-  val MaxSize = 5000; val Max = 500
+  val MaxSize = 100; val Max = 100
 
   var sequential = false; var concurrent1 = false; var concurrent2 = false 
 
@@ -203,7 +198,7 @@ object QuicksortTest{
 
   /** Do a single test. */
   private def doTest = {
-    val n = 2+Random.nextInt(MaxSize); val a = Array.fill(n)(Random.nextInt(Max))
+    val n = Random.nextInt(MaxSize); val a = Array.fill(n)(Random.nextInt(Max))
     val a1 = a.clone.sorted; doSort(a)
     assert(a.sameElements(a1), a.mkString(", ")+"\n"+a1.mkString(", "))
   }
@@ -230,7 +225,7 @@ object QuicksortTest{
     if(timing) doTiming(size)
     else{
       val t0 = nanoTime
-      for(i <- 0 until 100){ doTest; if(i%10 == 0) print(".") }
+      for(i <- 0 until 10000){ doTest; if(i%100 == 0) print(".") }
       println(s"\n${(nanoTime-t0)/1_000_000} ms")
     }
   }

@@ -1,0 +1,18 @@
+Phils.scala: The Dining Philosophers example.
+
+PhilsLog.scala: The Dining Philosophers example with logging. 
+
+Buff2.scala: Two-place buffers.
+
+Quicksort.scala: Quicksort using bag of tasks.
+
+Exercises:
+----------
+
+Buffer.scala: Buffer exercises.
+
+PhilsExercise.scala: Dining Philosophers exercise.
+
+Adaptive.scala: Adaptive quadrature exercise.
+
+AdaptiveTest.scala: Test for the previous file. 
