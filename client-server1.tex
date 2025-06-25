@@ -1,0 +1,213 @@
+A common pattern in concurrent systems is that of clients and servers.  A
+\emph{server} is a thread or process that repeatedly handles requests from
+\emph{client}s.
+
+Many modules, such as concurrent datatypes, can be easily implemented in
+this way.
+
+Also synchronisations.
+
+This is a pattern that is often used in the implementation of operating
+systems.
+
+It's the pattern that is prevalent in networked systems.
+
+\framebox{More here.}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{A resource allocation server}
+
+We consider the example of a server that is responsible for managing and
+allocating multiple resources of the same kind.  Such servers are common in
+operating systems, where the resources might be memory or file blocks.
+However, the pattern is more widely applicable.  Clients acquire resources for
+use, and later return them to the server.
+
+One problem we need to address is: what should happen if a client requests a
+resource and there is none available?  We choose to use an |Option[Resource]|
+value: the client receives a value |Some(r)| to indicate that resource |r| has
+been acquired, or the value |None| to indicate that no resource was available.
+%
+In the latter case, it is up to the client to decide what to do: it might try
+again later, or might throw an exception.  
+%
+An alternative approach would be for the server to queue the request until it
+can be serviced; we will consider this approach later in the section.
+
+%%%%%
+
+Thus we will define a server with the interface in Figure~\ref{fig:RAServer}.
+We represent resources by |Int|s, and we also assume each client has an |Int|
+identity, which they include in operation calls.  There are operations for a
+client to obtain a resource, or to return a resource.  There is also an
+operation to shut down the server (although this could be considered
+optional). 
+
+%%%%%
+
+\begin{figure}
+\begin{scala}
+object RAServer{
+  /** Client identities. */
+  type ClientId = Int
+
+  /** Resource identities. */
+  type Resource = Int
+}
+
+import RAServer._
+
+/** A resource server. */
+trait RAServer{
+  /** Request a resource. */
+  def requestResource(me: ClientId): Option[Resource]
+
+  /** Return a resource. */
+  def returnResource(me: ClientId, r: Resource) 
+
+  /** Shut down the server. */
+  def shutdown(): Unit
+} 
+\end{scala}
+\caption{The interface for the resource allocation module.}
+\label{fig:RAServer}
+\end{figure}
+
+
+%%%%% First implementation
+
+The first implementation is in Figures~\ref{fig:RAServer1-1}
+and~\ref{fig:RAServer1-2}.  We assume clients have identities in the range
+$\interval0{\sm{clients}}$ and resources have identities in the range
+$\interval0{\sm{numResources}}$, where |clients| and |numResources| are known
+in advance.
+
+%%%%%
+
+\begin{figure}
+\begin{scala}
+/** A resource server. 
+  * This version assumes the number of clients is known initially. 
+  * @param £clients£ the number of clients.
+  * @param £numResources£ the number of resources.  */
+class RAServer1(clients: Int, numResources: Int) extends RAServer{
+
+  /* Channel for requesting a resource. */
+  private val acquireRequestChan = new SyncChan[ClientId]
+
+  /* Channels for optionally returning a resouce, indexed by client identities. */
+  private val acquireReplyChan = 
+    Array.fill(clients)(new SyncChan[Option[Resource]])
+
+  /* Channel for returning a resource. */
+  private val returnChan = new SyncChan[Resource]
+
+  /* Channel for shutting down the server. */
+  private val shutdownChan = new SyncChan[Unit]
+
+  /** Request a resource. */
+  def requestResource(me: ClientId): Option[Resource] = {
+    acquireRequestChan!me  // Send request.
+    acquireReplyChan(me)?() // Wait for response.
+  }
+
+  /** Return a resource. */
+  def returnResource(me: ClientId, r: Resource) = returnChan!r
+
+  /** Shut down the server. */
+  def shutdown() = shutdownChan!()
+
+  private def server = thread("server"){ ...  } // See Figure £\ref{fig:RAServer1-2}£
+
+  fork(server)
+}
+\end{scala}
+\caption{The first implementation of the resource allocation module (part~1).}
+\label{fig:RAServer1-1} 
+\end{figure}
+
+%%%%%
+
+To request a resource, a client sends a message on channel
+|acquire|\-|Request|\-|Chan|; this channel is shared between all clients.  It
+then receives a reply from the server, which is the result of the operation.
+In this version, we assume one channel per client, in array
+|acquireReplyChan|; this ensures that the expected client receives the
+resource.
+
+To return a resource, the client simply sends the resource's identity on the
+channel |returnChan|.  Likewise, to shut down the server, a message is sent on
+the channel |shutDownChan|.
+
+%%%%%
+
+\begin{figure}
+\begin{scala}
+  private def server = thread("server"){
+    // Record whether resource £i£ is available in £free(i)£.
+    val free = Array.fill(numResources)(true); var done = false
+    serve(!done)(
+      acquireRequestChan =?=> { c => 
+	// Find free resource.
+	var r = 0
+	while(r < numResources && !free(r)) r += 1
+	if(r == numResources) acquireReplyChan(c)!None
+        else{  // Pass resource £r£ back to client £c£.
+	  free(r) = false; acquireReplyChan(c)!Some(r)
+        }
+      }
+      | returnChan =?=> { r => free(r) = true }
+      | shutdownChan =?=> { _ => done = true }
+    )
+    acquireRequestChan.close(); returnChan.close(); shutdownChan.close()
+  }
+\end{scala}
+\caption{The first implementation of the resource allocation module: the
+  server}
+\label{fig:RAServer1-2}
+\end{figure}
+
+%%%%%
+
+The server (Figure~\ref{fig:RAServer1-2}) keeps track of the resources that are
+currently free in an array \SCALA{free}.  Note that |free| is declared as a
+local variable within the definition of~|server|.  This ensures that only the
+server has access to |free|, which avoids race conditions. This also clarifies
+the intended use of~|free|: if we had declared it as an object variable, it
+would have been less clear.
+
+The main loop is defined using a |serve| with a boolean guard |!done|.  This
+loop will continue to iterate while the guard is true; i.e.~it will terminate
+when |done| is true.  On each iteration, it is willing to receive a message on
+any of its input channels.  If it receives a request for a resource from
+client~|c|, it performs a straightforward search through |free|, and returns a
+suitable reply to~|c|, updating |free| if appropriate.  If it receives a
+returned resource, is simply updates |free| to mark that resource as free.  If
+it receives a shutdown message, it sets |done| to true to exit the loop, at
+which point it closes its input channels to signal to clients.
+
+Above, we chose to use different channels for different requests to the
+server.  An alternative is to use a single channel, and multiple types of
+request.  Such an approach seems more natural in a networked application.  In
+the resource allocation module, we could define the following:
+%
+\begin{scala}
+  private trait Request
+  private case class Acquire(c: ClientId) extends Request
+  private case class Return(r: Resource) extends Request
+  private case object Shutdown extends Request
+
+  private val requestChan = new SyncChan[Request]
+\end{scala}
+%
+The server would then receive on |requestChan|, and pattern match on the value
+received:
+%
+\begin{scala}
+  requestChan?() match{
+    case Acquire(c) => ...
+    case Return(r) => ...
+    case Shutdown => ...
+  }
+\end{scala}

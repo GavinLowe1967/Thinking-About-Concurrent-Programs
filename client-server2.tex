@@ -1,0 +1,347 @@
+\section{Testing the resource allocation server}
+
+We now want to test the resource allocation server.  The property we want to
+test is that two clients never hold the same resource: if a resource~$r$ is
+allocated to client~$c_1$, it can't be allocated to another client~$c_2$ until
+$c_1$ has returned it.
+
+We can perform this test by running a number of clients that randomly request
+and return resources, and log those actions.  We can then test whether the
+resulting trace of log events is valid.
+
+%%% Note: we could use linearisation testing here; but there are a few
+%%% wrinkles, so this probably isn't the best example for introducing the
+%%% technique. 
+
+%%%%%
+
+We use a log of type |Log[LogEvent]|, where |LogEvent| is defined in
+Figure~\ref{fig:RATest-1}.  Subsequently, we can use the |get| method on the
+log, to get the results of logging as an |Array[LogEvent]|.
+
+%%%%%
+
+\begin{figure}
+\begin{scala}
+  abstract class LogEvent
+  case class GotResource(c: ClientId, r: Resource) extends LogEvent
+  case class ReturnedResource(c: ClientId, r: Resource) extends LogEvent
+
+  /** A client */
+  def client(me: ClientId, resourceServer: RAServer, log: Log[LogEvent]) = thread{
+    var got = new scala.collection.mutable.Queue[Resource]()
+    val random = new scala.util.Random
+    for(_ <- 0 until iters){
+      if(random.nextInt(2) == 0){ // Acquire new resource
+	resourceServer.requestResource(me) match{
+          case Some(r) =>  log.add(me, GotResource(me, r)); got.enqueue(r)
+          case None => {}  // try again
+        }
+      }
+      else if(!got.isEmpty){     // Return resource.
+	val r = got.dequeue()
+        log.add(me, ReturnedResource(me, r))
+	resourceServer.returnResource(me, r)
+      }
+    }
+  }
+\end{scala}
+\caption{Testing a resource allocation server (part~1).}
+\label{fig:RATest-1}
+\end{figure}
+
+%%%%%
+
+A single client thread for testing is also defined in
+Figure~\ref{fig:RATest-1}.   This uses a
+queue |got| to keep track of the resources it currently holds.  On each
+iteration it either tries to acquire another resource, or return a resource if
+it has one.  In each case, it adds a suitable event to the log.
+
+Note that we log acquiring resources \emph{after} the resource is acquired,
+and log returning resources \emph{before} the resource is returned.  This
+means that the period during which the log indicates that the thread holds a
+resource is a \emph{subset} of the true time.
+%
+This is necessary to avoid false positives (the testing signalling an error,
+when in fact there is none).  If we were to return a resource before logging
+the return, it is possible that a client would be slow in logging the return,
+and that another client might have obtained the same resource in the mean
+time, giving a false positive.
+%
+However, this does risk false negatives (the testing failing to detect an
+incorrect behaviour).  But if there is a bug, doing enough testing should also
+produce true positives. 
+
+The function |runTest(resourceServer)| (Figure~\ref{fig:RATest-2}) performs a
+single test on |resourceServer|.  This runs |numClients| clients, sharing a
+log.  It uses the |checkLog| function (described below) to check whether the
+log represents a correct execution.  It shuts down |resourceServer|, to
+terminate the server thread: this is necessary when we perform many tests on
+different |RAServer| objects; if we did not do this, we would end up with many
+server threads still running, which would consume system resources.
+
+%%%%%
+
+\begin{figure}
+\begin{scala}
+  /** Check that events represents a valid log.  */
+  def checkLog(events: Array[LogEvent]): Boolean = {
+    val held = Array.fill(numResources)(false); var error = false; var i = 0
+    while(i < events.size && !error){
+      events(i) match{
+        case GotResource(_, r) =>
+          if(held(r)){ // Error!
+            println("Error found:\n"+events.take(i+1).mkString("\n"))
+            error = true
+          }
+          else held(r) = true
+        case ReturnedResource(_, r) => held(r) = false
+      }
+      i += 1
+    }
+    !error
+  }
+
+  /** Run a single test. */
+  def runTest(resourceServer: RAServer) = {
+    val log = new Log[LogEvent](numClients)
+    run(|| (for (i <- 0 until numClients) yield client(i, resourceServer, log)))
+    if(!checkLog(log.get)) sys.exit()
+    resourceServer.shutdown()
+  }
+\end{scala}
+\caption{Testing a resource allocation server (part~2).}
+\label{fig:RATest-2}
+\end{figure}
+
+%%%%%
+
+The |checkLog| function traverses the log, keeping track (in array~|held|) of
+which resources are currently held by threads.  If it finds that a resource
+that is currently held is allocated a second time, this constitutes an error:
+it prints the log up to that point to help with debugging.
+
+The |main| function calls |runTest| many times. 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+
+\section{Supporting arbitrary many clients}
+
+So far, we have assumed a fixed number of clients, with this number known when
+the resource server is created.  This allowed us to create one reply channel
+per client.  However, in many circumstances, this assumption doesn't hold.
+
+If we do not know the number of clients, an alternative is for each client to
+create a new reply channel for each request, and to send the reply channel
+within the request.  The server can then reply on this reply channel.  
+%
+This technique is illustrated in Figure~\ref{fig:RAServer-replyChan} (eliding
+code that is unchanged from earlier). 
+
+%%%%%
+
+\begin{figure}
+\begin{scala}
+  private type ReplyChan = Chan[Option[Resource]]
+
+  private val acquireRequestChan = new SyncChan[ReplyChan]
+
+  def requestResource(me: ClientId): Option[Resource] = {
+    val replyChan = new OnePlaceBuffChan[Option[Resource]]
+    acquireRequestChan!replyChan  // Send request.
+    replyChan?() // Wait for response.
+  }
+
+  private def server = thread{
+    ...
+    serve(
+      acquireRequestChan =?=> { replyChan => 
+	var r = 0
+	while(r < numResources && !free(r)) r += 1
+	if(r == numResources) replyChan!None
+        else{ free(r) = false; replyChan!Some(r) }
+      }
+      | ... // As previously. 
+    )
+  }
+\end{scala}
+\caption{The resource server, using reply channels.}
+\label{fig:RAServer-replyChan}
+\end{figure}
+
+
+At present, the client sends a request, and then stops and waits for a
+response.
+%
+In some cases, the client could do some useful work while waiting for the
+request to be serviced:
+%
+\begin{scala}
+  <make request>
+  <other useful work>
+  <obtain response>
+\end{scala}
+%
+We could change the interface of the object to support this, decoupling the
+request for a resource from obtaining the resource.
+%
+The fact that we have used buffered reply channels means that the server can
+send the response even if the client isn't yet ready for it.  
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Buffering requests}
+
+Previously, if the server couldn't meet a request, it immediately replied with
+a |None| value.  An alternative is to store such requests until they can be
+met.  
+%
+Figure~\ref{fig:totalRAServer} gives code outlining this approach.  We omit
+code that is identical to earlier.
+
+It makes sense to change the |requestResource| operation to return a result of
+type |Resource| (rather than |Option[Resource]|), since it can never return
+the |None| value.  The types of the channels are adapted accordingly, but
+otherwise the client-side code is unchanged.
+
+%%%%%
+
+\begin{figure}
+\begin{scala}
+  private type ReplyChan = Chan[Resource]
+
+  /* Channel for requesting a resource. */
+  private val acquireRequestChan = new SyncChan[ReplyChan]
+
+  /** Request a resource. */
+  def requestResource(me: ClientId): Resource = {
+    val replyChan = new OnePlaceBuffChan[Resource]
+    acquireRequestChan!replyChan  // Send request.
+    replyChan?() // Wait for response.
+  }
+
+  private def server = thread{
+    // Record whether resource £i£ is available in £free(i)£.
+    val free = Array.fill(numResources)(true)
+    // Reply channels for requests that cannot be served immediately.
+    val pending = new scala.collection.mutable.Queue[ReplyChan]
+    // Invariant: if £pending£ is non-empty, then all entries in £free£ are false.
+    var done = false
+
+    serve(!done)(
+      acquireRequestChan =?=> { replyChan =>
+	var r = 0
+	while(r < numResources && !free(r)) r += 1
+	if(r == numResources) 
+          pending.enqueue(replyChan) // Client has to wait.
+        else{  // Pass resource r back to client. 
+	  free(r) = false; replyChan!r
+        }
+      }
+      | returnChan =?=> { r =>
+          if(pending.nonEmpty)
+            pending.dequeue()!r // Allocate £r£ to blocked client.
+          else free(r) = true
+      }
+      | shutdownChan =?=> { _ => done = true }
+    )
+    acquireRequestChan.close(); returnChan.close(); shutdownChan.close()
+  }
+\end{scala}
+\caption{A total resource server (code similar to earlier is omitted).}
+\label{fig:totalRAServer}
+\end{figure}
+
+The server maintains a queue |pending| that holds the reply channels
+corresponding to blocked |requestResource| operations.  This queue is nonempty
+only if all entries in |free| are false: otherwise there would be a free
+resource that could be allocated to the blocked operation.  When the server
+receives a request for a resource, but there is no free resource, it adds the
+reply channel to |pending|.  When a resource is returned, if |pending| is
+nonempty, the server dequeues the first reply channel, and uses it to send the
+resource to the corresponding channel.
+
+With this implementation, the |requestResource| operation can take effect only
+when there is an unallocated resource: we say that it is a \emph{partial
+  operation}.  By contrast, in the previous implementations, the operation was
+a \emph{total operation}, that could take effect in any state.  (The terms
+``partial'' and ``total'' are by analogy with partial and total functions,
+which are defined on some or all potential arguments, respectively.)
+
+This approach can lead to a deadlock if all resources are allocated, and all
+clients are requesting more.  There is no good solution to this problem:
+sometimes there are simply insufficient resources available.  
+
+The possibility of deadlock also has implications for testing.  We want a
+testing harness that can run unsupervised without deadlocking.  To achieve
+this, we need to ensure that the clients never request so many resources that
+the system deadlocks; but we do need to ensure that the tests cover cases
+where all the resources are allocated.  
+
+My approach is to arrange that each client in the testing harness holds at
+most two resources, and when it does hold two, to return one on the next
+iteration.  In addition, I arrange that there are slightly more resources than
+clients.  This means that if the server is unable to immediately satisfy a
+request, and so that request is queued, then there must be some other client
+that holds two resources, and so will return one on the next iteration.  With
+such a definition for clients, the testing harness is almost identical to
+previously. 
+
+It is reasonable to assume that the server is able to keep up with clients,
+i.e.,~the server is able to deal with each message faster, on average, than
+clients attempt to send new messages, and so when a client attempts to send a
+message to the server, the server eventually receives it.  The use of a queue
+then ensures a degree of fairness.  Assuming resources are repeatedly
+returned, once a client attempts to obtain a resource, its message on
+|acquireRequestChan| will eventually be received, so the reply channel will be
+enqueued; and eventually the reply channel will reach the front of the queue,
+and the request serviced.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+There is a simpler way to achieve the same effect of buffering requests that
+cannot be served immediately, albeit it the cost of losing this fairness.
+Rather than the server explicitly queueing pending requests, the clients can
+be blocked on the |acquireRequestChan| channel until there is a resource free.
+This can be achieved simply by adding a variable that keeps track of the
+number of free resources, and a suitable guard on the |acquireRequestChan|
+branch of the |serve|.
+%
+\begin{scala}
+  private def server = thread{
+    val free = Array.fill(numResources)(true)
+    // Invariant: £numFree£ is the number of free resources, i.e. the number 
+    // of £true£s in £free£.
+    var numFree = numResources
+    serve(
+      numFree > 0 && acquireRequestChan =?=> { replyChan => 
+	var r = 0; while(r < numResources && !free(r)) r += 1
+	assert(r < numResources); free(r) = false; numFree -= 1
+        replyChan!Some(r)
+      }
+      | returnChan =?=> { r => free(r) = true; numFree += 1 }
+      | shutdownChan =?=> { ... } // As before.
+    )
+  }
+\end{scala}
+%
+The assertion in the |acquireRequestChan| branch holds because of
+the invariant concerning |numFree|.
+
+When the server has no free resources, all client threads wanting to obtain a
+resource will be blocked on |acquireRequestChan|.
+%
+When a resource is returned, those clients will compete to communicate on the
+channel.  The one that is able to send first will obtain the resource.
+%
+This means that this version is probably less fair than the previous one: an SCL
+channel is not guaranteed to be fair between the threads trying to use it.
+Whether this is important depends on the use case.
+
+
+
+
+
+

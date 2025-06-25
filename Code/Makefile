@@ -7,6 +7,7 @@ all:
 	cd 02.Channels; make
 	cd 03.Trapezium; make
 	cd 04.Alternation; make
+	cd 05.ClientServer; make
 
 clean:
 	rm $(ROOT)/*/*.class; fsc -shutdown

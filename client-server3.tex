@@ -1,0 +1,110 @@
+\section{Example: an exchanger}
+
+We now consider how to use a server to solve a synchronisation problem.  An
+\emph{exchanger} is a concurrent object that allows pairs of threads to
+exchange values: each thread should pass in a value, and receive the other
+thread's value back, via an operation
+\begin{scala}
+  def exchange(x: A): A 
+\end{scala}
+(where |A| is a polymorphic type parameter of the object).  This exchange
+represents a \emph{synchronisation}: the two executions of |exchange| must
+necessarily overlap in time.
+
+A straightforward implementation of an exchanger using a server is in
+Figure~\ref{fig:exchanger}.  The client creates a reply channel, sends its
+value and the reply channel to the server, and waits to receive the other
+thread's value on its reply channel.  The server repeatedly receives two
+requests, and passes each value to the other thread.
+
+%%%%%
+
+\begin{figure}
+\begin{scala}
+class Exchanger[A]{
+  /** Reply channels, for the server to return results to clients. */
+  private type ReplyChan = OnePlaceBuffChan[A]
+
+  /** Channel from clients to the server. */
+  private val toServer = new SyncChan[(A, ReplyChan)]
+
+  /** Exchange x with another thread. */
+  def exchange(x: A): A = {
+    val c = new ReplyChan; toServer!(x, c); c?()
+  }
+
+  /** The server thread. */
+  private def server = thread("Exchanger"){
+    repeat{
+      val (x1, c1) = toServer?(); val (x2, c2) = toServer?()
+      c1!x2; c2!x1
+    }
+  }
+
+  fork(server)
+
+  /** Shut down the server. */
+  def shutdown() = toServer.endOfStream()
+}
+\end{scala}
+\caption{An exchanger, using a server.}
+\label{fig:exchanger}
+\end{figure}
+
+%%%%%
+
+\begin{instruction}
+Make sure you understand the details of the exchanger.
+\end{instruction}
+
+%%%%%
+
+We now consider testing.  The property we need to check is that if
+thread~$t_1$ receives thread~$t_2$'s value, then $t_2$ receives $t_1$'s value.
+We can test this by arranging for each thread to store the value it receives,
+and subsequently trying to pair up the threads that exchanged.  It is not
+difficult to come up with an algorithm to attempt this pairing.  However, if
+two threads pass in the same value, there might be multiple candidates for
+pairing, which complicates the algorithm.  
+
+We can make things easier by arranging for threads to pass in distinct values.
+This approach is sound because the implementation is \emph{data independent}:
+each data value is passed in as an input (i.e.,~a parameter of |exchange|),
+passed around, stored, and output; but no operation is performed on it that
+depends on its actual value.  This means that if there were an incorrect
+behaviour that didn't satisfy our requirements, there would also be an
+incorrect behaviour where all the inputs were replaced by distinct values.
+
+A function to perform a single test is below; this can be executed many times.
+Each test runs |n| threads with an exchanger, where |n| is a random even
+number.  In fact, for convenience, we arrange that each thread submits its
+identity to the exchanger.  It then stores the value it receives back in the
+array |results|, indexed by its identity.  The correctness condition then is
+that for each~|i|, if thread~|i| received~|x|, then thread~|x| received~|i|,
+i.e.~those two threads exchanged with each other; this is easily checked.
+%
+\begin{scala}
+  def doTest = {
+    val n = 2*scala.util.Random.nextInt(10); val results = new Array[Int](n)
+    val exchanger = new Exchanger[Int]
+    def worker(me: Int) = thread(s"worker($me)"){ 
+      val x = exchanger.exchange(me); results(me) = x 
+    }
+    run(|| (for(i <- 0 until n) yield worker(i)))
+    for(i <- 0 until n){ val x = results(i);  assert(results(x) == i) }
+    exchanger.shutdown()
+  }
+\end{scala}
+%
+
+One detail concerning this testing strategy is that each thread performed just
+a single exchange.  It is tempting to arrange for a worker to perform multiple
+exchanges, perhaps submitting a different value each time.  However, this would
+lead to the possibility of the testing system deadlocking: it could reach a
+state where one thread has two exchanges still to make, but all the other
+threads have terminated.  When each thread performs just a single exchange, we
+avoid this possibility of deadlock. 
+
+\begin{instruction}
+Study the details of the |doTest| function.
+\end{instruction}
