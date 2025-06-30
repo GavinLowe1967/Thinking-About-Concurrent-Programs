@@ -4,62 +4,67 @@
 
 \input{client-server1} % intro, resource allocation example, asynchrony
 \input{client-server2} % testing; reply channels; buffering; 
+\input{client-server3} % exchanger, filter channel
+
 %\input{client-server4} % layering; conclusions
-\input{client-server3}}
-
-\section{TO DO}
-
-
-Filter channel (2019 exam)
-
-Unisex bathroom (2009 exam)
 
 %%%%%
 
-\begin{slide}
-\heading{Summary}
+\section{Summary}
 
-\begin{itemize}
-\item
-Clients and servers; 
+In this chapter we have studied the pattern of clients and servers: clients
+make requests to a server, and the server responds.  
 
-\item
-Requests and responses;
+Typically, a server will allow different sorts of request.  These can be
+supported by using a different channel for each sort, and using an alternation
+in the server.  Alternatively, we could use a single channel, and use
+different subtypes of the channel's data type to represent the different sorts
+of request. 
 
-\item
-Different styles of reply channels;
+Responses to requests (where needed) can be implemented in a couple of
+different ways.  We could use a separate channel for each client.
+Alternatively, we can arrange for the client to create a short-term reply
+channel which it sends to the server, and for the server to respond on this
+reply channel.  The latter approach is more flexible, so it is what we tend to
+use. 
 
-\item
-Testing via logging;
+Sometimes a server is not immediately able to respond to a request; this is
+the case in the resource allocation example, when no resource is available.
+The normal approach in these circumstances is to store the request in a queue.
+However, sometimes it is simpler for the server to refuse to communicate on
+the relevant channel, so clients are blocked on that communication.  This
+latter approach can also be useful in synchronisation objects, by restricting
+communications with different sorts of clients to happen in a fixed order. 
 
-\item Queueing pending requests; blocking pending requests;
+Testing is an important consideration for concurrent objects.  We saw some
+techniques in this chapter; and the same techniques are applicable regardless
+of how the concurrent objects themselves are implemented.
 
-\item
-Asynchrony; 
+Logging is often necessary for testing concurrent objects.  This is
+particularly the case when the object maintains some state: we need to test
+whether the results of operation executions are consistent with that state.
+We will use this technique further when we consider concurrent datatypes in
+the next chapter.
 
-\item
-Multiple channels or multiple types of request.
-\end{itemize}
-
-\end{slide}
+Logging is also often necessary when testing synchronisation objects.  We need
+to identify which operation executions synchronise together, and for this we
+need to know which overlap in time.  (The exchanger example was unusual in
+this respect as we could identify which operations synchronised from their
+parameters and results.)
+ 
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section*{Exercises}
 
-Men and women with server. 
+\input{Exercises/menWomenServer}
 
-One family problem (2023 exam)
+\input{Exercises/atomicBroadcast}
 
-Same-arg synchronisation (2022 exam)
+Possible \framebox{extra} exercises:
+One family problem (2023 exam);
+Same-arg synchronisation (2022 exam);
+ABC problem (2021 exam).
 
-ABC problem (2021 exam)
 
-Atomic broadcast (2020 exam)
-
-Filter channel (2019 exam)
-
-Unisex bathroom (2009 exam)
-
-Single lane bridge example (2010 exam)

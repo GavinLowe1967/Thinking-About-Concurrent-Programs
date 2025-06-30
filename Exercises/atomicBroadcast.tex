@@ -1,0 +1,145 @@
+\begin{questionS}
+A mechanism is required to allow a single sender to broadcast a message to~|n|
+receivers.  Each broadcast should represent a synchronisation of all $\sm n +
+1$ threads, after each has called its operation, but before any has returned. 
+Thus we require a class with the following signature.
+%
+\begin{scala}
+class AtomicBroadcast[A](n: Int){
+  /** Synchronously send £x£ to the £n£ receivers. */
+  def send(x: A): Unit
+
+  /** Synchronously receive the sender's value. */
+  def receive(): A 
+}
+\end{scala}
+%
+Implement such a class, encapsulating a server.
+
+Produce a testing harness for your code.
+\end{questionS}
+
+% =======================================================
+
+\begin{answerS}
+My code is below.  In order to implement the synchronisation, each client
+sends a reply channel to the server.  One the server has received from all
+$\sm n+1$ clients, the synchronisation can occur, and the server can reply to
+all the clients.
+%
+\begin{scala}
+class AtomicBroadcast[A](n: Int){
+  private val fromSender = new SyncChan[(A, Chan[Unit])]
+
+  private val fromReceiver = new SyncChan[Chan[A]]
+
+  def send(x: A): Unit = {
+    val c = new OnePlaceBuffChan[Unit]; fromSender!(x,c); c?()
+  }
+
+  def receive(): A = {
+    val c = new OnePlaceBuffChan[A]; fromReceiver!c; c?()
+  }
+
+  private def server = thread{
+    val queue = new scala.collection.mutable.Queue[Chan[A]]
+    repeat{
+      val (x,cs) = fromSender?()
+      for(_ <- 0 until n) queue.enqueue(fromReceiver?())
+      // All channels received.
+      cs!(); for(_ <- 0 until n) queue.dequeue()!x
+    }
+  }
+
+  fork(server)
+
+  def shutdown() = { fromSender.close(); fromReceiver.close() }
+}
+\end{scala}
+
+To test the atomic broadcast, we arrange for clients to write into the log
+before and after each operation.  
+
+\begin{scala}
+  trait LogEvent
+  case class BeginSend(x: Int) extends LogEvent
+  case object EndSend extends LogEvent
+  case object BeginReceive extends LogEvent
+  case class EndReceive(x: Int) extends LogEvent
+  type Log1 = Log[LogEvent] 
+
+  val iters = 10 // Number of broadcasts per run.
+  val Max = 100 // Range of values sent.
+
+  def sender(me: Int, ab: AtomicBroadcast[Int], log: Log1) = thread{
+    for(i <- 0 until iters){
+      val x = Random.nextInt(Max); log.add(me, BeginSend(x))
+      ab.send(x); log.add(me, EndSend)
+    }
+  }
+
+  def receiver(me: Int, ab: AtomicBroadcast[Int], log: Log1) = thread{
+    for(i <- 0 until iters){
+      log.add(me, BeginReceive); val x = ab.receive(); log.add(me, EndReceive(x))
+    }
+  }
+\end{scala}
+
+The main testing code is blow.  For a correct implementation, it should be
+possible to identify the place in the log where each synchronisation takes
+place: after all $\sm n+1$ clients have called their operation, but before any
+returns.  To this end, we traverse the log (in function |checkLog|), keeping
+track of the following information:
+%
+\begin{itemize}
+\item |currentSend| records information about the value currently being sent,
+  if any: it holds |Some(x)| from a call of |send(x)| up until the
+  synchronisation, and subsequently holds |None|;
+
+\item |receiversCalled| records the number of receivers that have called their
+  operation but not yet synchronised;
+
+\item |receiversToReturn| is the number of receivers that have synchronised
+  but not yet returned;
+
+\item |currentVal| is the value for the most recent synchronisation, which
+  receivers are expected to return.
+\end{itemize}
+%
+If |currentSend = Some(x)| and |receiversCalled = n|, the synchronisation can
+happen.  
+%
+\begin{scala}
+  def checkLog(n: Int, events: Array[LogEvent]) = {
+    def mkError(i: Int) = 
+      s"Error at index $i: ${events(i)}\n"+events.mkString("\n")
+    var currentSend: Option[Int] = None; var currentVal = -1
+    var receiversCalled = 0; var receiversToReturn = 0
+    for(i <- 0 until events.length){
+      events(i) match{
+        case BeginSend(x) => 
+          assert(currentSend == None, mkError(i)); currentSend = Some(x)
+        case EndSend => assert(currentSend == None, mkError(i))
+        case BeginReceive => receiversCalled += 1
+        case EndReceive(x) => 
+          assert(receiversToReturn > 0, mkError(i))
+          assert(x == currentVal, mkError(i)); receiversToReturn -= 1
+      }
+      if(currentSend != None && receiversCalled == n){
+        // The threads can now synchronise.
+        currentVal = currentSend.get; currentSend = None
+        receiversCalled = 0; receiversToReturn = n
+      }
+    }
+  }
+
+  def doTest = {
+    val n = Random.nextInt(10); val ab = new AtomicBroadcast[Int](n)
+    val log = new Log1(n+1)
+    val receivers = || (for(i <- 0 until n) yield receiver(i, ab, log))
+    run(sender(n, ab, log) || receivers)
+    checkLog(n, log.get)
+    ab.shutdown()
+  }
+\end{scala}
+\end{answerS}

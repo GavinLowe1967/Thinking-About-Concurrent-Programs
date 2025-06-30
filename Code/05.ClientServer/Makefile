@@ -1,6 +1,9 @@
 DIR = ../tacp/clientServer
 
-all:   $(DIR)/RAServer.class $(DIR)/PartialRAServer.class $(DIR)/Exchanger.class $(DIR)/FilterChan.class
+EXERCISES = $(DIR)/MenWomen.class $(DIR)/AtomicBroadcast.class
+
+all: $(DIR)/RAServer.class $(DIR)/PartialRAServer.class		\
+  $(DIR)/Exchanger.class $(DIR)/FilterChan.class $(EXERCISES)
 
 # $(DIR)/RATest.class: $(DIR)/RAServer.class
 

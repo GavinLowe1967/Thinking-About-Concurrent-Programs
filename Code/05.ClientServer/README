@@ -4,3 +4,7 @@ PartialRAServer.scala: partial resource allocation server, which buffers
 requests that cannot be served immediately.
 
 Exchanger.scala: an exchanger, plus testing code.
+
+FilterChan.scala: A filter channel.
+
+MenWomen.scala: The men and women problem. (Exercise)

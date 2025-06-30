@@ -1,18 +1,48 @@
-A common pattern in concurrent systems is that of clients and servers.  A
-\emph{server} is a thread or process that repeatedly handles requests from
+A common pattern in concurrent systems is that of clients and servers.
+A~\emph{server} is a thread or process that repeatedly handles requests from
 \emph{client}s.
 
-Many modules, such as concurrent datatypes, can be easily implemented in
-this way.
+The client-server pattern is particularly prevalent in distributed systems,
+where communications are over a network, such as the Internet.  For example,
+consider a web server that services requests from web clients (e.g.~web
+browsers), or a shared file server that services requests from user programs
+to read and write files.
 
-Also synchronisations.
+The client-server pattern is also often used in the implementation of some
+operating systems, e.g.~Minix.  Various servers run, within the operating
+system, for example to provide access to the file system or the terminal.  The
+advantage of this approach is one of modularisation: each server can be a
+separate program, with just a small kernel for  the operating system; this
+approach is more straightforward than a monolithic operating system.  
 
-This is a pattern that is often used in the implementation of operating
-systems.
+The first half of this chapter will consider a server that is responsible for
+allocating some type of resource to clients, similar to the type of server in
+an operating system.  We will use this example to study different ways of
+structuring such a client-server mechanism.
 
-It's the pattern that is prevalent in networked systems.
+In this book, we mostly use the client-server pattern within a standalone
+program, often encapsulated in a concurrent object.  We have already seen this
+approach several times: for example, in the bag-of-tasks examples, the bag was
+implemented as a server that received requests from workers (clients) for
+tasks.
+ 
+A \emph{synchronisation object} is an object that allows two (or more) threads
+to synchronise and exchange data.  By \emph{synchronise}, we mean that the
+threads execute the operations at the same time: more precisely, the time
+periods during which the threads execute the operation overlap.
+%
+Towards the end of this chapter we will use
+a client-server pattern to implement two \emph{synchronisation objects}: an
+\emph{exchanger} that allows two threads to exchange data, and a \emph{filter
+  channel} that is like a synchronous channel, but allows the receiver to
+specify a property that must be satisfied by the value it receives.  We will
+also consider how to test these object: testing synchronisation objects often
+requires some ingenuity.    
 
-\framebox{More here.}
+In Chapter~\ref{chap:datatypes}, we will study how to use a client-server
+architecture to implement a \emph{concurrent datatype}: an object that acts
+much like a sequential datatype, such as a queue or a mapping, but provides
+client code with thread-safe operations on the datatype. 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -34,15 +64,6 @@ again later, or might throw an exception.
 %
 An alternative approach would be for the server to queue the request until it
 can be serviced; we will consider this approach later in the section.
-
-%%%%%
-
-Thus we will define a server with the interface in Figure~\ref{fig:RAServer}.
-We represent resources by |Int|s, and we also assume each client has an |Int|
-identity, which they include in operation calls.  There are operations for a
-client to obtain a resource, or to return a resource.  There is also an
-operation to shut down the server (although this could be considered
-optional). 
 
 %%%%%
 
@@ -74,6 +95,14 @@ trait RAServer{
 \label{fig:RAServer}
 \end{figure}
 
+%%%%%
+
+Thus we will define a server with the interface in Figure~\ref{fig:RAServer}.
+We represent resources by |Int|s, and we also assume each client has an |Int|
+identity, which they include in operation calls.  There are operations for a
+client to obtain a resource, or to return a resource.  There is also an
+operation to shut down the server (although this could be considered
+optional). 
 
 %%%%% First implementation
 
