@@ -1,8 +1,9 @@
 \begin{questionS}
 A mechanism is required to allow a single sender to broadcast a message to~|n|
-receivers.  Each broadcast should represent a synchronisation of all $\sm n +
-1$ threads, after each has called its operation, but before any has returned. 
-Thus we require a class with the following signature.
+receivers, repeatedly.  Each broadcast should represent a synchronisation of
+all $\sm n + 1$ threads: no thread's operation should return until all $\sm
+n+1$ have called their operation.  Thus we require a class with the following
+signature.
 %
 \begin{scala}
 class AtomicBroadcast[A](n: Int){
@@ -85,7 +86,7 @@ before and after each operation.
   }
 \end{scala}
 
-The main testing code is blow.  For a correct implementation, it should be
+The main testing code is below.  For a correct implementation, it should be
 possible to identify the place in the log where each synchronisation takes
 place: after all $\sm n+1$ clients have called their operation, but before any
 returns.  To this end, we traverse the log (in function |checkLog|), keeping
@@ -93,17 +94,17 @@ track of the following information:
 %
 \begin{itemize}
 \item |currentSend| records information about the value currently being sent,
-  if any: it holds |Some(x)| from a call of |send(x)| up until the
-  synchronisation, and subsequently holds |None|;
+  if any: it holds |Some(x)| from the point at which |send(x)| is called up
+  until the synchronisation, and subsequently holds |None|;
 
 \item |receiversCalled| records the number of receivers that have called their
   operation but not yet synchronised;
 
-\item |receiversToReturn| is the number of receivers that have synchronised
-  but not yet returned;
+\item |receiversToReturn| records the number of receivers that have
+  synchronised but not yet returned;
 
-\item |currentVal| is the value for the most recent synchronisation, which
-  receivers are expected to return.
+\item |currentVal| records the value for the most recent synchronisation,
+  which receivers are expected to return.
 \end{itemize}
 %
 If |currentSend = Some(x)| and |receiversCalled = n|, the synchronisation can

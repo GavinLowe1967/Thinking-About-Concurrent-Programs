@@ -7,7 +7,7 @@ $c_1$ has returned it.
 
 We can perform this test by running a number of clients that randomly request
 and return resources, and log those actions.  We can then test whether the
-resulting trace of log events is valid.
+resulting history of log events is valid.
 
 %%% Note: we could use linearisation testing here; but there are a few
 %%% wrinkles, so this probably isn't the best example for introducing the
@@ -16,14 +16,20 @@ resulting trace of log events is valid.
 %%%%%
 
 We use a log of type |Log[LogEvent]|, where |LogEvent| is defined in
-Figure~\ref{fig:RATest-1}.  Subsequently, we can use the |get| method on the
-log, to get the results of logging as an |Array[LogEvent]|.
-
+Figure~\ref{fig:RATest-1}.  
+%% Subsequently, we can use the |get| method on the
+%% log, to get the results of logging as an |Array[LogEvent]|.
+%
+A single client thread for testing is also defined in
+Figure~\ref{fig:RATest-1}.   This uses a
+queue |got| to keep track of the resources it currently holds.  On each
+iteration it either tries to acquire another resource, or return a resource if
+it has one.  In each case, it adds a suitable event to the log.
 %%%%%
 
 \begin{figure}
 \begin{scala}
-  abstract class LogEvent
+  trait LogEvent
   case class GotResource(c: ClientId, r: Resource) extends LogEvent
   case class ReturnedResource(c: ClientId, r: Resource) extends LogEvent
 
@@ -52,34 +58,22 @@ log, to get the results of logging as an |Array[LogEvent]|.
 
 %%%%%
 
-A single client thread for testing is also defined in
-Figure~\ref{fig:RATest-1}.   This uses a
-queue |got| to keep track of the resources it currently holds.  On each
-iteration it either tries to acquire another resource, or return a resource if
-it has one.  In each case, it adds a suitable event to the log.
-
 Note that we log acquiring resources \emph{after} the resource is acquired,
 and log returning resources \emph{before} the resource is returned.  This
 means that the period during which the log indicates that the thread holds a
 resource is a \emph{subset} of the true time.
 %
-This is necessary to avoid false positives (the testing signalling an error,
-when in fact there is none).  If we were to return a resource before logging
-the return, it is possible that a client would be slow in logging the return,
-and that another client might have obtained the same resource in the mean
-time, giving a false positive.
+This is necessary to avoid false positives (i.e.~the testing signalling an
+error, when in fact there is none).  If we were to return a resource before
+logging the return, it is possible that a client would be slow in logging the
+return, and that another client might have obtained the same resource in the
+mean time, giving a false positive.
 %
-However, this does risk false negatives (the testing failing to detect an
-incorrect behaviour).  But if there is a bug, doing enough testing should also
-produce true positives. 
+However, there is a small risk of false negatives (i.e.~the testing failing to
+detect an incorrect behaviour).  But we would expect these to be rare: if
+there is a bug, doing enough testing will almost certainly also produce true
+positives.
 
-The function |runTest(resourceServer)| (Figure~\ref{fig:RATest-2}) performs a
-single test on |resourceServer|.  This runs |numClients| clients, sharing a
-log.  It uses the |checkLog| function (described below) to check whether the
-log represents a correct execution.  It shuts down |resourceServer|, to
-terminate the server thread: this is necessary when we perform many tests on
-different |RAServer| objects; if we did not do this, we would end up with many
-server threads still running, which would consume system resources.
 
 %%%%%
 
@@ -117,12 +111,24 @@ server threads still running, which would consume system resources.
 
 %%%%%
 
+The function |runTest(resourceServer)| (Figure~\ref{fig:RATest-2}) performs a
+single test on |resourceServer|.  This runs |numClients| clients, sharing a
+log.  It uses the |checkLog| function (described below) to check whether the
+log represents a correct execution.  It shuts down |resourceServer|, to
+terminate the server thread: this is necessary when we perform many tests on
+different |RAServer| objects; if we did not do this, we would end up with many
+server threads still running, which would consume system resources.
+
 The |checkLog| function traverses the log, keeping track (in array~|held|) of
 which resources are currently held by threads.  If it finds that a resource
 that is currently held is allocated a second time, this constitutes an error:
 it prints the log up to that point to help with debugging.
 
 The |main| function calls |runTest| many times. 
+
+\begin{instruction}
+Study the details of the test program.
+\end{instruction}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
 
@@ -170,12 +176,22 @@ code that is unchanged from earlier).
 \label{fig:RAServer-replyChan}
 \end{figure}
 
+%%%%%
 
-At present, the client sends a request, and then stops and waits for a
-response.
-%
-In some cases, the client could do some useful work while waiting for the
-request to be serviced:
+This implementation can be tested in the same way as the previous
+implementation, since it provides the same interface and functionality: only
+internal details have changed. 
+
+\begin{instruction}
+Study the details of the new implementation.
+\end{instruction}
+
+We will use reply channels like this in most subsequent client-server
+examples. 
+
+With this implementation, the client sends a request, and then stops and waits
+for a response.  In some cases, the client could do some useful work while
+waiting for the request to be serviced:
 %
 \begin{scala}
   <make request>
@@ -185,7 +201,6 @@ request to be serviced:
 %
 We could change the interface of the object to support this, decoupling the
 request for a resource from obtaining the resource.
-%
 The fact that we have used buffered reply channels means that the server can
 send the response even if the client isn't yet ready for it.  
 
@@ -262,6 +277,10 @@ reply channel to |pending|.  When a resource is returned, if |pending| is
 nonempty, the server dequeues the first reply channel, and uses it to send the
 resource to the corresponding channel.
 
+\begin{instruction}
+Study the details of the implementation.
+\end{instruction}
+
 With this implementation, the |requestResource| operation can take effect only
 when there is an unallocated resource: we say that it is a \emph{partial
   operation}.  By contrast, in the previous implementations, the operation was
@@ -274,10 +293,10 @@ clients are requesting more.  There is no good solution to this problem:
 sometimes there are simply insufficient resources available.  
 
 The possibility of deadlock also has implications for testing.  We want a
-testing harness that can run unsupervised without deadlocking.  To achieve
-this, we need to ensure that the clients never request so many resources that
-the system deadlocks; but we do need to ensure that the tests cover cases
-where all the resources are allocated.  
+testing harness that can run unsupervised, maybe for a long time, without
+deadlocking.  To achieve this, we need to ensure that the clients never
+request so many resources that the system deadlocks; but we do need to ensure
+that the tests cover cases where all the resources are allocated.
 
 My approach is to arrange that each client in the testing harness holds at
 most two resources, and when it does hold two, to return one on the next
@@ -289,14 +308,18 @@ such a definition for clients, the testing harness is almost identical to
 previously. 
 
 It is reasonable to assume that the server is able to keep up with clients,
-i.e.,~the server is able to deal with each message faster, on average, than
-clients attempt to send new messages, and so when a client attempts to send a
-message to the server, the server eventually receives it.  The use of a queue
-then ensures a degree of fairness.  Assuming resources are repeatedly
-returned, once a client attempts to obtain a resource, its message on
-|acquireRequestChan| will eventually be received, so the reply channel will be
-enqueued; and eventually the reply channel will reach the front of the queue,
-and the request serviced.
+i.e.,~that it is able to deal with each message faster, on average, than
+clients attempt to send new messages.  This implies that when a client
+attempts to send a message to the server, the server eventually receives it.
+Put another way, we assume that clients don't make requests that the server is
+overwhelmed. 
+
+
+The use of a queue then ensures a degree of fairness.  Assuming resources are
+repeatedly returned, once a client attempts to obtain a resource, its message
+on |acquireRequestChan| will eventually be received, so the reply channel will
+be enqueued; and eventually the reply channel will reach the front of the
+queue, and the request serviced.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -307,7 +330,8 @@ Rather than the server explicitly queueing pending requests, the clients can
 be blocked on the |acquireRequestChan| channel until there is a resource free.
 This can be achieved simply by adding a variable that keeps track of the
 number of free resources, and a suitable guard on the |acquireRequestChan|
-branch of the |serve|.
+branch of the |serve|, to block communications when there are no free
+resources.%
 %
 \begin{scala}
   private def server = thread{

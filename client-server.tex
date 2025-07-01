@@ -13,7 +13,9 @@
 \section{Summary}
 
 In this chapter we have studied the pattern of clients and servers: clients
-make requests to a server, and the server responds.  
+make requests to a server, and the server responds.  The pattern is widely
+applicable, either as a stand-alone application, or as a module within a
+larger program. 
 
 Typically, a server will allow different sorts of request.  These can be
 supported by using a different channel for each sort, and using an alternation
@@ -21,12 +23,11 @@ in the server.  Alternatively, we could use a single channel, and use
 different subtypes of the channel's data type to represent the different sorts
 of request. 
 
-Responses to requests (where needed) can be implemented in a couple of
-different ways.  We could use a separate channel for each client.
-Alternatively, we can arrange for the client to create a short-term reply
-channel which it sends to the server, and for the server to respond on this
-reply channel.  The latter approach is more flexible, so it is what we tend to
-use. 
+Responses to requests (where needed) can be implemented by using a separate
+channel for each client.  Alternatively, we can arrange for the client to
+create a short-term reply channel which it sends to the server, and for the
+server to respond on this reply channel.  The latter approach is more
+flexible, so it is what we tend to use.
 
 Sometimes a server is not immediately able to respond to a request; this is
 the case in the resource allocation example, when no resource is available.

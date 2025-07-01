@@ -5,39 +5,40 @@ A~\emph{server} is a thread or process that repeatedly handles requests from
 The client-server pattern is particularly prevalent in distributed systems,
 where communications are over a network, such as the Internet.  For example,
 consider a web server that services requests from web clients (e.g.~web
-browsers), or a shared file server that services requests from user programs
-to read and write files.
+browsers), or a networked file server that services requests from user
+programs to read and write files.
 
 The client-server pattern is also often used in the implementation of some
-operating systems, e.g.~Minix.  Various servers run, within the operating
+operating systems, e.g.~Minix.  Various servers run within the operating
 system, for example to provide access to the file system or the terminal.  The
-advantage of this approach is one of modularisation: each server can be a
-separate program, with just a small kernel for  the operating system; this
-approach is more straightforward than a monolithic operating system.  
+advantage of this approach is one of modularisation.  Each server can be
+considered a separate program, which means that the operating system kernel
+can be rather small.  This approach is more straightforward than a monolithic
+operating system that incorporates many features and services.
 
 The first half of this chapter will consider a server that is responsible for
 allocating some type of resource to clients, similar to the type of server in
 an operating system.  We will use this example to study different ways of
 structuring such a client-server mechanism.
 
-In this book, we mostly use the client-server pattern within a standalone
-program, often encapsulated in a concurrent object.  We have already seen this
+We will mainly use the client-server pattern to implement a module within a
+larger program.  We have already seen this
 approach several times: for example, in the bag-of-tasks examples, the bag was
 implemented as a server that received requests from workers (clients) for
 tasks.
  
 A \emph{synchronisation object} is an object that allows two (or more) threads
 to synchronise and exchange data.  By \emph{synchronise}, we mean that the
-threads execute the operations at the same time: more precisely, the time
-periods during which the threads execute the operation overlap.
-%
-Towards the end of this chapter we will use
-a client-server pattern to implement two \emph{synchronisation objects}: an
-\emph{exchanger} that allows two threads to exchange data, and a \emph{filter
-  channel} that is like a synchronous channel, but allows the receiver to
-specify a property that must be satisfied by the value it receives.  We will
-also consider how to test these object: testing synchronisation objects often
-requires some ingenuity.    
+threads execute the operations at the same time: more precisely, there is an
+overlap between the time periods during which the threads execute their
+operations.  Synchronisation is a useful tool in coordinating threads. 
+
+Towards the end of this chapter we will use a client-server pattern to
+implement two \emph{synchronisation objects}: an \emph{exchanger} that allows
+two threads to exchange data, and a \emph{filter channel} that is like a
+synchronous channel, but allows the receiver to specify a property that must
+be satisfied by the value it receives.  We will also consider how to test
+these objects: testing synchronisation objects often requires some ingenuity.
 
 In Chapter~\ref{chap:datatypes}, we will study how to use a client-server
 architecture to implement a \emph{concurrent datatype}: an object that acts
@@ -55,9 +56,11 @@ However, the pattern is more widely applicable.  Clients acquire resources for
 use, and later return them to the server.
 
 One problem we need to address is: what should happen if a client requests a
-resource and there is none available?  We choose to use an |Option[Resource]|
-value: the client receives a value |Some(r)| to indicate that resource |r| has
-been acquired, or the value |None| to indicate that no resource was available.
+resource and there is none available?  In this section, we return a special
+value to indicate that no resource is available.  More precisely, we use an
+|Option[Resource]| value: the client receives a value |Some(r)| to indicate
+that resource |r| has been acquired, or the value |None| to indicate that no
+resource was available.
 %
 In the latter case, it is up to the client to decide what to do: it might try
 again later, or might throw an exception.  
@@ -97,12 +100,12 @@ trait RAServer{
 
 %%%%%
 
-Thus we will define a server with the interface in Figure~\ref{fig:RAServer}.
-We represent resources by |Int|s, and we also assume each client has an |Int|
-identity, which they include in operation calls.  There are operations for a
-client to obtain a resource, or to return a resource.  There is also an
-operation to shut down the server (although this could be considered
-optional). 
+Thus we will define a server that extends the trait |RAServer| in
+Figure~\ref{fig:RAServer}.  We represent resources by |Int|s, and we also
+assume each client has an |Int| identity, which they include in operation
+calls.  There are operations for a client to obtain a resource, or to return a
+resource.  There is also an operation to shut down the server (although this
+could be considered optional).
 
 %%%%% First implementation
 
@@ -204,10 +207,10 @@ currently free in an array \SCALA{free}.  Note that |free| is declared as a
 local variable within the definition of~|server|.  This ensures that only the
 server has access to |free|, which avoids race conditions. This also clarifies
 the intended use of~|free|: if we had declared it as an object variable, it
-would have been less clear.
+would have been less clear, as it would look like a shared variable.
 
 The main loop is defined using a |serve| with a boolean guard |!done|.  This
-loop will continue to iterate while the guard is true; i.e.~it will terminate
+loop will continue to iterate while the guard is true, so it will terminate
 when |done| is true.  On each iteration, it is willing to receive a message on
 any of its input channels.  If it receives a request for a resource from
 client~|c|, it performs a straightforward search through |free|, and returns a
@@ -216,18 +219,22 @@ returned resource, is simply updates |free| to mark that resource as free.  If
 it receives a shutdown message, it sets |done| to true to exit the loop, at
 which point it closes its input channels to signal to clients.
 
-Above, we chose to use different channels for different requests to the
-server.  An alternative is to use a single channel, and multiple types of
-request.  Such an approach seems more natural in a networked application.  In
-the resource allocation module, we could define the following:
+\begin{instruction}
+Study the details of the implementation. 
+\end{instruction}
+
+Above, we chose to use different channels for acquiring and returning a
+resource.  An alternative is to use a single channel that can pass different
+types of request.  Such an approach seems more natural in a networked
+application.  In the resource allocation module, we could define the
+following:
 %
 \begin{scala}
   private trait Request
-  private case class Acquire(c: ClientId) extends Request
-  private case class Return(r: Resource) extends Request
-  private case object Shutdown extends Request
-
-  private val requestChan = new SyncChan[Request]
+  private case class Acquire(c: ClientId) extends Request // Acquire a resource.
+  private case class Return(r: Resource) extends Request // Return a resource.
+  private case object Shutdown extends Request // Shut down the server.
+  private val requestChan = new SyncChan[Request] // Channel for requests.
 \end{scala}
 %
 The server would then receive on |requestChan|, and pattern match on the value

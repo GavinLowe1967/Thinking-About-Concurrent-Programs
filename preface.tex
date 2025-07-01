@@ -2,10 +2,11 @@
 \addcontentsline{toc}{section}{Preface}
 \markboth{Preface}{} % Else it says "list of Scala boxes!"
 
+\framebox{Needs writing!}
 
 
 Prerequisites.
-
+%
 \begin{itemize}
 \item Good programming skills using Scala. 
 
@@ -17,6 +18,33 @@ Prerequisites.
 programs:  pre- and post-conditions, invariants, and abstraction functions.
 \end{itemize}
 
+A major theme of the book will be modularisation.  Often, we will aim to
+encapsulate design decisions concerning concurrency within an object.
+Operations on that object will be thread-safe, i.e.~different threads will not
+interfere with one another.  Client code can use that object without knowing
+how the concurrency is implemented.  A common example will be that the object
+implements a datatype, such as a queue or a mapping.  Client code can use the
+concurrent datatype much as they would a corresponding sequential datatype. 
+
+Another major theme will be testing.  How can we test concurrent programs or
+concurrent modules?  Often this requires different techniques from those for
+sequential programs or modules. 
+
+\framebox{Code availability}
+
+\begin{instruction}
+I will sometimes leave you to study some details of programs for yourself.  A
+paragraph labelled with a triangle on the left, like this, is a nudge for you
+to do that.
+\end{instruction}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection*{Acknowledgements}
+
+
 
 SCL heavily based on CSO (Communicating Scala Objects), produced by Bernard
 Sufrin.
+
+Karel.

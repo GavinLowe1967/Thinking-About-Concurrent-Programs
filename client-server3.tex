@@ -1,9 +1,11 @@
 \section{Example: an exchanger}
 
-We now consider how to use a server to solve a synchronisation problem.  An
-\emph{exchanger} is a concurrent object that allows pairs of threads to
-exchange values: each thread should pass in a value, and receive the other
-thread's value back, via an operation
+In this section, we consider how to use a client-server mechanism to solve a
+synchronisation problem.  
+
+An \emph{exchanger} is a concurrent object that
+allows pairs of threads to exchange values: each thread should pass in a
+value, and receive the other thread's value back, via an operation
 \begin{scala}
   def exchange(x: A): A 
 \end{scala}
@@ -67,17 +69,19 @@ would be no way for $t_1$ to obtain $t_2$'s value.
 
 We can test this property by arranging for each thread to store the value it
 receives, and subsequently trying to pair up the threads that exchanged.  It
-is not difficult to come up with an algorithm to attempt this pairing.
+is possible to come up with an algorithm to find such a pairing of threads, if
+one exists.
 However, if two threads pass in the same value, there might be multiple
 candidates for pairing, which complicates the algorithm.
 
 We can make things easier by arranging for threads to pass in distinct values.
 This approach is sound because the implementation is \emph{data independent}:
 each data value is passed in as an input (i.e.,~a parameter of |exchange|),
-passed around, stored, and output; but no operation is performed on it that
-depends on its actual value.  This means that if there were an incorrect
-behaviour that didn't satisfy our requirements, there would also be an
-incorrect behaviour where all the inputs were replaced by distinct values.
+passed between threads, stored in variables, and output; but no operation is
+performed on it that depends on its actual value.  This means that if there
+were an incorrect behaviour that didn't satisfy our requirements, there would
+also be an incorrect behaviour where all the inputs were replaced by distinct
+values.
 
 A function to perform a single test is below; this can be executed many times.
 Each test runs |n| threads with an exchanger, where |n| is a random even
@@ -120,11 +124,13 @@ Study the details of the |doTest| function.
 We now consider another example of a synchronisation object.  A \emph{filter
   channel} acts much like a standard synchronous channel, except a receiver
 can specify a property that it requires the value it receives to satisfy.
-Thus it will implement the following trait.
+Thus a filter channel implements the following trait.
 %
 \begin{scala}
 trait FilterChanT[A]{
+  /** Synchronously send £x£. */
   def send(x: A): Unit
+  /** Synchronously receive a value that satisfies £p£. */
   def receive(p: A => Boolean): A 
 }
 \end{scala}
@@ -139,10 +145,9 @@ kind.
 \begin{figure}
 \begin{scala}
 class FilterChan[A] extends FilterChanT[A]{
-  /** Channel the sender uses to send to the server. */
+  /** Channel senders uses to send to the server. */
   private val fromSender = new SyncChan[(A, Chan[Unit])]
 
-  /** Synchronously send x. */
   def send(x: A) = { 
     val replyChan = new SyncChan[Unit]; fromSender!(x, replyChan); replyChan?()
   }
@@ -150,18 +155,15 @@ class FilterChan[A] extends FilterChanT[A]{
   /** Channel receivers use to send to the server. */
   private val fromReceiver = new SyncChan[(A => Boolean, Chan[A])]
   
-  /** Synchronously receive a value that satisfied p. */
   def receive(p: A => Boolean): A = {
     val replyChan = new SyncChan[A]; fromReceiver!(p, replyChan); replyChan?()
   }
 
   private val shutdownChan = new SyncChan[Unit]
 
-  /** Shut down the server. */
   def shutdown() = shutdownChan!() 
 
-  /** The server process. */
-  private def server = thread("ServerFilterChan"){ ... } // See Figure £\ref{fig:FilterChan-server}£.
+  private def server = thread("FilterChan"){ ... } // See Figure £\ref{fig:FilterChan-server}£.
 
   fork(server)
 }
@@ -192,7 +194,7 @@ here, allowing easy iteration.
 
 \begin{figure}
 \begin{scala}
-  private def server = thread("ServerFilterChan"){
+  private def server = thread("FilterChan"){
     // Queue of pending requests from senders.
     val pendingSends = new Queue[(A, Chan[Unit])]
     // Queue of pending requests from receivers.
@@ -238,7 +240,7 @@ on~|cs|.  If it doesn't find a match, it adds |(x,cs)| to |pendingSends|.
 The server acts very similarly when it receives a message from a receiver
 (there is an argument for factoring out the common code into a separate
 function).  When it receives a message to shut down, it sets the |isShutdown|
-flag, exits the loops, and closes all the channels, including those in its
+flag, exits the loop, and closes all the channels, including those in its
 queues, to signal to any waiting clients.
 
 \begin{instruction}
@@ -250,18 +252,19 @@ Make sure you understand the implementation of |FilterChan|.
 We now consider how to test the implementation.  In particular, we need to
 ensure that the filter channel is \emph{synchronous}, in particular that the
 sender does not return before the corresponding receiver calls the operation:
-in the implementation, the use of a reply channel was designed to avoid this.
+in the implementation, the use of a reply channel was designed to ensure this.
 We will therefore use the technique of logging, as we did with the resource
 server.  We will run a number of senders and receivers that call the
 operations, but that write into the log both before and after the operation.
 This will allow us to identify which operation executions overlap, and then we
-can try to pair up corresponding send and receives.  
+can try to pair up corresponding sends and receives.  
 %
 This pairing up of corresponding operation executions will be easier if we
 arrange for each |send| operation to send a different value.  
 
-Most of the testing code is in Figure~\ref{fig:FilterChan-test1}.  (It is
-trivial to adapt it to test other implementations of the |FilterChanT| trait.)
+Most of the testing code is in Figure~\ref{fig:FilterChan-test1}. 
+%%  (It is
+%% trivial to adapt it to test other implementations of the |FilterChanT| trait.)
 We log using events of type |LogEvent|, with subclasses corresponding to the
 begin and end of |send|s and |receive|s; the events include the identity of
 the thread in question (to allow pairing of corresponding |Begin| and |End|
@@ -394,12 +397,13 @@ correctly synchronise and exchange values.
 \end{figure}
 
 The |checkLog| function traverses the log, keeping track, in arrays
-|senderState| and |receiverState|, whether each thread is currently outside an
-operation call (value~|Out|), inside an operation call but has not yet been
-matched with another operation (value~|Unmatched|), or inside an operation
-call and matched with another operation call (value~|Matched|).  It also keeps
-track, in arrays |senderValue| and |receiverValue| of the value being sent by
-a sender, or the value that a |receive| operation will return.
+|sender|\-|State| and |receiverState|, whether each thread is currently
+outside an operation call (value~|Out|), inside an operation call but has not
+yet been matched with another operation (value~|Unmatched|), or inside an
+operation call and matched with another operation call (value~|Matched|).  It
+also keeps track, in array |senderValue| of the value being sent by a sender,
+and in array |receiverValue| of the value that a |receive| operation will
+return.
 
 When the traversal encounters a |Begin| operation, it updates values
 appropriately.  In the case of a |BeginReceive|, it searches forward through

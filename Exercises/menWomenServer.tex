@@ -63,16 +63,17 @@ paired immediately.  However, such approaches are more complex.  It is often
 best to avoid communicating on a channel if you know the corresponding request
 can't be served.
 
-\framebox{Problem implies sync}
 
 Most of my testing code is below.  We need to check that men and women receive
 compatible results: if man~$m$ thinks he is paired with woman~$w$, then $w$
-thinks she is paired with~$m$; this implies the vice-versa direction (assuming
-equal numbers of men and women).  Each man stores his result in
-|partnerOfMan|, and each woman stores her result in |partnerOfWoman|; we then
-check the results agree.  (Each man and woman has an integer identity; we take
-his or her name to be the corresponding string; we cast back to an |Int| to
-store in the arrays.)
+thinks she is paired with~$m$.  This implies the vice-versa direction
+(assuming equal numbers of men and women).  It also implies that the two
+operations synchronise, i.e.~overlap in time, as for the exchanger example.
+
+Each man stores his result in |partnerOfMan|, and each woman stores her result
+in |partnerOfWoman|; we then check the results agree.  (Each man and woman has
+an integer identity; we take their name to be the corresponding string; we
+cast back to an |Int| to store in the arrays.)
 %
 \begin{scala}
   /** Arrays that hold the identity of each man/woman's partner. */

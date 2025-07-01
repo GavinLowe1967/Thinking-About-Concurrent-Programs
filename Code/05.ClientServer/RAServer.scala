@@ -148,7 +148,7 @@ object RATest{
   var iters = 1000 // # iterations by each client
 
   // Events put into the log
-  abstract class LogEvent
+  trait LogEvent
   case class GotResource(c: ClientId, r: Resource) extends LogEvent
   case class ReturnedResource(c: ClientId, r: Resource) extends LogEvent
 
