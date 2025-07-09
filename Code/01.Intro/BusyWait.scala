@@ -14,7 +14,7 @@ object BusyWait{
   /** Thread to wait for a signal, and read answer. */
   def t2 = thread("t2"){
     while(!done){ } // Busy wait.  Don't do this!!!
-    val myAnswer = answer; assert(answer == 42)
+    val myAnswer = answer; assert(myAnswer == 42)
   }
 
   /** Parallel composition. */

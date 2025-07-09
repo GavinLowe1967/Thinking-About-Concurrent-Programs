@@ -1,0 +1,314 @@
+
+\section{Disciplined interaction}
+
+The main challenge of concurrent programming is ensuring disciplined
+interaction between threads.  Without this, even very simple concurrent
+programs can act in unexpected ways.  In particular, it is necessary to ensure
+disciplined access to shared variables.
+
+Figure~\ref{fig:race} gives an example that shows what can happen if you allow
+undisciplined access to variables.  Such programs are very hard to reason
+about.
+Appendix~\ref{app:scala} contains a brief introduction to the Scala
+programming language.  We will concentrate below on the concurrency aspects of
+the program. 
+
+%%%%%
+
+\begin{figure}
+\begin{scala}[numbers = left]
+import ox.scl._  £\label{line:input}£
+
+/** Program to show the dangers of undisciplined shared variables. */
+object Race{
+  var x = 0
+
+  /** Thread to increment £x£ 1000 times. */
+  def t1 = thread{ for(i <- 0 until 1000) x = x+1 }£\label{line:p}£
+
+  /** Thread to decrement £x£ 1000 times. */
+  def t2 = thread{ for(i <- 0 until 1000) x = x-1 }£\label{line:q}£
+
+  /** Parallel composition. */
+  def system = t1 || t2£\label{line:system}£
+
+  def main(args: Array[String]) = { run(system); println(x) }£\label{line:main}£
+}
+\end{scala}% File Race/Race.scala
+\caption{A simple program exhibiting a memory race.}
+\label{fig:race}
+\end{figure}
+
+%%%%%
+
+We use the Scala Concurrency Library (SCL) in this book.  It provides a number
+of convenient concurrency primitives.  Line~\ref{line:input} of
+Figure~\ref{fig:race} imports this library, so the main primitives can be used
+directly; for example, ``|thread|'' is shorthand for ``|ox.scl.thread|''.  (In
+later programs, we will tend to omit this |import| statement, for brevity.)
+
+A definition of the form \SCALA{thread\{<code>\}} defines a thread that when
+executed will execute \SCALA{<code>}.  For example, line~\ref{line:p} defines
+|t1| to be a thread that when executed will increment the shared variable~|x|
+1000 times, and line~\ref{line:q} defines |t2| to be a thread that when
+executed will decrement |x| 1000 times.  Each thread is of type
+|ThreadGroup|\footnote{This type is not the same as the type {\scalashape
+    java.lang.ThreadGroup}.}.
+
+If |p| and |q| are |ThreadGroup|s, then \SCALA{p || q} represents their
+parallel composition, also of type |ThreadGroup|.  For example,
+line~\ref{line:system} defines |system| to be the parallel composition of~|t1|
+and~|t2|. 
+
+If |p| is a |ThreadGroup|, then |run(p)| or |p.run| runs~|p|.  A parallel
+composition terminates when all components have terminated.  Thus the |main|
+function at line~\ref{line:main} runs |system|, i.e.,~it runs |t1| and~|t2| in
+parallel, and when both have terminated, prints the final value of~|x|.
+
+You might expect that the increments and decrements cancel out, so that the
+program always prints~|0|.  In fact, the program can give any result between
+$-1000$ and $+1000$.
+%
+To understand why, we need to understand how a concurrent program is
+executed. 
+ 
+Certain actions can be considered \emph{atomic}; for example a single machine
+instruction, or, in the case of a Scala program, a single instruction of the
+Java Virtual Machine.  Typical actions include loading the value of a variable
+into a register, incrementing or decrementing it, or storing a register into a
+variable.
+
+A sequential program, or a single thread, executes a sequence of atomic
+actions.  
+%
+A concurrent program runs two or more threads: the atomic actions of the
+threads are interleaved; but there might be multiple ways in which those
+actions can be interleaved.
+
+Let's consider a slightly simpler program, where |t1| increments~|x| just
+once, and |t2| decrements~|x| just once.  Let's suppose each does this via three
+instructions, loading~|x| into a register, incrementing or decrementing it,
+and storing the result back in~|x|.  We could write this as
+\begin{quote}
+\SCALA{LD x; INC; ST x} \qquad and \qquad \SCALA{LD x; DEC; ST x}
+\end{quote}
+respectively (in fact, the JVM uses slightly longer sequences).
+
+These six instructions can be interleaved in multiple ways.  The table below
+considers three interleavings, starting from $\sm x = 0$.
+%
+\begin{center}
+\begin{tabular}{lccccccl}
+|x = x+1| & \SCALA{LD x} & \SCALA{INC} & \SCALA{ST x} & \\
+|x = x-1| &      &      &     & \SCALA{LD x} & \SCALA{DEC} & \SCALA{ST x}
+& ($\sm x = 0$) 
+\\
+\hline
+\SCALA{x = x+1} & \SCALA{LD x} &      & \SCALA{INC} & \SCALA{ST x} & \\
+\SCALA{x = x-1} &      & \SCALA{LD x} &     &      & \SCALA{DEC} & \SCALA{ST x}
+& (\SCALA{x = -1}) 
+\\
+\hline
+\SCALA{x = x+1} & \SCALA{LD x} &      &     &      & \SCALA{INC} & \SCALA{ST x} & \\
+\SCALA{x = x-1} &      & \SCALA{LD x} & \SCALA{DEC} & \SCALA{ST x} &     &
+& (\SCALA{x = 1})
+\end{tabular}
+\end{center}
+%
+In the first interleaving, all the atomic instructions of the increment are
+executed before all the atomic instructions of the decrement, and so we end up
+with $\sm x = 0$.  In the second interleaving, both threads read the initial
+value of~|x|, then the first thread writes the result of the increment ($1$),
+and then the second thread writes the result of the decrement ($-1$),
+overwriting the earlier write; hence we end up with $\sm x = -1$.  In the
+third interleaving, the writes happen in the opposite order, and so we end up
+with $\sm x = 1$.  All other interleavings give one of these three values.  
+
+Returning to the program in Figure~\ref{fig:race}, it should now be clear how
+different interleavings can produce any result between $-1000$ and~$1000$.
+
+More generally, two actions are \emph{independent} if their order may be
+reversed without changing the overall effect.  For example, two actions
+concerning distinct variables are independent, as are two reads of the same
+variable.  Likewise, the |INC| and |DEC| actions by the above threads affect
+only thread-local registers, so are independent of any other actions.
+Interleaving of independent atomic actions is not problematic.
+
+However, some actions are non-independent, for example two writes of the same
+variable, or a read and a write of the same variable.  Interleaving of
+non-independent atomic actions can be problematic, as it means that the
+program can produce different results on different runs.
+
+We say that a program contains a \emph{race} if two non-independent actions
+can be interleaved, and one of the interleavings leads to an incorrect result.
+In particular, where those actions are reads or writes of shared variables, we
+say that it is a \emph{memory race}.  The program in Figure~\ref{fig:race}
+contains memory races: the writes by the two threads can happen in different
+orders, leading to different results, as in the second and third interleavings
+above.
+
+Different threads can run at different rates: threads can be descheduled and
+only later rescheduled; threads may be delayed in memory actions because of
+congestion on the memory bus.  It is simply not feasible to predict which
+interleaving will occur, and so the behaviour of the program becomes
+unpredictable. 
+
+%%%%% \heading{Caching}
+
+However, there are other reasons why programs with memory races can be
+unpredictable.  
+%
+As described earlier, multiprocessor machines may cache variables.  Caching
+can make a program much faster; but it can create problems with concurrent
+programs.
+
+When a thread~$t$ first needs the value of a variable~|x|, it will read it
+from shared memory, and store a copy in its cache.  If it later needs the
+value of~|x|, it may read it from its cache.  However, if some other thread
+has updated~|x| in the mean time, thread~$t$ will not see the result of this
+update!
+
+Similarly, when a thread~$t$ updates a variable, that update is initially made
+only in its cache.  If another thread reads the variable, it will not see the
+result of the update.
+
+In the program of Figure~\ref{fig:race}, each thread might read the initial
+value of~|x|, perform updates only within its cache, and write the final
+value, $1000$ or $-1000$, only at the end.  (However, they are guaranteed to
+write their final value when they terminate.)  Thus the final value will be
+$1000$ or $-1000$, depending upon which thread writes its value last---in
+fact, on some architectures this seems to happen on most runs of the program.
+
+%%%%% \heading{Compiler optimisations}
+
+Another reason why programs with memory optimisations can be unpredictable
+concerns memory optimisations.  The compiler may optimise code, according to
+certain rules, to something that is equivalent when run sequentially.
+Compiler optimisations are certainly useful, and often produce faster code.
+However, the resulting code might not be equivalent when run as part of a
+concurrent program.
+
+Consider the code in Figure~\ref{fig:busyWait}.  This uses a variant of the
+|thread| function: the construct |thread(name){<code>}| acts like
+|thread{<code>}|  but gives the name |name| to the thread; we will see how
+this is useful shortly.
+
+In Figure~\ref{fig:busyWait}, it appears that |t1| sets |answer| to |42|, and
+then sets |done| to |true|, while |t2| waits for |done| to become true before
+reading |answer|: it appears that |t1| is using the variable |done| to signal
+to |t2| after it has written to |answer|.
+
+\begin{figure}
+\begin{scala}
+object BusyWait{
+  var answer = 0
+
+  var done = false
+
+  /** Thread to set £answer£ to 42, and then signal to £t2£. */
+  def t1 = thread("t1"){ answer = 42; done = true }
+
+  /** Thread to wait for a signal, and read £answer£. */
+  def t2 = thread("t2"){
+    while(!done){ } // Busy wait.  Don't do this!!!
+    val myAnswer = answer; assert(myAnswer == 42)
+  }
+
+  /** Parallel composition. */
+  def system = t1 || t2
+
+  def main(args: Array[String]) = { 
+    for(i <- 0 until 10000){ answer = 0; done = false; run(system); print(".") }
+  }
+}
+\end{scala}
+\caption{A program that shows an incorrect signalling technique.}
+\label{fig:busyWait}
+\end{figure}
+
+However, the code might not act as expected because of compiler
+optimisations.  For example, it would be perfectly valid for the compiler to
+rewrite the body of~|t1| to
+\begin{scala}
+  done = true; answer = 42
+\end{scala}
+%
+This is equivalent to the original code as a sequential program, and is a
+valid rewrite.  However, the logic around the signal no longer holds.
+
+Likewise, it would be valid to rewrite the body of~|t2| to
+\begin{scala}
+  val myAnswer = answer; assert(myAnswer == 42)
+  while(!done){ } 
+\end{scala}
+and again the logic around the signal doesn't hold.  
+
+Alternatively, it would
+be valid for the compiler to rewrite the body of~|t2| to
+% 
+\begin{scala}
+  if(!done){ while(true){ } }
+  val myAnswer = answer; assert(myAnswer == 42)
+\end{scala}
+This is a fairly standard form of rewrite: it avoids rereading the variable
+|done|.  Now, this thread can read |done = false| and loop forever, so the
+program gets stuck.  In fact, on my machine, the program runs for a few
+hundred iterations and then gets stuck: I think the just-in-time compiler
+(which optimises Java bytecode to native machine code, while the program is
+running) performs an optimisation equivalent to the one above.
+
+When a program does get stuck in this way, typing \texttt{Ctrl}+$\backslash$
+(i.e.~holding down the \texttt{Ctrl} key, and pressing the backslash key) in
+the terminal produces a thread dump.  This lists information about all the
+running threads, such as giving their current line number in the code.  (This
+normally includes several threads that are part of the runtime, rather than
+the program in question; these can normally be ignored.)  In particular, this
+thread dump uses names given to threads by the |thread(name){...}| construct.
+In the example of the previous paragraph, |t1| is not listed, because it has
+terminated; however, |t2| is still at the line corresponding to the |while|
+loop.
+
+The style of the loop in~|t2|, where the thread spins, waiting for a condition
+to become true, is known as \emph{busy waiting}.  This is normally considered
+bad style.  As the above example shows, it often doesn't work!  And even if it
+did work, the spinning thread would be consuming computational resources that
+might be better used elsewhere.  It would be better for the thread to suspend
+until the condition becomes true: we will see in later chapters how to do
+this.  
+
+We have seen that programs that contain race conditions are likely to be very
+hard to reason about, unpredictable, and simply wrong!  However, we want the
+behaviour of our programs to be predictable, and correct.  We therefore need
+to design programs to avoid race conditions.  We will see ways to do this
+later in the book.  In particular, in order to avoid memory races, we will
+design our programs so that two threads may not perform interleaved actions on
+a shared variable, except if both threads are performing reads.  We will see
+that this has the additional benefit of removing the types of errors
+introduced by caching or compiler optimisations.
+
+%% NSA have issued a report saying that race conditions are the eighth most
+%% dangerous programming error.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\heading{Correctness properties} 
+
+\begin{description}
+\item[Safety/correctness:] The results produced by the program are correct.
+  Typically this requires that the system state will satisfy an (intended)
+  invariant property after every ``action''.
+
+\item[Liveness/progress:] The system as a whole does something useful.
+\end{description}
+
+\bigskip
+
+\heading{Performance properties}
+
+\begin{description}
+\item[Latency:]
+Requests get serviced reasonably quickly.
+
+\item[Throughput:]
+The system deals with a high number of requests.
+\end{description}
