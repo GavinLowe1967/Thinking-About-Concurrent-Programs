@@ -286,29 +286,37 @@ a shared variable, except if both threads are performing reads.  We will see
 that this has the additional benefit of removing the types of errors
 introduced by caching or compiler optimisations.
 
+The above discussion has illustrated two different ways in which a program can
+go wrong, and hence two different classes of desirable properties.
+\emph{Safety properties} specify that the results produced by a program are
+correct; informally, nothing bad happens.  By contrast, \emph{liveness
+  properties} specify that the program does actually make progress and produce
+results, and doesn't get stuck; informally, something good happens.  We will
+be interested in both safety and liveness properties. 
+
 %% NSA have issued a report saying that race conditions are the eighth most
 %% dangerous programming error.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\heading{Correctness properties} 
+%% \heading{Correctness properties} 
 
-\begin{description}
-\item[Safety/correctness:] The results produced by the program are correct.
-  Typically this requires that the system state will satisfy an (intended)
-  invariant property after every ``action''.
+%% \begin{description}
+%% \item[Safety/correctness:] The results produced by the program are correct.
+%%   Typically this requires that the system state will satisfy an (intended)
+%%   invariant property after every ``action''.
 
-\item[Liveness/progress:] The system as a whole does something useful.
-\end{description}
+%% \item[Liveness/progress:] The system as a whole does something useful.
+%% \end{description}
 
-\bigskip
+%% \bigskip
 
-\heading{Performance properties}
+%% \heading{Performance properties}
 
-\begin{description}
-\item[Latency:]
-Requests get serviced reasonably quickly.
+%% \begin{description}
+%% \item[Latency:]
+%% Requests get serviced reasonably quickly.
 
-\item[Throughput:]
-The system deals with a high number of requests.
-\end{description}
+%% \item[Throughput:]
+%% The system deals with a high number of requests.
+%% \end{description}

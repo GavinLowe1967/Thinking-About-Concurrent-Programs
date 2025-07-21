@@ -9,29 +9,69 @@
 
 \section{Summary}
 
-\begin{itemize}
-\item
-Processes and threads;
+In this chapter, we have set the scene for the rest of the book.
 
-\item
-Reasons for concurrency;
+A concurrent program is one where multiple threads or processes cooperate
+together for some common process.  Threads share an address space, so can
+communicate via shared variables; processes have disjoint address spaces, so
+have to communicate via message passing or other mechanisms.  In this book, we
+will mostly be dealing with threads, running in the same instance of the Java
+Virtual Machine; however, in many of our programs, the threads will
+communicate only via message passing, and so the same programs would work with
+processes with disjoint address spaces.
 
-\item
-Concurrent architectures;
+There are several reasons why we might want to write a concurrent program.
+Concurrency, if used well, can make the program faster, by achieving higher
+throughput or lower latency.  In some cases, such as multi-task systems, it
+is easier to build a program from a collection of semi-independent threads,
+each dealing with a different aspect of the program, rather than a monolithic
+program responsible for everything.  Finally, distributed systems are
+concurrent by necessity.
 
-\item
-Shared variable programs; 
+We had a brief look at concurrent architectures.  We will mostly be targeting
+shared-memory multiprocessors, where several processors share some memory.  
 
-\item
-Basics of SCL;
+We also saw what can go wrong with an ill-disciplined concurrent program.
+There is the danger of race conditions, where two actions can take place in
+different orders, with one of those orders leading to incorrect results.  
+Correctness can refer either to safety properties, that nothing bad happens,
+or liveness properties, that something good happens. 
 
-\item
-Independent and non-independent actions, race conditions, disciplined
-interaction; 
+In subsequent chapters, we will see various mechanisms for avoiding race
+conditions.  In particular, throughout this book we will avoid data races,
+where two threads concurrently access the same variable, other than both
+reading the variable.  In much of the book, particularly in the early
+chapters, we will do this by having no shared variables, and arranging for
+threads to communicate only via message passing.  Later, we will use different
+techniques.  We also saw that caching and compiler optimisations can lead to
+unexpected---normally incorrect---behaviours; however, the techniques we use
+to avoid data races will also avoid these problems.
 
-\item
-Desirable properties.
-\end{itemize}
+
+
+%% \begin{itemize}
+%% \item
+%% Processes and threads;
+
+%% \item
+%% Reasons for concurrency;
+
+%% \item
+%% Concurrent architectures;
+
+%% \item
+%% Shared variable programs; 
+
+%% \item
+%% Basics of SCL;
+
+%% \item
+%% Independent and non-independent actions, race conditions, disciplined
+%% interaction; 
+
+%% \item
+%% Desirable properties.
+%% \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

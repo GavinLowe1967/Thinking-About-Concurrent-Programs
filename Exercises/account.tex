@@ -35,8 +35,8 @@ time?  Sketch a solution to this problem.
 \begin{answerS}
 Suppose the current balance is 100, and both threads want to debit 100;
 clearly only one should succeed.  Both threads could call
-\SCALA{canDebit(value)}, getting back the result \SCALA{true}.  They would
-then both call \SCALA{debit}, leading to the account balance becoming $-$100.
+\SCALA{canDebit(100)}, getting back the result \SCALA{true}.  They would then
+both call \SCALA{debit(100)}, leading to the account balance becoming $-$100.
 This is a \emph{time-of-check to time-of-use} (TOCTTOU) problem: the check
 that there is enough money in the account is no longer valid when the debit is
 performed.
@@ -50,10 +50,10 @@ The obvious way to avoid this problem is to combine the \SCALA{canDebit} and
 class.  Something like
 %
 \begin{scala}
-/** Attempt to debit value.  Return true if successful. */
-def tryDebit(value: Int): Boolean = atomically{
-  if(balance >= value){ balance -= value; true } else false
-}
+  /** Attempt to debit value.  Return true if successful. */
+  def tryDebit(value: Int): Boolean = atomically{
+    if(balance >= value){ balance -= value; true } else false
+  }
 \end{scala}
 % 
 The calling code (outside the |Account| class) can do the right thing with the

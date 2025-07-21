@@ -97,9 +97,11 @@ recursive |mergesort| processes.
 
 %%%%%
 
-The code in Figure~\ref{fig:mergesort} implements this strategy.  (We describe
-below the |merge| function that merges the streams from the recursive
-threads.)  Thus, when the input stream contains at least two elements, the
+The code in Figure~\ref{fig:mergesort} implements this strategy.  
+%% (We describe
+%% below the |merge| function that merges the streams from the recursive
+%% threads.) 
+Thus, when the input stream contains at least two elements, the
 |mergesort| function runs the parallel composition of the controller and the
 results of two recursive calls to |mergesort|.
 
@@ -141,17 +143,17 @@ results of two recursive calls to |mergesort|.
 \label{fig:mergesort}
 \end{figure}
 
-
-We now consider the |merge| function.  This will repeatedly hold two values
-that it received from the two recursive |mergesort|s; it will output the
-smaller, and input again from the relevant recursive |mergesort|.  However,
-the definition is made harder by the fact that when one of its input streams
-is closed, it will still be holding a value it received on the other input
-stream: it needs to output that value, and also deal with any remaining values
-in the non-closed stream.  The code does this by maintaining two boolean
-variables.  The variable |closed1| is true if |in1| has been detected as
-closed; otherwise |x1| holds the last value read from |in1|, which has not yet
-been output.  A similar property holds for |closed2|, |x2|, and~|in2|.
+The first part of the definition of the controller is straightforward.  The
+|merge| function repeatedly holds two values that it received from the two
+recursive |mergesort|s; it outputs the smaller, and inputs again from the
+relevant recursive |mergesort|.  However, the definition is made harder by the
+fact that when one of its input streams is closed, it will still be holding a
+value it received on the other input stream: it needs to output that value,
+and also deal with any remaining values in the non-closed stream.  The code
+does this by maintaining two boolean variables.  The variable |closed1| is
+true if |in1| has been detected as closed; otherwise |x1| holds the last value
+read from |in1|, which has not yet been output.  A similar property holds for
+|closed2|, |x2|, and~|in2|.
 
 \begin{instruction}
 Make sure you understand the code in Figure~\ref{fig:mergesort}.
@@ -172,8 +174,7 @@ difficult.  In fact, this strategy is also useful for testing sequential
 programs, where we have a simple implementation that we are sure is correct,
 but we want to test a more sophisticated implementation against it.
 
-The following code achieves this.
-%
+\begin{figure}
 \begin{scala}
   import scala.util.Random
   val MaxSize = 100; val Max = 100
@@ -190,30 +191,43 @@ The following code achieves this.
       "Inputs: "+xs.mkString(", ")+"\nExpected: "+xs.sorted.mkString(", ")+
       "\nReceived: "+ys.mkString(", "))
   }
-\end{scala}
-%
-The |doTest| function performs a single test.  If uses an array |xs| of
-size~|size|, where |size| is picked randomly in the range
-$\interval{0}{\sm{MaxSize}}$; each element of |xs| is picked randomly in the
-range $\interval{0}{\sm{Max}}$.  The |sender| thread sends the elements
-of~|xs| to the |qSort| network on the |in| channel, then signals the end of
-the stream.  The |receiver| thread receives the outputs from |qSort|, and
-stores them in~|ys|.  The final assertion tests whether a sorted version of
-|xs| (produced using the |sorted| function from the Scala |Array| class)
-contains the same elements as the outputs; if this doesn't hold, it prints
-information about the inputs and outputs, to help with debugging.
 
-We can then run |doTest| many times:
-%
-\begin{scala}
-  for(i <- 0 until 1000){ doTest; if(i%10 == 0) print(".") }
+  def main(args: Array[String]) = {
+    for(i <- 0 until 1000){ doTest; if(i%10 == 0) print(".") }
+    println()
+  }
 \end{scala}
+\caption{Testing code for the {\scalashape mergesort} function.}
+\label{fig:mergesort-test}
+\end{figure}
+
+The code in Figure~\ref{fig:mergesort-test} implements this idea.  The |doTest|
+function performs a single test.  If uses an array |xs| of size~|size|, where
+|size| is picked randomly in the range $\interval{0}{\sm{MaxSize}}$; each
+element of |xs| is picked randomly in the range $\interval{0}{\sm{Max}}$.  The
+|sender| thread sends the elements of~|xs| to the |qSort| network on the |in|
+channel, then signals the end of the stream.  The |receiver| thread receives
+the outputs from |qSort|, and stores them in~|ys|.  The final assertion tests
+whether a sorted version of |xs| (produced using the |sorted| function from
+the Scala |Array| class) contains the same elements as the outputs; if this
+doesn't hold, it prints information about the inputs and outputs, to help with
+debugging.
+
+The |main| function  runs |doTest| many times.
+%% %
+%% \begin{scala}
+%%   for(i <- 0 until 1000){ doTest; if(i%10 == 0) print(".") }
+%% \end{scala}
 %
-This also intermittently prints a dot on the screen; this means that if the
+It also intermittently prints a dot on the screen; this means that if the
 system deadlocks for some reason, we will spot that it has got stuck!
 
 There are several exercises at the end of this chapter that involve building
 sorting circuits.  They can be tested in the same way.
+%
+\begin{instruction}
+Study the details of the testing program.
+\end{instruction}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -235,7 +249,7 @@ We write $\equiv$ for the equivalence relation induced by~$\prec$:
 \[\mstyle
 a \equiv a' \iff a \preceq a' \land a' \preceq a.
 \]
-This means that $a$ and~$a'$ happen at the same time.  For example, that might
+This means that $a$ and~$a'$ happen at the same time.  For example, they might
 actually be the same action.  However, we also treat a send and receive on a
 \emph{synchronous} channel as happening at the same time.
 
@@ -246,7 +260,7 @@ For example, consider the following program.
 \end{scala}
 %
 The type |Unit| contains a single value, called the unit value, denoted~|()|.
-Thus communications on~|c| do not pass any data, but just send a signel.
+Thus communications on~|c| do not pass any data, but just send a signal.
 %
 We can reason about the above program using happens-before notation.  We
 represent actions of the program by the corresponding program syntax.  Then in
@@ -255,7 +269,7 @@ every execution:
 \begin{array}{cl@{\qquad}l}
 & \sm{print("Hello ")} \\
 \prec & \sm{c!()} & \mbox{(program order for the first thread)} \\
-\prec & \sm{c?{}} & \mbox{(ordering for a buffered channel)} \\
+\prec & \sm{c?()} & \mbox{(ordering for a buffered channel)} \\
 \prec & \sm{println("world")} & \mbox{(program order for the second thread).}
 \end{array}
 \]
@@ -273,14 +287,14 @@ Reasoning as before:
 \begin{array}{cl@{\qquad}l}
 & \sm{print("Hello ")} \\
 \prec & \sm{c?()} & \mbox{(program order for the first thread)} \\
-\equiv & \sm{c?{}} & \mbox{(ordering for a synchronous channel)} \\
+\equiv & \sm{c!()} & \mbox{(ordering for a synchronous channel)} \\
 \prec & \sm{println("world")} & \mbox{(program order for the second thread).}
 \end{array}
 \]
 In this case, the communication on~|c| acts as a synchronisation between the
 two threads, without passing any data.
   
-Formally, $\preceq$ is a preorder, i.e.~a transitive, reflexive order such
+Formally, $\preceq$ is a preorder (i.e.,~a transitive, reflexive order) such
 that:
 %
 \begin{itemize}

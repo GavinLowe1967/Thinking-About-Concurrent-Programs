@@ -83,8 +83,10 @@ object Pi{
 
   def main(args: Array[String]) = run(system)
 }
-
 \end{scala}
+
+We could have split the controller between two threads, and encapsulated each
+into a separate object.
 
 The above code gives each worker its own random number generator (RNG).  An
 alternative is for the workers to share a single RNG.  However, my informal

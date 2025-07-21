@@ -76,8 +76,9 @@ candidates for pairing, which complicates the algorithm.
 
 We can make things easier by arranging for threads to pass in distinct values.
 This approach is sound because the implementation is \emph{data independent}:
-each data value is passed in as an input (i.e.,~a parameter of |exchange|),
-passed between threads, stored in variables, and output; but no operation is
+each data value is passed in as an input (as a parameter of |exchange|),
+passed between threads, stored in variables, and output (as the returned value
+from |exchange|); but no operation is
 performed on it that depends on its actual value.  This means that if there
 were an incorrect behaviour that didn't satisfy our requirements, there would
 also be an incorrect behaviour where all the inputs were replaced by distinct
@@ -88,8 +89,10 @@ Each test runs |n| threads with an exchanger, where |n| is a random even
 number.  In fact, for convenience, we arrange that each thread submits its
 identity to the exchanger.  It then stores the value it receives back in the
 array |results|, indexed by its identity.  The correctness condition then is
-that for each~|i|, if thread~|i| received~|x|, then thread~|x| received~|i|,
-i.e.~those two threads exchanged with each other; this is easily checked.
+that for each~|i|, if thread~|i| received~|x|, then $\sm x \ne \sm i$ (so
+thread~|i| exchanged with a \emph{different} thread), and thread~|x|
+received~|i| (so those two threads exchanged with each other); this is easily
+checked.
 %
 \begin{scala}
   def doTest = {
@@ -99,7 +102,7 @@ i.e.~those two threads exchanged with each other; this is easily checked.
       val x = exchanger.exchange(me); results(me) = x 
     }
     run(|| (for(i <- 0 until n) yield worker(i)))
-    for(i <- 0 until n){ val x = results(i);  assert(results(x) == i) }
+    for(i <- 0 until n){ val x = results(i);  assert(x != i && results(x) == i) }
     exchanger.shutdown()
   }
 \end{scala}
@@ -120,6 +123,7 @@ Study the details of the |doTest| function.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{Example: A Filter Channel}
+\label{sec:filter-chan}
 
 We now consider another example of a synchronisation object.  A \emph{filter
   channel} acts much like a standard synchronous channel, except a receiver
@@ -130,6 +134,7 @@ Thus a filter channel implements the following trait.
 trait FilterChanT[A]{
   /** Synchronously send £x£. */
   def send(x: A): Unit
+
   /** Synchronously receive a value that satisfies £p£. */
   def receive(p: A => Boolean): A 
 }
@@ -149,14 +154,16 @@ class FilterChan[A] extends FilterChanT[A]{
   private val fromSender = new SyncChan[(A, Chan[Unit])]
 
   def send(x: A) = { 
-    val replyChan = new SyncChan[Unit]; fromSender!(x, replyChan); replyChan?()
+    val replyChan = new OnePlaceBuffChan[Unit]
+    fromSender!(x, replyChan); replyChan?()
   }
 
   /** Channel receivers use to send to the server. */
   private val fromReceiver = new SyncChan[(A => Boolean, Chan[A])]
   
   def receive(p: A => Boolean): A = {
-    val replyChan = new SyncChan[A]; fromReceiver!(p, replyChan); replyChan?()
+    val replyChan = new OnePlaceBuffChan[A]
+    fromReceiver!(p, replyChan); replyChan?()
   }
 
   private val shutdownChan = new SyncChan[Unit]
@@ -168,13 +175,13 @@ class FilterChan[A] extends FilterChanT[A]{
   fork(server)
 }
 \end{scala}
-\caption{Most of the {\scalashape FilterChan} class.}
+\caption{Outline of the {\scalashape FilterChan} class.}
 \label{fig:FilterChan}
 \end{figure}
 
 %%%%%%%%%%
 
-Most of the code for the |FilterChan| class is in
+Some of the code for the |FilterChan| class is in
 Figure~\ref{fig:FilterChan}.  The |send(x)| and |receive(p)| send,
 respectively, |x| and~|p|, together with a reply channel to the server, and
 then wait to receive on the reply channel.  As normal, the |shutdown|
@@ -239,7 +246,9 @@ on~|cs|.  If it doesn't find a match, it adds |(x,cs)| to |pendingSends|.
 
 The server acts very similarly when it receives a message from a receiver
 (there is an argument for factoring out the common code into a separate
-function).  When it receives a message to shut down, it sets the |isShutdown|
+function).  
+
+When the server receives a message to shut down, it sets the |isShutdown|
 flag, exits the loop, and closes all the channels, including those in its
 queues, to signal to any waiting clients.
 
@@ -249,7 +258,7 @@ Make sure you understand the implementation of |FilterChan|.
 
 %%%%%
 
-We now consider how to test the implementation.  In particular, we need to
+We now consider how to test the implementation.  We need to
 ensure that the filter channel is \emph{synchronous}, in particular that the
 sender does not return before the corresponding receiver calls the operation:
 in the implementation, the use of a reply channel was designed to ensure this.
@@ -262,14 +271,6 @@ can try to pair up corresponding sends and receives.
 This pairing up of corresponding operation executions will be easier if we
 arrange for each |send| operation to send a different value.  
 
-Most of the testing code is in Figure~\ref{fig:FilterChan-test1}. 
-%%  (It is
-%% trivial to adapt it to test other implementations of the |FilterChanT| trait.)
-We log using events of type |LogEvent|, with subclasses corresponding to the
-begin and end of |send|s and |receive|s; the events include the identity of
-the thread in question (to allow pairing of corresponding |Begin| and |End|
-events), and, in some cases, the value sent or received (to allow matching a
-|send| to the corresponding |receive|.
 
 %%%%%
 
@@ -316,13 +317,22 @@ events), and, in some cases, the value sent or received (to allow matching a
 
 %%%%%
 
+Most of the testing code is in Figure~\ref{fig:FilterChan-test1}. 
+%%  (It is
+%% trivial to adapt it to test other implementations of the |FilterChanT| trait.)
+We log using events of type |LogEvent|, with subclasses corresponding to the
+begin and end of |send|s and |receive|s; the events include the identity of
+the thread in question (to allow pairing of corresponding |Begin| and |End|
+events), and, in some cases, the value sent or received (to allow matching a
+|send| to the corresponding |receive|).
+
 We run |n| senders and |n| receivers.  The sender with identity |me| (with
-$\sm{me} \in \interval{0}{\sm n}$) sends the values $\interval{\sm{me} \times
-  \sm{iters}}{(\sm{me}+1) \times \sm{iters}}$, so all sent values are
-distinct.  The receiver with identity~|me| (again with $\sm{me} \in
-\interval{0}{\sm n}$) is willing to receive values~|x| such that
+$\sm{me} \in \interval{0}{\sm n}$) sends |iters| values, namely
+$\interval{\sm{me} \times \sm{iters}}{(\sm{me}+1) \times \sm{iters}}$, so all
+sent values are distinct.  The receiver with identity~|me| (again with
+$\sm{me} \in \interval{0}{\sm n}$) is willing to receive values~|x| such that
 $\sm{x}\%\sm{n} = \sm{me}$, so the receivers collectively are willing to
-receive all the values.  
+receive all the values.
 
 Each thread writes suitable events into the log before calling the operation,
 and after it returns.  Recall that each thread includes its identity in
@@ -396,14 +406,14 @@ correctly synchronise and exchange values.
 \label{fig:FilterChan-test2}
 \end{figure}
 
-The |checkLog| function traverses the log, keeping track, in arrays
-|sender|\-|State| and |receiverState|, whether each thread is currently
-outside an operation call (value~|Out|), inside an operation call but has not
-yet been matched with another operation (value~|Unmatched|), or inside an
-operation call and matched with another operation call (value~|Matched|).  It
-also keeps track, in array |senderValue| of the value being sent by a sender,
-and in array |receiverValue| of the value that a |receive| operation will
-return.
+The |checkLog| function traverses the log, trying to match corresponding
+|send|s and |receive|s.  It keeps track, in arrays |sender|\-|State| and
+|receiverState|, whether each thread is currently outside an operation call
+(value~|Out|), inside an operation call but has not yet been matched with
+another operation (value~|Unmatched|), or inside an operation call and matched
+with another operation call (value~|Matched|).  It also keeps track, in array
+|senderValue| of the value being sent by a sender, and in array
+|receiverValue| of the value that a |receive| operation will return.
 
 When the traversal encounters a |Begin| operation, it updates values
 appropriately.  In the case of a |BeginReceive|, it searches forward through
@@ -423,43 +433,27 @@ Make sure you understand how the testing program works, and, in particular,
 the |checkLog| function.
 \end{instruction}
 
+This testing program was designed so that each execution of |send| could be
+matched by a \emph{unique} execution of |receive|, and vice versa.  This made
+identifying the matching easier.  In fact, this is not necessary: we can allow
+non-unique matchings of individual operation executions, and then apply a
+standard graph algorithm.  Consider a graph where each node is an execution of
+|send| or |receive|, and there is an edge between |send(x)| and |receive(p)|
+if those executions overlapped in the log and |p(x)|, i.e., those two
+executions are candidates for being matched.  This graph is \emph{bipartite},
+i.e., the nodes can be partitioned intro two subsets (here the |send|s and
+|receive|s) such that every edge connects two nodes from different subsets.
+We then want to ask whether there is a subset of the edges that includes every
+node exactly once: in graph-theoretic terms, this is known as a \emph{perfect
+  matching}.  There are standard algorithms for finding a perfect matching, if
+one exists, for example the Ford-Fulkerson method~\cite{ford-fulkerson}.  We
+can therefore use such an algorithm to decide whether the log represents a
+valid execution.  This technique can be applied more generally for testing
+synchronisation objects.
 
-%% The easiest way seems to be
-%% to set up a testing system where it is possible to predict what values each
-%% receiver should receive, and then to test whether those values are indeed
-%% received.  To this end, the |doTest| function in
-%% Figure~\ref{fig:FilterChan-testing} runs |n| senders and |n|~receivers.  The
-%% sender with identity~|me| sends the values |me|, |me+n|, |me+2*n|, \ldots,
-%% |me+(iters-1)*n|.  The receiver with identity~|me| uses a predicate to ensure
-%% that it receives values~|x| such that \SCALA{x\%n == me}; thus we expect it to
-%% receive the values |me|, |me+n|, |me+2*n|, \ldots, |me+(iters-1)*n|, in that
-%% order; the thread throws an exception if this is not the case. 
-
-%% \begin{figure}
-%% \begin{scala}
-%%   def sender(me: Int, chan: FilterChan[Int]) = thread(s"sender($me)"){
-%%     for(i <- 0 until iters) chan.send(me+i*n)
-%%   }
-
-%%   def receiver(me: Int, chan: FilterChan[Int]) = thread(s"receiver($me)"){
-%%     def p(x: Int) = x%n == me
-%%     for(i <- 0 until iters){
-%%       val x = chan.receive(p); assert(p(x)); assert(x == me+i*n)
-%%     }
-%%   }
-
-%%   def doTest = {
-%%     val chan = new FilterChan[Int]
-%%     val senders = || (for(i <- 0 until n) yield(sender(i, chan)))
-%%     val receivers = || (for(i <- 0 until n) yield (receiver(i, chan)))
-%%     run(senders || receivers)
-%%     chan.shutdown()
-%%   }
-%% \end{scala}
-%% \caption{Testing the {\scalashape FilterChan} implementation.}
-%% \label{fig:FilterChan-testing}
-%% \end{figure}
-
-%% \begin{instruction}
-%% Make sure you understand this testing harness.
-%% \end{instruction}
+%% that are binary (i.e.,~each synchronisation is
+%% between precisely two operation executions), stateless (i.e., synchronisations
+%% are independent, and don't depend on synchronisations that have happened
+%% previously), and heterogeneous (i.e.,~each synchronisation is between two
+%% executions of \emph{different} operations, unlike with the exchanger where
+%% each synchronisation is between two executions of the same operation).

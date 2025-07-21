@@ -1,6 +1,6 @@
 \section{Testing the resource allocation server}
 
-We now want to test the resource allocation server.  The property we want to
+We want to test the resource allocation server.  The property we want to
 test is that two clients never hold the same resource: if a resource~$r$ is
 allocated to client~$c_1$, it can't be allocated to another client~$c_2$ until
 $c_1$ has returned it.
@@ -68,8 +68,11 @@ error, when in fact there is none).  If we were to return a resource before
 logging the return, it is possible that a client would be slow in logging the
 return, and that another client might have obtained the same resource in the
 mean time, giving a false positive.
+
+By avoiding false positives, we can run the test program unsupervised,
+maybe for a long time, knowing that any error it signals is genuine.
 %
-However, there is a small risk of false negatives (i.e.~the testing failing to
+There is a small risk of false negatives (i.e.~the testing failing to
 detect an incorrect behaviour).  But we would expect these to be rare: if
 there is a bug, doing enough testing will almost certainly also produce true
 positives.
@@ -124,7 +127,7 @@ which resources are currently held by threads.  If it finds that a resource
 that is currently held is allocated a second time, this constitutes an error:
 it prints the log up to that point to help with debugging.
 
-The |main| function calls |runTest| many times. 
+The program's |main| function calls |runTest| many times. 
 
 \begin{instruction}
 Study the details of the test program.
@@ -311,9 +314,8 @@ It is reasonable to assume that the server is able to keep up with clients,
 i.e.,~that it is able to deal with each message faster, on average, than
 clients attempt to send new messages.  This implies that when a client
 attempts to send a message to the server, the server eventually receives it.
-Put another way, we assume that clients don't make requests that the server is
-overwhelmed. 
-
+Put another way, we assume that clients don't make so many requests that the
+server is overwhelmed.
 
 The use of a queue then ensures a degree of fairness.  Assuming resources are
 repeatedly returned, once a client attempts to obtain a resource, its message
@@ -343,7 +345,7 @@ resources.%
       numFree > 0 && acquireRequestChan =?=> { replyChan => 
 	var r = 0; while(r < numResources && !free(r)) r += 1
 	assert(r < numResources); free(r) = false; numFree -= 1
-        replyChan!Some(r)
+        replyChan!r
       }
       | returnChan =?=> { r => free(r) = true; numFree += 1 }
       | shutdownChan =?=> { ... } // As before.

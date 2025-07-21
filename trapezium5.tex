@@ -4,22 +4,24 @@
 In the previous code, the design decisions concerning the use of
 message-passing concurrency were interleaved with the computation itself.  If
 we decided to implement the concurrency in a different way---for example, to
-use one of the techniques we'll see later in the course---we would have to
+use one of the techniques we'll see later in the book---we would have to
 change the code in several different places.  This is a very small program, so
 it doesn't matter too much here; but it would be an issue in bigger programs.
-
+%
 It would be better to encapsulate each relevant design decision within a
-single object, so that changes will involve just that object.  Each such
-object will be designed to allow concurrent calls of its methods, and to avoid
-race conditions.  
+single object, so that changes will involve just that object. 
 
 Further, reasoning about correctness will (mostly) involve reasoning about a
-single object at a time: code outside that object can use it without worrying
-about how it is implemented.  We will see this idea of encapsulation a lot
-later in the book.  We will encapsulate a datatype---such as a queue or a
-mapping---inside an object that provides thread-safe operations on the
-datatype; code outside the object can mostly use the datatype in the same way
-as in a sequential setting.  
+single object at a time.  Each such object will be designed to allow
+concurrent calls of its methods, and to avoid race conditions; we can persuade
+ourselves that that is true by considering that object in isolation.  Code
+outside that object can use it without worrying about how it is implemented.
+
+We will see this idea of encapsulation a lot later in the book.  We will
+encapsulate a datatype---such as a queue or a mapping---inside an object that
+provides thread-safe operations on the datatype.  We can perform unit testing
+on that datatype, considering its correctness in isolation.  Code outside the
+object can mostly use the datatype in the same way as in a sequential setting.
 
 %%%%%
 
@@ -28,10 +30,10 @@ interfaces given in Figure~\ref{fig:BoT-interfaces}.  The |BagOfTasks| objects
 have an operation to allow a worker thread to get a task.  We have made the
 design decision to return the special value |null| in the case that there are
 no more tasks.  An alternative would be to throw a |Stopped| exception, as
-earlier; but using |null| seems cleaner, and is appropriate because |null| is
-easily distinguished from a real task.  The |Collector| objects have an
-operation to allow a worker to submit its final subtotal, and an operation to
-get the overall total.
+earlier; but using |null| seems cleaner, and is appropriate in this case
+because |null| is easily distinguished from a real task.  The |Collector|
+objects have an operation to allow a worker to submit its final subtotal, and
+an operation to get the overall total.
 
 %%%%%%
 
@@ -45,7 +47,7 @@ get the overall total.
 
   /** A collector object that combines subresults from the workers. */
   trait Collector{
-    /** Add x to the result. */
+    /** Add £x£ to the result. */
     def add(x: Double) 
 
     /** Get the result, once the computation has finished. */
@@ -58,13 +60,7 @@ get the overall total.
 
 %%%%%
 
-It is straightforward to adapt the definition of a worker to use such objects.
-The definition is parameterised by the |BagOfTasks| and |Collector|.  It calls
-the |getTask| operation on the |BagOfTasks| to get a task, exiting its main
-loop when it receives |null|.  It then uses the |add| operation on the
-|Collector| to return its subtotal.
-%
-\begin{mysamepage}
+\begin{figure}
 \begin{scala}
   private def worker(bag: BagOfTasks, collector: Collector) = thread("worker"){
     var myTotal = 0.0; var done = false
@@ -75,14 +71,7 @@ loop when it receives |null|.  It then uses the |add| operation on the
     }
     collector.add(myTotal)
   }
-\end{scala}
-\end{mysamepage}
 
-Below we will define an implementation |BagOfTasksChannels| of |BagOfTasks|,
-and an implementation |CollectorChannels| of |Collector|.  The main |apply|
-method creates the two objects, runs the workers, and then gets the
-final result from the collector.
-\begin{scala}
   def apply(): Double = {
     val bag = new BagOfTasksChannels(a, b, n, nTasks, nWorkers, buffering)
     val collector = new CollectorChannels(nWorkers, buffering)
@@ -91,6 +80,23 @@ final result from the collector.
     collector.get
   }
 \end{scala}
+\caption{Adapting the code to use the bag-of-tasks and collector objects.}
+\label{fig:BOT-using-objects}
+\end{figure}
+%\end{mysamepage}
+
+It is straightforward to adapt the definition of a worker to use such objects:
+see Figure~\ref{fig:BOT-using-objects}.  The definition is parameterised by
+the |BagOfTasks| and |Collector|.  It calls the |getTask| operation on the
+|BagOfTasks| to get a task, and pattern matches on it (see Scala
+box~\ref{sb:pattern-matching}), exiting its main loop when it receives |null|.
+At the end, it then uses the |add| operation on the |Collector| to return its
+subtotal.
+
+Below we will define an implementation |BagOfTasksChannels| of |BagOfTasks|,
+and an implementation |CollectorChannels| of |Collector|.  The main |apply|
+method (Figure~\ref{fig:BOT-using-objects}) creates the two objects, runs the
+workers, and then gets the final result from the collector.
 
 %%%%%
 
@@ -138,9 +144,9 @@ class BagOfTasksChannels(
 The server is started by the command |fork(server)|, which is executed as part
 of the construction of the |BagOfTasksChannels| object.
 %
-More generally, if |t| is a |ThreadGroup|, then |fork(t)| or |t.fork| starts a
-new thread (or threads) running which executes~|t|.  However---unlike with
-|run(t)|---the new thread runs in parallel to the current thread.  In
+More generally, if |t| is a |ThreadGroup|, then |fork(t)| (or |t.fork()|)
+starts a new thread (or threads) running which executes~|t|.  However---unlike
+with |run(t)|---the new thread runs in parallel to the current thread.  In
 Figure~\ref{fig:bagOfTasksObject}, the construction of the
 |BagOfTasksChannels| object returns after the |fork(server)|, but leaves a
 thread running the |server| code.
@@ -164,7 +170,7 @@ operation receives the final result from the server.
     /** Channel that sends the final result. */
     private val resultChan = new SyncChan[Double]
 
-    /** Add x to the result. */
+    /** Add £x£ to the result. */
     def add(x: Double) = toController!x
 
     /** Get the result. */

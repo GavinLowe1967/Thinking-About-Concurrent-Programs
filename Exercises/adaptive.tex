@@ -100,7 +100,7 @@ class Adaptive(
     }
 
     fork(server)
-  } // End of Bag.
+  } // End of £Bag£.
 
   /** The adder object, responsible for adding workers' subresults. */
   object Adder{
@@ -124,12 +124,12 @@ class Adaptive(
     }
 
     fork(adder)
-  } // End of Adder.
+  } // End of £Adder£.
 
   /** A worker, that receives arguments from the server, either estimates the
     * integral directly or returns new tasks to the bag. */
   private def worker = thread("worker"){
-    // If £a < b£, then this worker is responsible for the task £(a,b)£.  If 
+    // If £a $<$ b£, then this worker is responsible for the task £(a,b)£.  If 
     // £a = b£, then the worker has no current task.
     var a = -1.0; var b = -1.0
     var mySum = 0.0 // Current sum this worker has calculated.
@@ -158,11 +158,12 @@ class Adaptive(
 One inefficiency is that |f| is evaluated on most arguments multiple times.
 We could avoid this by storing in the bag tuples |(a, b, fa, fb)| where
 \SCALA{fa = f(a)} and \SCALA{fb = f(b)}.  Likewise, the above loop could be
-rewritten to avoid recalculating these values on each iteration, adding a loop
-invariant that if |a < b| then \SCALA{fa = f(a)} and \SCALA{fb = f(b)}.  We
-could extend this to the result of each trapezium rule calculation, adding to
-each tuple \SCALA{area = (fa+fb)*(b-a)/2}, and again avoiding recalculations
-on each iteration of the above loop.
+rewritten to avoid recalculating these values on each iteration, adding
+variables |fa| and |fb| with the invariant that if |a < b| then \SCALA{fa =
+  f(a)} and \SCALA{fb = f(b)}.  We could extend this to the result of each
+trapezium rule calculation, adding to each tuple a field \SCALA{area =
+  (fa+fb)*(b-a)/2}, and again avoiding recalculations on each iteration of the
+above loop.
 \end{answerI}
 
 

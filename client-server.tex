@@ -26,7 +26,7 @@ of request.
 
 Responses to requests (where needed) can be implemented by using a separate
 channel for each client.  Alternatively, we can arrange for the client to
-create a short-term reply channel which it sends to the server, and for the
+create a short-term reply channel that it sends to the server, and for the
 server to respond on this reply channel.  The latter approach is more
 flexible, so it is what we tend to use.
 
@@ -35,12 +35,13 @@ the case in the resource allocation example, when no resource is available.
 The normal approach in these circumstances is to store the request in a queue.
 However, sometimes it is simpler for the server to refuse to communicate on
 the relevant channel, so clients are blocked on that communication.  This
-latter approach can also be useful in synchronisation objects, by restricting
-communications with different sorts of clients to happen in a fixed order. 
+latter approach can also be useful in synchronisation objects: we can restrict
+requests from different operations to happen in a fixed order.
 
 Testing is an important consideration for concurrent objects.  We saw some
-techniques in this chapter; and the same techniques are applicable regardless
-of how the concurrent objects themselves are implemented.
+black-box testing techniques in this chapter: the techniques are independent
+of how the concurrent objects themselves are implemented, and so can be used
+on different implementations of the same problem.
 
 Logging is often necessary for testing concurrent objects.  This is
 particularly the case when the object maintains some state: we need to test
@@ -51,12 +52,12 @@ the next chapter.
 Logging is also often necessary when testing synchronisation objects.  We need
 to identify which operation executions synchronise together, and for this we
 need to know which overlap in time.  (The exchanger example was unusual in
-this respect as we could identify which operations synchronised from their
-parameters and results.)
+this respect as the exchanging executions must necessarily overlap in time.)
  
 
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Notes: ``synchronisation objects'' paper; Ford-Fulkerson.
 
 \section*{Exercises}
 
@@ -64,7 +65,9 @@ parameters and results.)
 
 \input{Exercises/atomicBroadcast}
 
+
 Possible \framebox{extra} exercises:
+Timeout exchanger;
 One family problem (2023 exam);
 Same-arg synchronisation (2022 exam);
 ABC problem (2021 exam).

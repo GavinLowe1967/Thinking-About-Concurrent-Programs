@@ -14,8 +14,8 @@
 In this chapter we have studied a data parallel problem.  The approach to such
 problems is to split the input data between different worker threads, and to
 combine the results together.  Many compute-intensive problems fall into this
-class, so it is a very useful pattern.  It  requires that there is some
-meaningful way to split the data between workers, and to combine the results
+class, so it is a very useful pattern.  It  requires that there are
+meaningful ways to split the data between workers, and to combine the results
 efficiently.
 
 We arranged for a controller thread to distribute tasks to workers, using two
@@ -31,52 +31,13 @@ This is a very common technique.  A wrinkle here is that rounding errors
 caused the two algorithms to give slightly different results.  
 
 We also ran experiments to understand how best to choose parameters such as
-the number of workers and the number of tasks.  The main error one can make
-here is to take tasks to be too small.  This leads to the channels becoming
+the number of workers and the number of tasks.  The main mistake one can make
+here is to make tasks  too small.  This leads to the channels becoming
 bottlenecks, and the program being inefficient.  It can be best to run fewer
 threads than the number of machine threads available, so as to avoid these
 bottlenecks.  Each task should be large enough that workers spend nearly all
 their time actually performing the tasks, as opposed to trying to send and
-receive messages.  
-
-%% \framebox{TO DO}
-
-%% \begin{itemize}
-%% %% \item
-%% %% Data parallel;
-
-%% %% \item
-%% %% Workers and controllers;
-
-%% %% \item
-%% %% Closing channels;
-
-%% %% \item
-%% %% Testing against a sequential implementation;
-
-%% \item
-%% %% Choosing the number of processes and the amount of buffering;
-
-%% %% \item
-%% %% Beware of having too many communications: the channel will act as a bottleneck;
-
-%% %% \item
-%% %% Experimental design.
-
-%% %% \item
-%% %% Bag of tasks;
-
-%% \item
-%% Choosing the size of tasks;
-
-%% \item
-%% Communication is expensive: avoid having too many communications;
-
-%% \item
-%% Encapsulation;
-
-%% %% \item Bag of tasks with replacement.
-%% \end{itemize}
+receive messages.
 
 In Section~\ref{sec:bag-of-tasks-encapsulation}, we encapsulated the bag of
 tasks and the collector inside objects.  This meant that we could concentrate
@@ -99,7 +60,7 @@ the bag.  This can be the case where some tasks can be solved directly, but
 other tasks lead to two or more recursive subtasks.  The latter case can be
 tackled by returning subtasks to the bag.  We will need some extra machinery
 to support returning tasks to the bag, which we will see in
-Chapter~\ref{chap:alts}; exercises in that chapter investigate this technique.
+Chapter~\ref{chap:alts}.
 
 %% \emph{Adaptive quadrature} is an alternative approach that proceeds as
 %% follows.  In order to calculate the integral $\int_a^b f(x) \mbox{d}x$,

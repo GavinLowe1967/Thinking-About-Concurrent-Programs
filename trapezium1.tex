@@ -83,11 +83,12 @@ Summing over all intervals then gives us the following approximation:
 \end{eqnarray*}
 
 Figure~\ref{fig:trapezium-sequential} gives straightforward sequential code to
-implement the trapezium rule\footnote{The type {\scalashape Double
-    \protect\SCALA{=>} Double} represents functions from {\scalashape Double}
-  to {\scalashape Double}.}.  (We will see several implementations of the
-trapezium rule, so we factor out some common code into an abstract class
-|TrapeziumT|.)
+implement the trapezium rule\footnote{The type {\scalashape
+Double \protect\SCALA{=>} Double} represents functions from {\scalashape
+Double} to {\scalashape Double}; see Scala box~\ref{sb:function-types}.}.  (We
+will see several implementations of the trapezium rule, so we factor out some
+common code into an abstract class |TrapeziumT|; see Scala
+boxes~\ref{sb:abstract-class} and~\ref{sb:protected}.)
 
 %%%%%
 
@@ -123,6 +124,16 @@ class SeqTrapezium(f: Double => Double, a: Double, b: Double, n: Int)
 \caption{Sequential code to apply the trapezium rule.}
 \label{fig:trapezium-sequential}
 \end{figure}
+
+\begin{instruction}
+Make sure you understand the sequential implementation.
+\end{instruction}
+
+Incidentally, if |o| is an object with a function |apply(args)|, then Scala
+allows us to write |o(args)| as a shorthand for |o.apply(args)|.  This is
+conventionally used for function-like objects, so that the call of |apply|
+looks like a function application.  We follow this convention here and later
+in the book.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -165,13 +176,15 @@ In examples so far, each channel has had one sender and one receiver.
 However, an in-port or out-port may be shared between any number of receivers
 or senders.  Here, it is useful for the controller to use a single channel to
 send to all the workers, and likewise to use a single channel to receive
-subresults from all the workers.
+subresults from all the workers.  Hence, the in-port of |toWorkers| is shared
+between the workers, as is the out-port of |toController|.  
 
 Figure~\ref{fig:trapezium-1} gives some of the code.  The companion object
-|Trapezium| factors out some definitions that we will reuse in a later
-implementation.  (We take the parameter |n| of |Trapezium|---the number of
-intervals---to be a |Long|, because we want to experiment with large
-arguments; in practice, an |Int| would be large enough.)
+|Trapezium| (see Scala box~\ref{sb:companion}) factors out some definitions
+that we will reuse in a later implementation.  (We take the parameter |n| of
+|Trapezium|,the number of intervals, to be a |Long|---see Scala
+box~\ref{sb:types}---because we want to experiment with large arguments; in
+practice, an |Int| would be large enough.)
 
 %%%%%
 
@@ -185,7 +198,7 @@ object Trapezium{
     * using £taskSize£ intervals of size £delta£. */
   type Task = (Double, Double, Int, Double)
 
-  /** Make a channel, based on the value of `buffering`. */
+  /** Make a channel, based on the value of £buffering£. */
   def mkChan[A: scala.reflect.ClassTag](buffering: Int): Chan[A] = 
     if(buffering == 0) new SyncChan[A] 
     else if(buffering == 1) new OnePlaceBuffChan[A]
@@ -234,22 +247,28 @@ The controller needs to tell each worker the range \SCALA{[l,r]} to work on,
 the number \SCALA{taskSize} of intervals in its range, and the size
 \SCALA{delta} of each interval (so $\sm{taskSize} \times \sm{delta} \approx
 \sm{r} - \sm{l}$).  We can pass this information as a 4-tuple \SCALA{(l, r,
-  taskSize, delta)}.  We define a type |Task| to represent such 4-tuples, and
-create a channel |toWorkers| to pass |Task|s.  
+  taskSize, delta)}.  We define a type |Task| (see Scala
+box~\ref{sb:type-synonym}) to represent such 4-tuples, and create a channel
+|toWorkers| to pass |Task|s.
 
 Each worker returns a \SCALA{Double} to the controller, so we create a channel
 |toController| to pass such values.
+
+Note that the channels are \emph{private} (see Scala box~\ref{sb:private}): we
+want to ensure that only the threads we define in the |Trapezium| class can
+send and receive on them.
 
 The definition of a worker is then straightforward: it receives a task on the
 |toWorkers| channel, calculates the approximation to the integral, and sends
 the result back on the |toController| channel.
 
 In earlier chapters, we used channels to pass only simple values, such as
-|Int|s.  However, |Task|s (like all tuples) are reference objects.  When a
-reference object is sent on a channel, the value that is actually passed is a
-reference to the object (i.e.~its address in memory): the object itself is not
-copied.  This means that even if an object encapsulates a lot of data, it is
-not expensive to send on a channel.
+|Int|s.  However, |Task|s (like all tuples) are reference objects (see Scala
+box~\ref{sb:reference-types}).  When a reference object is sent on a channel,
+the value that is actually passed is a reference to the object (i.e.~its
+address in memory): the object itself is not copied.  This means that even if
+an object encapsulates a lot of data, it is not expensive to send on a
+channel.
 
 %%%%%
 
@@ -309,12 +328,10 @@ and accumulates them into the object variable |result|.
 
 The function |system| constructs the system.  The definition of |workers|
 builds a sequence of workers using a |for| expression (see Scala
-box~\ref{sb:for-expression}).  It then combines them together in parallel
+box~\ref{sb:for-expressions}).  It then combines them together in parallel
 using an indexed form of parallel composition: if |ts| is a sequence of
 |ThreadGroup|s, then \SCALA{\|\| ts} represents their parallel composition,
 and is itself a |ThreadGroup|.
-
-\framebox{for expressions}
 
 Finally, the |apply| function runs the system and returns the final result
 from the |result| variable. 
@@ -326,7 +343,7 @@ from the |result| variable.
 We now consider how to test the concurrent implementation.  The obvious
 approach is to run both the sequential and concurrent implementations on the
 same integral, and test whether they give the same result.  In particular, my
-approach was to generate random polynomials for the function~|f| to integrate,
+approach was to generate random polynomials for the function~|f|,
 and random values for |a|, |b|, |n| and |numWorkers| (within sensible ranges).
 We can then run many such tests.
 

@@ -1,13 +1,14 @@
-We saw in the last chapter that we need some way to provide for
-\emph{disciplined} interaction between threads, to avoid threads interfering
-with one another.  In this book, we will see three basic ways to achieve this:
-message passing, monitors and semaphores.  At a higher level of abstraction,
-we will also see how to use concurrent datatypes.
+We saw in the last chapter that we need some way to achieve
+\emph{disciplined} interaction between threads, to avoid race conditions, and
+to ensure threads do not interfere with one another.  In this book, we will see
+three basic ways to achieve this: message passing, monitors and semaphores.
+At a higher level of abstraction, we will also see how to use concurrent
+datatypes.
 
-We will start with message passing.  In my opinion, it is the most intuitive
-approach: threads send messages to one another.  In addition, message passing
-is necessary for distributed computing, and also works well with loosely
-coupled systems.
+We start, in this chapter, with message passing.  In my opinion, it is the
+most intuitive approach: threads send messages to one another.  In addition,
+message passing is necessary for distributed computing, and also works well
+with loosely coupled systems.
 
 A downside is that message passing tends to be slower than other approaches,
 because there is an overhead in the sending and receiving of messages.
@@ -52,25 +53,27 @@ the other end.
 %%%%%
 
 In SCL, \SCALA{Chan[A]} is the type of channels that pass data of
-type~\SCALA{A}.  This has  subtypes |SyncChan[A]|, of synchronous
-channels, and |BuffChanT[A]|, of buffered (or asynchronous) channels.  We will
-start by describing synchronous channels, and later describe buffered
-channels. 
+type~\SCALA{A}.  (The type is polymorphic in~|A|: see Scala
+box~\ref{sb:polymorphic}.)  This type has subtypes |SyncChan[A]|, of
+synchronous channels, and |BuffChanT[A]|, of buffered (or asynchronous)
+channels.  We will start by describing synchronous channels, and later
+describe buffered channels.
 
 The command
 \begin{scala}
   val chan = new SyncChan[A]
 \end{scala}
-defines |chan| to be a synchronous channel passing data of type~|A|.  Then the
-command 
+defines |chan| to be a synchronous channel passing data of type~|A|.  Given
+such a channel, the command
 \begin{scala}
   chan!v
 \end{scala}
-sends the value \SCALA{v} on \SCALA{chan}.  The expression
+sends the value \SCALA{v} (of type~|A|) on \SCALA{chan}.  The expression
 \begin{scala}
   chan?()
 \end{scala}
-receives a value from~\SCALA{chan} and returns it.  The communication is
+receives a value (of type~|A|) from~\SCALA{chan} and returns it.  The
+communication is
 \emph{synchronous}: whichever part is executed first waits for the other; both
 then proceed.  Thus the send and receive appear to take place at the same
 time.  
@@ -90,7 +93,7 @@ thread receives a value on the channel, and prints it.
 %%%%%
 
 As another example, here's a function that produces a thread that repeatedly
-inputs values from the channel \SCALA{in}, and outputs them on the
+receives a value from the channel \SCALA{in}, and output it on the
 channel~\SCALA{out}:
 %
 \begin{scala}
@@ -107,20 +110,22 @@ We could have written the body of \SCALA{copy} as simply:
   while(true) out!(in?()) 
 \end{scala}
 Note that in both forms, the communication on |in| can proceed even if no
-thread is yet ready to receive on |out|.
+thread is yet ready to receive on |out|: the receive and send are two distinct
+actions.
 
 %%%%%
 
-A channel is simply an \emph{in-port} (something from which threads can
-receive) and an \emph{out-port} (something on which threads can send). 
-Note that the terminology ``in-port'' and ``out-port'' refer to the point of
-view of \emph{threads}, not channels: a thread receives values in on an
-in-port, and sends values out on an out-port; however, a value is put into a
-channel on an out-port, and passed out on an in-port.
+A channel is comprised of an \emph{in-port} (something from which threads can
+receive) and an \emph{out-port} (something on which threads can send).  Note
+that the terminology ``in-port'' and ``out-port'' refer to the point of view
+of \emph{threads}, not channels: a thread receives values in on an in-port,
+and sends values out on an out-port; however, a value is put into a channel on
+an out-port, and passed out on an in-port.
 
-Figure~\ref{fig:channel-types} outlines the relevant types.  (The definition
-of |Chan[A]| uses multiple inheritance: it inherits definitions from both
-|InPort[A]| and |OutPort[A]|.)  The types \SCALA{InPort[A]} and
+Figure~\ref{fig:channel-types} outlines the relevant types (see Scala
+boxes~\ref{sb:classes}, \ref{sb:traits} and~\ref{sb:extends}).  (The
+definition of |Chan[A]| uses multiple inheritance: it inherits definitions
+from both |InPort[A]| and |OutPort[A]|.)  The types \SCALA{InPort[A]} and
 \SCALA{OutPort[A]} can be abbreviated as \SCALA{??[A]} and~\SCALA{!![A]},
 respectively.
 
@@ -187,7 +192,7 @@ The function |console(in)| defines a component that repeatedly reads a value
 from \SCALA{in} and writes it to standard output.  The function
 \SCALA{nats(out)} defines a component that sends the natural numbers, in
 order, on \SCALA{out}.  The function \SCALA{alts(in, out)} defines a component
-that copies alternate values read from \SCALA{in} to \SCALA{out}.
+that repeatedly receives on~|in|, and copies alternate values to \SCALA{out}.
 
 %%%%%
 
@@ -250,11 +255,11 @@ components together as illustrated below.
 \end{center}
 %
 The |nats| thread outputs the natural numbers on~|x1|.  The first instance of
-|alts| receives these, and outputs every other value, i.e.~the even natural
-numbers, on~|x2|.  The second instance of |alts| receives these, and outputs
-every other value, i.e.~the multiples of four, on~|x4|.  |console| receives
-these and prints them.  Thus the overall effect is to print the (non-negative)
-multiples of~four.
+|alts| receives these, and outputs every alternate value, i.e.~the even
+natural numbers, on~|x2|.  The second instance of |alts| receives these, and
+outputs every alternate value, i.e.~the multiples of four, on~|x4|.  The
+|console| thread receives these and prints them.  Thus the overall effect is
+to print the (non-negative) multiples of~four.
 
 \begin{instruction}
 Make sure you understand how the components cooperate together.
@@ -310,7 +315,7 @@ memory, possibly until the limits of available memory are reached.  This is
 likely to be the case in the multiples-of-four pipeline, where the thread
 printing results is likely to be slower than the other components. 
 
-There are two types of bounded buffered channels within SCL.  Such channels
+There are two types of bounded buffered channels within SCL\@.  Such channels
 can hold a bounded number of values.  Once the bound is reached, the sender is
 blocked until the receiver receives one of the earlier messages, and so makes
 space in the channel.
@@ -328,44 +333,18 @@ defined by its |size| parameter.
 
 Choosing the correct capacity requires a combination of judgement and
 guesswork.  Typically, neither the sender nor the receiver will try to
-communicate at a constant rate, both because some data items will take longer
-to process, and because either thread might be descheduled.  The buffering can
-help to smooth out these irregularities.  Further, it is likely that they have
-different long-term average rates of communication.  If the sender is, on
-average, faster than the receiver, we would like enough buffering that the
-receiver rarely has to wait for an item, i.e.~the buffer rarely becomes empty;
-alternatively, if the receiver is, on average, faster than the sender, we
-would like enough buffering that the sender rarely has to wait to deposit a
-value, i.e.~the buffer rarely becomes full.  On the other hand, having too
-much buffering uses additional memory.
-
-\framebox{Experiments} 
-
-
-
-%% However, the implementation of buffered channels imposes a bound on the number
-%% of messages that can be buffered.  Suppose we did not have such a bound, and
-%% imagine a scenario where the sender sent messages much faster than the
-%% receiver could deal with them.  Then the buffered channel will hold more and
-%% more messages, consuming more and more memory, possibly until all available
-%% memory is used.  With a bounded buffered channel, once the bound is reached,
-%% the sender is blocked until the receiver is ready to receive one of the
-%% earlier messages. 
-
-%%%%%
-
-%% The class of buffered channels is defined as follows.
-%% %
-%% \begin{scala}
-%% class BuffChan[A: scala.reflect.ClassTag](size: Int) extends Chan[A]
-%% \end{scala}
-%% %
-%% Thus a declaration such as
-%% \begin{scala}
-%% val chan = new BuffChan[Int](size)
-%% \end{scala}
-%% defines a new buffered channel, passing |Int|s, able to hold at most |size|
-%% messages.
+communicate at a constant rate, because some data items will take longer to
+process, and also because either thread might be descheduled.  The buffering
+can help to smooth out these irregularities.  Further, it is likely that the
+sender and receiver have different long-term average rates of communication.
+If the sender is, on average, faster than the receiver, we would like enough
+buffering that the receiver rarely has to wait for an item, i.e.~the buffer
+rarely becomes empty; alternatively, if the receiver is, on average, faster
+than the sender, we would like enough buffering that the sender rarely has to
+wait to deposit a value, i.e.,~the buffer rarely becomes full.  On the other
+hand, having too much buffering uses additional memory.  Sometimes experiments
+can help to find the optimal amount of buffering; but often it doesn't make
+much difference.  
 
 The ``|[A: scala.reflect.ClassTag]|'' in the declaration of |BuffChan| needs
 some explanation. Internally, a {\scalashape BuffChan} stores the buffered

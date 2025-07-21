@@ -1,13 +1,12 @@
 \section{Tuning}
-
-\framebox{Rewrite}
+\label{sec:trapezium-tuning}
 
 We want to tune the program so that it runs quickly.  The main question we
 want to consider is how many worker threads to use in order to minimise the
 running time.
 %%  A secondary question is
 %% whether we should use buffered channels. 
-We can run some experiments to try to obtain (at least) a partial answer to
+We can run some experiments to try to obtain  a partial answer to
 this question, although the answer is likely to vary with the architecture.
 %
 Appendix~\ref{app:experiments} describes how to run good experiments, and
@@ -90,10 +89,9 @@ bottleneck; this means that each task is larger and so takes longer, but the
 benefits outweigh the disadvantages.  
 
 The behaviour for $\sm n = 2^{20}$ and $\sm n = 2^{24}$ is much better, with
-performance improving up to eight threads.  Profiling shows that, with eight
-workers, the proportion of time threads spend trying to send or receive
+performance improving up to eight worker threads.  Profiling shows that, with
+eight workers, the proportion of time threads spend trying to send or receive
 is less than 40\% and less than 20\% in these cases, respectively.
-
 
 Other experiments show that in cases where the channels act as a bottleneck, 
 using buffered channels helps a little bit.  However, buffering makes little
@@ -104,13 +102,13 @@ threads).  I obtained similar results, except the channels were,
 unsurprisingly, more of a bottleneck.  For values of~|n| smaller than about
 $2^{28}$, the optimal number of workers was less than the 64 machine threads
 available.  Put another way, in order for more machine threads to be useful,
-the amount of computation done by each thread needs to be larger. 
+the amount of computation done by each thread needs to be larger, so threads
+spend a lower proportion of their time trying to send or receive messages. 
 
 %% : the optimal number of workers was 64
 %% only with larger values of~|n|, around~$2^{28}$.
 
 % Code/trapeziumBuffering.tex
-
 
 %% \begin{slide}
 %% \label{slide:not-bag-of-tasks}
@@ -135,6 +133,3 @@ the amount of computation done by each thread needs to be larger.
 %% \end{tikzpicture}
 %% \end{slide}
 
-%%%%%
-
-%%%%%

@@ -46,16 +46,16 @@ class MatrixMult(a: Array[Array[Int]], b: Array[Array[Int]],
 
   trait Task
 
-  /** The task to calculate entries [start..end) of row `row`. */
+  /** The task to calculate entries £[start..end)£ of row £row£. */
   case class SingleRowTask(row: Int, start: Int, end: Int) extends Task 
 
-  /** The task to calculate rows [start..end). */
+  /** The task to calculate rows £[start..end)£. */
   case class MultiRowTask(start: Int, end: Int) extends Task
 
   /** Channel for sending tasks. */
   private val toWorkers = new SyncChan[Task] // (numWorkers)
 
-  /** Calculate and store entry for c(i)(j). */
+  /** Calculate and store entry for £c(i)(j)£. */
   private def calculate(i: Int, j: Int) = {
     var sum = 0; var k = 0
     while(k < n){ sum += a(i)(k)*b(k)(j); k += 1 }
@@ -78,7 +78,7 @@ class MatrixMult(a: Array[Array[Int]], b: Array[Array[Int]],
   }
 
   private def server = thread{
-    if(taskSize <= n){ // use SingleRowTasks.
+    if(taskSize <= n){ // use £SingleRowTasks£.
       for(row <- 0 until n){
         var j = 0
         while(j < n){ 
@@ -86,7 +86,7 @@ class MatrixMult(a: Array[Array[Int]], b: Array[Array[Int]],
         }
       }
     }
-    else{ // use MultiRowTasks.
+    else{ // use £MultiRowTasks£.
       assert(taskSize%n == 0); val taskRows = taskSize/n // # rows per task.
       var row = 0
       while(row < n){
@@ -125,7 +125,9 @@ confidence intervals, based on 50 observations.
 Each of the plots has a fairly flat middle section, where the value of
 |taskSize| makes little difference.  Typically, the fastest behaviour is where
 each worker performs a few tasks; but the differences are often smaller than
-the confidence intervals, so it's not possible to say definitively.
+the confidence intervals, so it's not possible to say definitively.  For most 
+values of |n|, particularly small ones, this corresponds to a task being
+several rows. 
 
 To the left, the program gets slower, as the communication cost dominates.
 This is less of an issue when $\sm n = 1024$, because the computational cost

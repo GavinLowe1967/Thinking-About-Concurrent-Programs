@@ -118,7 +118,7 @@ class RAServer2(numResources: Int) extends RAServer{
   }
 
   // Fork off the server
-  server.fork
+  fork(server)
 
   /** Request a resource. */
   def requestResource(me: ClientId): Option[Resource] = {

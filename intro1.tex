@@ -67,6 +67,16 @@ works on part of the data, with all working in the same way; perhaps there
 might also be one or more coordinating threads.  Very large computations may
 well be distributed over multiple computers, communicating over a network.
 
+There are two measures of speed that we might be interested in.
+\emph{Throughput} refers to the average amount of work that the system
+performs over time.  This is normally the most important measure, for example,
+in batch processing systems.  By contrast, \emph{latency} refers to the delay
+in servicing each request.  This can be important, particularly when there is
+a human waiting for the result.  For example, a web server that processes
+a million requests per second on average, but sometimes takes a minute to
+respond to particular requests would have high throughput, but unacceptably
+low latency.
+
 As we will see, using concurrency does not necessarily make a program faster.
 There is a danger that the communication and coordination costs outweigh the
 benefits of using extra threads.  Some judgement and experimentation is

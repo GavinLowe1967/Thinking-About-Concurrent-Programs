@@ -2,8 +2,8 @@
 \label{exercise:stackRace}
 Consider the simple implementation of a stack of |Int|s in
 Figure~\ref{fig:stackRace}.  This encapsulates a |List[Int]|, holding the
-current contents of the stack.  Scala box~\ref{sb:Lists} describes the basics
-of the |List| class in Scala. 
+current contents of the stack.  (Scala box~\ref{sb:lists} in
+Appendix~\ref{app:scala} describes the basics of the |List| class in Scala.)
 
 %%%%%
 
@@ -30,21 +30,21 @@ class IntStack{
 
 %%%%%
 
-\begin{scalaBox}{Lists}
-\label{sb:Lists}
-The type |List[A]| represents the type of immutable lists containing data of
-type~|A|.
+%% \begin{scalaBox}{Lists}
+%% \label{sb:Lists}
+%% The type |List[A]| represents the type of immutable lists containing data of
+%% type~|A|.
 
-A list containing values~|x|, |y| and~|z| can be defined as \SCALA{List[A](x,
-  y, z)}; the type parameter~|A| can normally be omitted, as the compiler can
-infer it.
+%% A list containing values~|x|, |y| and~|z| can be defined as \SCALA{List[A](x,
+%%   y, z)}; the type parameter~|A| can normally be omitted, as the compiler can
+%% infer it.
 
-If |xs| has type |List[A]|, and |x| has type~|A|, then |x :: xs| is a new
-|List[A]| containing~|x| followed by the elements of~|xs|.  The expression
-|xs.isEmpty| returns a |Boolean| indicating whether |xs| is empty.  If |xs| is
-not empty, then |xs.head| gives its first element, and |xs.tail| gives the
-list containing all of~|xs| except the first element.
-\end{scalaBox}
+%% If |xs| has type |List[A]|, and |x| has type~|A|, then |x :: xs| is a new
+%% |List[A]| containing~|x| followed by the elements of~|xs|.  The expression
+%% |xs.isEmpty| returns a |Boolean| indicating whether |xs| is empty.  If |xs| is
+%% not empty, then |xs.head| gives its first element, and |xs.tail| gives the
+%% list containing all of~|xs| except the first element.
+%% \end{scalaBox}
 
 %%%%%
 
@@ -78,7 +78,7 @@ detail later in the book.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \begin{answerS}
-The implementation can go wrong in a numbre of ways, described below.  I~will
+The implementation can go wrong in a number of ways, described below.  I~will
 write ``|pop|-read-1'', ``|pop|-read-2'' and ``|pop|-read-3'' for the three
 reads of~|st| within~|pop|.
 %
@@ -112,7 +112,7 @@ appropriately in each case.
 \item (This item is somewhat related to the previous.)  Suppose a thread calls
   |pop| when the stack is non-empty, and the subsequent |require| statement
   passes.  However, if another thread then performs |pop|s to make the stack
-  empty, |pop|-read-2 will return the empty list, and the expression |st.head|
+  empty, |pop|-read-2 will obtain the empty list, and the expression |st.head|
   will throw an exception.  Alternatively, if the stack becomes empty between
   |pop|-read-2 and |pop|-read-3, then the expression |st.tail| will throw an
   exception.

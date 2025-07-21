@@ -6,12 +6,29 @@
 \usepackage{newfloat,tocloft,caption}
 \usepackage[framemethod=TikZ]{mdframed}
 \newlistof{sib}{sib}{List of Scala  boxes}
-\DeclareFloatingEnvironment[fileext=sib,placement={!ht},name=Scala
-  box]{myfloat}
+\DeclareFloatingEnvironment[
+  fileext = sib, placement = {phtb}, name = Scala box, within = none]{myfloat} 
 \captionsetup[myfloat]{labelfont=bf}
 
+
+\newlistof{scalaboxes}{sbb}{List of Scala boxes}
+
+% myequation takes in its display name
+%\newcommand{\myequations}[1]{
+
+% display name is printed
+
+%% \newcounter{sb}
+%% \newenvironment{scalaBox}[1]
+%% {\pagebreak[3]\refstepcounter{sb}
+%% \addcontentsline{sbb}{scalaboxes}{\protect\numberline{\thesb.} {#1}}
+%%  \begin{trivlist}
+%%   \item[] \textbf{\large Scala box \arabic{sb}: #1}\nopagebreak
+%%   \item[]
+%% }{ \hfill $\Box$ \end{trivlist}\pagebreak[3] }
+
 \newenvironment{scalaBox}[1]
-{\begin{myfloat}[tp]
+{\begin{myfloat}[!phtb]
    \begin{mdframed}[roundcorner=10pt,backgroundcolor=blue!8]
    \setlength{\parindent}{4mm}
    \caption{#1}

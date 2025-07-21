@@ -81,7 +81,10 @@ pair: the longest path involves  three comparators.
 \begin{qpart}
 \label{Q:sort4}
 Implement this sorting circuit, using the following
-signature.%% \footnote{The class {\scalashape List} represents lists.  If
+signature.
+(Scala box~\ref{sb:lists} in
+Appendix~\ref{app:scala} describes the basics of the |List| class in Scala.)
+%% \footnote{The class {\scalashape List} represents lists.  If
   %% you haven't used this class before, you might want to look at the
   %% API documentation, or a relevant on-line tutorial.}
 %  
@@ -103,9 +106,9 @@ they are a sorted version of the inputs; repeat many times.
 We will  implement a sorting network based on the idea of insertion sort.
 %
 First, we need a circuit to insert a value into a sorted list of
-$n \ge 1$ values, with the following signature.
+$\sm n \ge 1$ values, with the following signature.
 %
-\begin{mysamepage}
+%\begin{mysamepage}
 \begin{scala}
   /** Insert a value input on £in£ into a sorted sequence input on £ins£. 
     * Pre: £ins.length£ = £n£ and £outs.length = n+1£, for some £$\sm n \ge 1$£.
@@ -116,7 +119,7 @@ $n \ge 1$ values, with the following signature.
     ...
   }
 \end{scala}
-\end{mysamepage}
+%\end{mysamepage}
 %
 Consider the circuit below to implement |insert|, for $\sm n \ge 2$.  The box
 labelled ``$\sm{insert}_{\ss n-1}$'' is (recursively) a circuit to insert the
@@ -355,7 +358,7 @@ Test your implementation using the ideas from part~\ref{Q:sort4}.
 %\end{question}
 \end{question}
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \begin{answerI}
 Most of the code consists of fairly straightforward translations of the
@@ -363,61 +366,55 @@ diagrams.
 %
 \begin{enumerate}
 \item
-%\begin{qpart}
 \begin{scala}
-  def comparator(in0: ??[Int], in1: ??[Int], out0: !![Int], out1: !![Int])
-    = thread("comparator"){
-    var x0 = -1; var x1 = -1
-    repeat{
-      run(thread{ x0 = in0?() } || thread{ x1 = in1?() })
-      run(thread{ out0!(x0 min x1) } || thread{ out1!(x0 max x1) })
-    }
-    in0.close(); in1.close(); out0.endOfStream(); out1.endOfStream()
+def comparator(in0: ??[Int], in1: ??[Int], out0: !![Int], out1: !![Int])
+  = thread("comparator"){
+  var x0 = -1; var x1 = -1
+  repeat{
+    run(thread{ x0 = in0?() } || thread{ x1 = in1?() })
+    run(thread{ out0!(x0 min x1) } || thread{ out1!(x0 max x1) })
   }
+  in0.close(); in1.close(); out0.endOfStream(); out1.endOfStream()
+}
 \end{scala}
-%\end{qpart}
 
 %%%%%
 
 \item
-%\begin{qpart}
 \begin{scala}
-  def sort4(ins: List[??[Int]], outs: List[!![Int]]): ThreadGroup = {
-    require(ins.length == 4 && outs.length == 4)
-    val c0, c1, c2, c3, c4, c5 = new SyncChan[Int]
-    comparator(ins(0), ins(2), c0, c2) ||
-      comparator(ins(1), ins(3), c1, c3) ||
-      comparator(c0, c1, outs(0), c4) ||
-      comparator(c2, c3, c5, outs(3)) ||
-      comparator(c4, c5, outs(1), outs(2))
-  }
+def sort4(ins: List[??[Int]], outs: List[!![Int]]): ThreadGroup = {
+  require(ins.length == 4 && outs.length == 4)
+  val c0, c1, c2, c3, c4, c5 = new SyncChan[Int]
+  comparator(ins(0), ins(2), c0, c2) ||
+    comparator(ins(1), ins(3), c1, c3) ||
+    comparator(c0, c1, outs(0), c4) ||
+    comparator(c2, c3, c5, outs(3)) ||
+    comparator(c4, c5, outs(1), outs(2))
+}
 \end{scala}
-%\end{qpart}
 
 \item
 \begin{scala}
-  def insert(ins: List[??[Int]], in: ??[Int], outs: List[!![Int]])
-      : ThreadGroup = {
-    val n = ins.length; require(n >= 1 && outs.length == n+1)
-    if(n == 1) comparator(ins(0), in, outs(0), outs(1))
-    else{
-      val c = new SyncChan[Int]
-      comparator(in, ins(0), outs(0), c) || insert(ins.tail, c, outs.tail)
-    }
+def insert(ins: List[??[Int]], in: ??[Int], outs: List[!![Int]]): ThreadGroup = {
+  val n = ins.length; require(n >= 1 && outs.length == n+1)
+  if(n == 1) comparator(ins(0), in, outs(0), outs(1))
+  else{
+    val c = new SyncChan[Int]
+    comparator(in, ins(0), outs(0), c) || insert(ins.tail, c, outs.tail)
   }
+}
 \end{scala}
-
 
 \item
 \begin{scala}
-  def insertionSort(ins: List[??[Int]], outs: List[!![Int]]): ThreadGroup = {
-    val n = ins.length; require(n >= 2 && outs.length == n)
-    if(n == 2) comparator(ins(0), ins(1), outs(0), outs(1))
-    else{
-      val mids = List.fill(n-1)(new SyncChan[Int])
-      insertionSort(ins.tail, mids) || insert(mids, ins(0), outs))
-    }
+def insertionSort(ins: List[??[Int]], outs: List[!![Int]]): ThreadGroup = {
+  val n = ins.length; require(n >= 2 && outs.length == n)
+  if(n == 2) comparator(ins(0), ins(1), outs(0), outs(1))
+  else{
+    val mids = List.fill(n-1)(new SyncChan[Int])
+    insertionSort(ins.tail, mids) || insert(mids, ins(0), outs)
   }
+}
 \end{scala}
 \end{enumerate}
 \end{answerI}

@@ -49,8 +49,8 @@ of tasks per worker.  Each observation is based on $2^{28}/\sm{n}$ runs.
 Each plot shows a decrease in time as the number of tasks per worker increases
 from two to about sixteen.  Having more tasks allows for better load
 balancing.  However, beyond a certain point, increasing the number of tasks
-makes the program slower: at this point, the channel communication is becoming
-a bottleneck again.
+makes the program slower: at this point, the channel communication becomes a
+bottleneck again.
 
 Most of the plots show that using an average of two tasks per worker is slower
 than just one, which may seem surprising.  I investigated this by arranging
@@ -70,7 +70,8 @@ stable with respect to changes in speed of workers, for example caused by
 different hardware. 
 
 Experiments on the 32-core server gave similar results, except in order to
-benefit from the additional machine threads, each task needs to be larger.
+benefit from the additional machine threads, each task needs to be larger, as
+in Section~\ref{sec:trapezium-tuning}.
 
 % \framebox{casteret}
 

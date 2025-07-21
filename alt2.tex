@@ -92,17 +92,17 @@ philosopher's actions.
 
 The fork thread is parameterised by the fork's identity, and in-ports on which
 it can receive messages from its left- and right-hand philosopher.  The fork
-should initially be willing to receive a message on either of its in-ports,
-which requires an alternation, in this case via a |serve| construct.  The
-value it receives should be a |Pick|.  It then waits to receive a second
-message on the same in-port, which should be a |Drop|.  The |assert|
-statements check the correct messages are received.  Using assertions like
-this is good practice.  If nothing else, it acts as good documentation.  But
-such assertions can also help to catch mistakes.  I have found lots of
+should initially be willing to receive a message on \emph{either} of its
+in-ports.  Modelling this requires an alternation, in this case via a |serve|
+construct.  The value it receives should be a |Pick|.  It then waits to
+receive a second message on the same in-port, which should be a |Drop|.  The
+|assert| statements check the correct messages are received.  Using assertions
+like this is good practice.  If nothing else, it acts as good documentation.
+But such assertions can also help to catch mistakes.  (I have found lots of
 mistakes in my own code by including assertions like these.  If I had omitted
-the assertions, it would probably have led to errors arising later in the
+those assertions, it would probably have led to errors arising later in the
 program, but it would have been much harder to identify the cause of the
-problem.
+problem.)
 
 We connect the philosophers and forks together as depicted in the top half of
 Figure~\ref{fig:dining-philosophers-2}, with the corresponding code in the
@@ -178,7 +178,11 @@ picture and writing a clear comment.
 It is important that we use \emph{synchronous} channels: we need each
 philosopher and fork to synchronise on relevant actions. 
 
-When we run the system, sometimes it deadlocks almost immediately.  A typical
+\begin{instruction}
+Study the details of the implementation.
+\end{instruction}
+
+When we run the system, sometimes it deadlocks almost immediately.  A~typical
 deadlocking trace is:
 %
 \begin{scala}
@@ -223,8 +227,8 @@ can be defined by
 This provides operations
 %
 \begin{itemize}
-\item |def add(me: Int, x: A)|, which adds |x| to the log,
-performed by thread~|me|;
+\item |def add(me: Int, x: A)|, which adds |x| to the log, performed by
+  thread~|me|, where $\sm{me} \in \interval{0}{\sm p}$;
 
 \item |def get: Array[A]|, which gets the contents of the log;
 
@@ -232,9 +236,14 @@ performed by thread~|me|;
   of the log to the file~|fname| (with a default of \texttt{/tmp/logFile}).
 \end{itemize}
 
-The code below shows how we can use logging in the dining philosophers
-example.
-%
+The code in Figure~\ref{fig:dining-phils-log} shows how we can use logging in
+the dining philosophers example.  (I have arranged for philosopher~|0| to
+print a dot on each iteration, so we can tell whether the system is making
+progress.)
+
+%%%%%
+
+\begin{figure}
 \begin{scala}
   val log = new Log[String](N)
  
@@ -251,9 +260,11 @@ example.
     }
   }
 \end{scala}
-%
-(I have arranged for philosopher~|0| to print a dot on each iteration, so we
-can tell whether the system is making progress.)
+\caption{Using a {\scalashape Log} object.}
+\label{fig:dining-phils-log}
+\end{figure}
+
+%%%%%
 
 In many scenarios, when the system terminates, we can either write the log to
 a file, or analyse the log using some code.  However, this won't work when the
@@ -271,10 +282,12 @@ Logging is a general technique that can help with debugging.  However, there
 is a wrinkle concerning its usage.
 %
 Internally, each thread uses its own thread-local log, to avoid race
-conditions, and for efficiency.  Each logged value is stored in the relevant
-thread-local logs, together with a timestamp (more precisely, the time elapsed
-since the |Log| object was created, to avoid problems with timestamp
-wrap-around).
+conditions, and for efficiency.  This is why the |log| operation takes the
+thread's identity as a parameter: different threads should use different
+identities, in the relevant range.  Each logged value is stored in the
+relevant thread-local log, together with a timestamp (more precisely, the
+time elapsed since the |Log| object was created, to avoid problems with
+timestamp wrap-around).
 %
 The |get| operation merges the thread-local logs according to
 timestamps.
@@ -290,6 +303,6 @@ it will give worse performance.  Further, it might affect the likelihood of
 detecting bugs: I have experienced bugs that would appear when no logging was
 performed, or when the timestamp-based log was used; but logging with
 something equivalent to |SharedLog| affected the speed of threads sufficiently
-that the bug would no longer appear in a reasonable time!
+that the bug no longer appeared in a reasonable time!
 
 

@@ -1,39 +1,162 @@
+
+\renewcommand{\textfraction}{.1}
+\renewcommand{\topfraction}{.9}
+\renewcommand{\floatpagefraction}{.75} % min proportion for [p] floats
+\renewcommand{\bottomfraction}{0.9}
+\def\floatsep{\medskipamount} % between [tb] floats and space
+\def\intextsep{\medskipamount} % around [h] floats
+\def\textfloatsep{\medskipamount} % between [tb] floats
+\setcounter{topnumber}{2}
+
 \chapter{A brief introduction to Scala}
 \label{app:scala}
 
+In this appendix, we give a brief introduction to Scala.  In
+Section~\ref{sec:scala-core}, we describe core language features: the body of
+the book assumes that you are familiar with these.  When we first use other
+language features, we include a reference to the relevant description in this
+appendix.  Section~\ref{sec:scala-encapsulation} describes encapsulation.
+Section~\ref{sec:scala-types} describes types.   Section~\ref{sec:scala-misc}
+describes further language features.
 
-Scala built on top of Java; can use Java libraries; compiled into bytecode for
-execution on the Java Virtual Machine (JVM).  Influenced by Haskell.
 
-An object is basically a class with a single instance, sometimes called a
-\emph{singleton object}.  Most main modules in Scala are objects.
 
-Most typing is optional.  Needed with arguments of procedures, and recursion.
-Recommended when it improves clarity.
+%% \framebox{TO BE WRITTEN}
 
-\SCALA{var} for variables.  \SCALA{val} for constant values.  \SCALA{def} for
-definitions, e.g.~of procedures.  
+%% Scala built on top of Java; can use Java libraries; compiled into bytecode for
+%% execution on the Java Virtual Machine (JVM).  Influenced by Haskell.
 
-\SCALA{0 until 1000} means $[0 .. 1000)$. 
+%%%%%
 
-|while|, |for|, |if|.  
+\input{scala1}
+\input{scala2}
+\input{scala3} % types
 
-def var val
 
+\pagebreak[3]
+
+\section{Further language features}
+\label{sec:scala-misc}
+
+We describe pattern matching (Scala box~\ref{sb:pattern-matching}), anonymous
+functions (Scala box~\ref{sb:anon-function}), |for| expressions (Scala
+box~\ref{sb:for-expressions}), and how to catch
+exceptions~\ref{sb:try-catch}). 
+
+\begin{scalaBox}{Pattern matching}
+\label{sb:pattern-matching}
+The Scala operator |match| performs pattern matching.  The command
+%
 \begin{scala}
-object Factorial{
-
-  def fact(n: Int): Int = {
-    var x = 1
-    for(i <- 1 to n) x = x*i
-    i
+  £$v$£ match{
+    case £$pat_1$£ => £$cmd_1$£
+    ...
+    case £$pat_n$£ => £$cmd_n$£
   }
-
-  def main(args: Array[String]) = {
-    val n = args(0).toInt; println(fact(n))
-  } 
-}
 \end{scala}
+tries to match the value~$v$ against each of the patterns $pat_1, \ldots,
+pat_n$.  When it finds a pattern that matches, it executes the corresponding
+command~$cmd_i$; if several match, it executes the first such command.  If no
+pattern matches, then it throws an exception.
+
+Patterns include the following.
+\begin{itemize}
+\item The constant pattern, matches just that value; for example |"get"| or
+  |36|.
+
+\item A variable pattern such as ``|x|'' matches all values, and binds the
+name~|x| to the value.  A typed pattern such as ``|x: A|'' matches all values
+of type~|A|, and binds the name~|x| to the value.  The wildcard pattern
+\SCALA{\_} matches all values.  
+
+\item A pair pattern, e.g.~|(pat|$_1$|, pat|$_2$|)|, where |pat|$_1$ and
+  |pat|$_2$ are patterns, matches a pair~|(v|$_1$\SCALA{, v}$_2$|)| provided
+  $\sm v_1$ and $\sm v_2$ match |pat|$_1$ and |pat|$_2$, respectively.  Names
+  are bound according to those patterns.  This extends to larger tuples in the
+  obvious way.
+\end{itemize}
+%
+Case classes (Scala box~\ref{sb:case-classes}), such as the |Option| type
+(Scala box~\ref{sb:option-type}), also allow for pattern matching.
+\end{scalaBox}
+
+%%%%%
+
+\begin{scalaBox}{Anonymous functions}
+\label{sb:anon-function}
+Anonymous functions can be defined in Scala in a couple of ways.  The notation
+\SCALA{(x: A) => exp} represents a function that takes an argument~|x| of
+type~|A|, and returns the value of~|exp|.  For example, \SCALA{(x: Int) =>
+  x+1} is a function that increments an |Int|.  The typing ``\SCALA{: A}'' can
+often be omitted, when the Scala compiler can deduce the type; for example, in
+\SCALA{List(1,2,3).map(x => x+1)}, the compiler can deduce that |x| must be an
+|Int|.
+\end{scalaBox}
+%%%%%%%%%%%% I don't think we use the following. 
+%% Anonymous functions can also be defined using an underscore, ``\SCALA{_}'' to
+%% represent a ``hole'' into which the argument is put.  For example,
+%% \SCALA{((_:Int)+1)} again increments an |Int|.  Again, the type of the
+%% argument can often be omitted. 
+%% \end{scalaBox}
+
+%%%%%
+
+\begin{scalaBox}{\protect\SCALAKW{for} expressions}
+\label{sb:for-expressions}
+|for| expressions provide a convenient way of building sequences.  The
+simplest form of |for| expression is of the form
+\begin{scala}
+  for(x <- xs) yield f(x)
+\end{scala}
+where |xs| is a sequence, and |f| is a suitable function: this will generate a
+sequence that contains the value |f(x)| for each |x| in~|xs|.  The ``\SCALA{x
+  <- xs}'' is known as a \emph{generator}.  For example, 
+\begin{scala}
+  for(x <- List(1,2,3)) yield x*x
+\end{scala}
+will produce the list |List(1,4,9)|.
+
+A |for| expression may contain more than one generator.  For example
+\begin{scala}
+  for(x <- List(1,2,3); y <- List(4,5)) yield x*y
+\end{scala}
+will produce |List(4,5,8,10,12,15)|.  Note that the |for| expression iterates
+over the second generator for each value from the first generator, before
+moving on to the next value from the first generator.
+
+A |for| expression may also contain a \emph{filter}, restricting the range of
+values from which results are produced.  For example
+\begin{scala}
+  for(x <- List(1,2,3,4); if x%2 == 0; y <- List(1,2,3)) yield x*y
+\end{scala}
+only calculates |x*y| for even values of~|x|, so produces
+|List(2, 4, 6, 4, 8, 12)|.
+
+%% Scala has several different types of sequence: we mostly use |List|s in this
+%% book.  The type of the result produced by a |for| expression depends upon the
+%% type of the sequences used in the generators.  An arbitrary sequence can be
+%% converted into a |List| using the operation |toList|, for example
+%% \begin{scala}
+%%   (for(x <- 1 to 3) yield x*x).toList
+%% \end{scala}
+\end{scalaBox}
 
 
-|assert|, |require| 
+\begin{scalaBox}{Catching exceptions}
+\label{sb:try-catch}
+Exceptions can be caught using a |try ... catch| construct as follows. 
+\begin{scala}
+try{ prog }catch{ handler }
+\end{scala}
+%
+Here |prog| is a program fragment, and |handler| is a partial function
+describing how to handle any exception thrown by |prog|.  The exception
+handler is normally written using pattern matching syntax (Scala
+box~\ref{sb:pattern-matching}), for example
+\begin{scala}
+  try{ prog } catch{
+    case st: Stopped => ...
+    case ae: AssertionError => ...
+  }
+\end{scala}
+\end{scalaBox}

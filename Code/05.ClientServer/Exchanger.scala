@@ -40,7 +40,7 @@ object ExchangerTest{
       val x = exchanger.exchange(me); results(me) = x 
     }
     run(|| (for(i <- 0 until n) yield worker(i)))
-    for(i <- 0 until n){ val x = results(i);  assert(results(x) == i) }
+    for(i <- 0 until n){ val x = results(i);  assert(x != i && results(x) == i) }
     exchanger.shutdown()
   }
 

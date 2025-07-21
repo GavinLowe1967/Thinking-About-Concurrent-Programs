@@ -11,7 +11,10 @@ object Buff2{
     def full(x: T): Unit = {
       alt( out =!=> { x } ==> { empty() } | in =?=> { y => out!x; full(y) } )
     }
-    thread{ attempt{empty()}{} }
+    thread{ 
+      attempt{empty()}{}
+      // in.close(); out.endOfStream() 
+    }
   }
 
   // /** Two place buffer. */

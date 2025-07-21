@@ -63,11 +63,13 @@ class ConcurrentQuicksort1(protected val a: Array[Int], numWorkers: Int)
       val queue = new scala.collection.mutable.Queue[Task]
       queue.enqueue((0, a.length))
       var busyWorkers = 0
-      serve(
+      serve(queue.nonEmpty || busyWorkers > 0)(
         queue.nonEmpty && getC =!=> { busyWorkers += 1; queue.dequeue() }
-        | busyWorkers > 0 && addC =?=> { case (t1,t2) => 
-            queue.enqueue(t1); queue.enqueue(t2); busyWorkers -= 1 }
-        | busyWorkers > 0 && doneC =?=> { _ => busyWorkers -= 1 }
+        | addC =?=> { case (t1,t2) => 
+            assert(busyWorkers > 0); busyWorkers -= 1 
+            queue.enqueue(t1); queue.enqueue(t2)
+          }
+        | doneC =?=> { _ => assert(busyWorkers > 0); busyWorkers -= 1 }
       )
       assert(queue.isEmpty && busyWorkers == 0)
       getC.endOfStream()
@@ -115,10 +117,10 @@ class ConcurrentQuicksort2(protected val a: Array[Int], numWorkers: Int)
       if(true){ // Use queue.
         val queue = new scala.collection.mutable.Queue[Task]
         queue.enqueue((0, a.length)); var busyWorkers = 0
-        serve(
+        serve(queue.nonEmpty || busyWorkers > 0)(
           queue.nonEmpty && getC =!=> { busyWorkers += 1; queue.dequeue() }
-          | busyWorkers > 0 && addC =?=> { t => queue.enqueue(t) }
-          | busyWorkers > 0 && doneC =?=> { _ => busyWorkers -= 1 }
+          | addC =?=> { t => assert(busyWorkers > 0); queue.enqueue(t) }
+          | doneC =?=> { _ => assert(busyWorkers > 0); busyWorkers -= 1 }
         )
         assert(queue.isEmpty && busyWorkers == 0)
         getC.endOfStream()
@@ -126,10 +128,10 @@ class ConcurrentQuicksort2(protected val a: Array[Int], numWorkers: Int)
       else{ // Use stack.  This seems slightly slower.
         val stack = new scala.collection.mutable.Stack[Task]
         stack.push((0, a.length)); var busyWorkers = 0
-        serve(
+        serve(stack.nonEmpty || busyWorkers > 0)(
           stack.nonEmpty && getC =!=> { busyWorkers += 1; stack.pop() }
-          | busyWorkers > 0 && addC =?=> { t => stack.push(t) }
-          | busyWorkers > 0 && doneC =?=> { _ => busyWorkers -= 1 }
+          | addC =?=> { t => assert(busyWorkers > 0); stack.push(t) }
+          | doneC =?=> { _ => assert(busyWorkers > 0);  busyWorkers -= 1 }
         )
         assert(stack.isEmpty && busyWorkers == 0)
         getC.endOfStream()

@@ -2,7 +2,7 @@
 %\documentclass[times]{acm-book}%%%
 
 %% \usepackage{amsmath}    % Package for AMS math extensions.
-%% \usepackage{amssymb}
+\usepackage{amssymb}
 
 \usepackage{color}
 \usepackage{url}
@@ -30,7 +30,7 @@
 \everymath{\mstyle}
 
 \def\ignore#1{}
-%\def\ignore#1{#1}
+\def\ignore#1{#1}
 
 \usepackage{questions} 
 
@@ -44,6 +44,8 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+\includeonly{preface}
+
 \begin{document}
 \maketitle
 %% \pagenumbering{roman}
@@ -51,18 +53,24 @@
 \pagenumbering{roman}
 \cleardoublepage
 \tableofcontents
-\input{preface}
+\newpage %% To get \label below correct
+%\listofscalaboxes
+\label{listofsib}
+\listofsib
+
+\include{preface}
 
 \newpage
 \pagenumbering{arabic}
 \newpage
-\input{intro}
 \ignore{
-\input{channels}
-\input{trapezium}
-\input{alt}
-\input{client-server}
+\include{intro}
+\include{channels}
+\include{trapezium}
 }
+\include{alt}
+\include{client-server}
+
 \chapter{Concurrent Datatypes}
 \label{chap:datatypes}
 %
@@ -75,9 +83,9 @@ Unisex bathroom (2009 exam) -- to datatypes chapter.  twoTypesProc.tex
 
 \appendix
 
+\include{scala}
 \ignore{
-\input{scala}
-\input{experiments}
+\include{experiments}
 % type params
 }
 

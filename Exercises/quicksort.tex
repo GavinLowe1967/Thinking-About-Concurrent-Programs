@@ -49,8 +49,8 @@ recursive calls to |qSort|, and a controller tying them together.
 The controller distributes input values to the two sub-sorters, depending on
 how it compares with~|pivot|.  When the input stream is closed, it closes its
 channels to the sub-sorters, to indicate that their input streams are
-finished.  It then takes outputs from the two sub-sorters, and passes it out,
-together with |pivot|, in the right order.
+finished.  It then takes outputs from the two sub-sorters, and passes them
+out, together with |pivot|, in the right order.
 %
 \begin{scala}
   def qSort(in: ??[Int], out: !![Int]): ThreadGroup = thread("QSort"){

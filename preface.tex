@@ -2,36 +2,54 @@
 \addcontentsline{toc}{section}{Preface}
 \markboth{Preface}{} % Else it says "list of Scala boxes!"
 
-\framebox{Needs writing!}
+A concurrent program is a program with two or more threads of control that can
+run at the same time, each with its own state.  These threads of control might
+run in parallel, i.e.~at the same time; or execution might be interleaved
+between them.
 
+There are several reasons why we might want to write a concurrent program.  It
+might run faster.  It might provide a better way of structuring a large
+program.  Or it might allows us to use hardware or services that are
+physically distributed.
 
-Prerequisites.
+However, using concurrency introduces difficulties beyond those present with
+sequential programs.  In a poorly designed concurrent program, different
+threads might interfere with one another, leading to logical errors that are
+hard to track down.  Instead, we need reliable techniques to produce a correct
+concurrent program, in particular that coordinates threads correctly.  The aim
+of this book is to explore such techniques.
+
+\framebox{Overview:} message passing, monitors, semaphores. 
+
+This book will assume that the reader has some programming experience,
+including a basic understanding of object-oriented programming.  We will use
+Scala as our programming language, because it suits our purposes well.  It has
+a clean syntax, with intuitive semantics, backed up by an extensive
+Application Programming Interface.
+
+Appendix~\ref{app:scala} gives an overview of the parts of Scala that we will
+use, presenting different aspects of the language in separate boxes, to aid
+referencing; see list on page~\pageref{listofsib}.
 %
-\begin{itemize}
-%\item Good programming skills using Scala. 
+If you have used Scala before, or are an experienced programmer, you will
+probably find that you can understand the code without reading the appendix,
+or by just referring to relevant parts.  
+%
+For those wanting to learn more about
+Scala, we would recommend the excellent \emph{Programming in Scala}, by Martin
+Odersky, Lex Spoon, Bill Venners and Frank Sommers.
 
-\item Basic understanding of object-oriented programming (objects, classes,
-interfaces, inheritance, abstract classes, polymorphism).
+In particular, we will use a library of concurrency primitives, \emph{Scala
+  Concurrency Library (SCL)}.  This will allow us to write concise yet clear
+concurrent programs, without the  tedious ``boiler-plate'' code that would be
+necessary in some languages.  
 
-\item Familiarity with standard techniques for reasoning about (sequential)
-programs:  pre- and post-conditions, invariants, and abstraction functions.
-\end{itemize}
-
-Scala.
-
-A major theme of the book will be modularisation.  Often, we will aim to
-encapsulate design decisions concerning concurrency within an object.
-Operations on that object will be thread-safe, i.e.~different threads will not
-interfere with one another.  Client code can use that object without knowing
-how the concurrency is implemented.  A common example will be that the object
-implements a datatype, such as a queue or a mapping.  Client code can use the
-concurrent datatype much as they would a corresponding sequential datatype. 
-
-Another major theme will be testing.  How can we test concurrent programs or
-concurrent modules?  Often this requires different techniques from those for
-sequential programs or modules. 
-
-\framebox{Code availability}
+The book will also assume some familiarity with standard techniques for
+reasoning about (sequential) programs, such as using pre- and post-conditions
+to describe the intended effect of an operation, and loop invariants to
+capture properties that are maintained by loops.  Many of these techniques map
+across to concurrent programs.  But we will also need additional reasoning
+techniques to deal with the challenges of concurrency.
 
 \begin{instruction}
 I will sometimes leave you to study some details of programs for yourself.  A
@@ -39,13 +57,36 @@ paragraph labelled with a triangle on the left, like this, is a nudge for you
 to do that.
 \end{instruction}
 
+A major theme of the book will be modularisation.  Often, we will encapsulate
+design decisions concerning concurrency within an object, which we will refer
+to as a \emph{concurrent object}.  Operations on that object will be
+thread-safe, i.e.~different threads will not interfere with one another.
+Client code can use that object without knowing how the concurrency is
+implemented.  Of course, we will need to reason about concurrency only when we
+are implementing the concurrent object: but that reasoning will be local,
+which is much easier than global reasoning.
+
+A common example of a concurrent object will be a concurrent datatype.  This
+will correspond to a standard sequential datatype, such as a queue or a
+mapping, but will be thread-safe.  Client code can use the concurrent datatype
+much as they would a corresponding sequential datatype.
+
+Another major theme will be testing.  How can we test concurrent programs?
+How can we perform unit testing on concurrent object?  Often this requires
+different techniques from those for sequential programs or modules.
+
+\framebox{Code availability}
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsection*{Acknowledgements}
 
+A owe a debt of gratitude to Bernard Sufrin.  I first became interested in
+concurrent programming when I taught some classes for a course that Bernard
+designed and lectured.  In subsequent years, we took turns to run the course,
+building on one another's ideas. 
 
+In particular, the library SCL that we will use is heavily based on  CSO
+(Communicating Scala Objects), written by Bernard.
 
-SCL heavily based on CSO (Communicating Scala Objects), produced by Bernard
-Sufrin.
-
-Karel.
+Others: Karel, Vincent, \framebox{\ldots}

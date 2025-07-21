@@ -1,0 +1,313 @@
+\pagebreak[4]
+\subsection*{Running and compiling programs}
+
+This program can then be compiled (Scala box~\ref{sb:compile}) and run (Scala
+box~\ref{sb:run}).
+
+\begin{scalaBox}{Compiling programs}
+\def\prog#1{{\codecolour\tt #1}}
+\label{sb:compile}
+Programs can be compiled using the Scala compiler {\codecolour\tt scalac},
+e.g.  {\codecolour
+\begin{verbatim}
+> scalac Factorial.scala
+\end{verbatim}
+}% 
+\noindent This will produce a corresponding \texttt{\codecolour .class} file,
+e.g.~\texttt{\codecolour Factorial.class} (assuming the file contains an
+object called |Factorial|), and sometimes some other \texttt{\codecolour
+  .class} files.  These files contain Java bytecode.
+
+{\codecolour\tt scalac} can be quite slow, because it has to load a lot of
+files.  It can be faster to use the fast Scala compiler {\codecolour\tt fsc},
+e.g.  {\codecolour
+\begin{verbatim}
+> fsc Factorial.scala
+\end{verbatim}
+}% 
+This will need to load the files the first time it is run; but will then keep
+a cache of those files so will be faster subsequently.  (The fast Scala
+compiler can become confused, for example if you change directory; it can be
+reset using \prog{fsc -shutdown}.)
+\end{scalaBox}
+
+%%%%%
+
+\begin{scalaBox}{Running programs}
+\label{sb:run}
+Once an object has been compiled, if it has a suitable |main| function with a definition of the form%
+% 
+\begin{scala}
+  def main(args: Array[String]) = ...
+\end{scala}
+%
+then it can be executed using \texttt{\codecolour scala}, e.g.  {\codecolour
+\begin{verbatim}
+> scala Factorial 5
+\end{verbatim}
+}%
+\noindent
+This executes the bytecode in the \texttt{\codecolour .class} file on the
+Java Virtual Machine.
+The array~|args| is instantiated as an array holding any additional arguments
+provided on the command line (as strings). 
+\end{scalaBox}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection*{Other core language features}
+
+To present some other core language features, we write the factorial function
+|fact| in two different ways.  Firstly, it could be defined recursively using
+an |if| statement (Scala box~\ref{sb:if}) as follows.
+%
+\begin{scala}
+  def fact(n: Int): Int = {
+    require(n >= 0)
+    if(n == 0) 1 else n*fact(n-1)
+  }
+\end{scala}
+
+%%%%%
+
+\begin{scalaBox}{\SCALAKW{if} expressions}  
+\label{sb:if}
+The command
+\begin{scala}
+  if (£$test$£) £$c_1$£ else £$c_2$£
+\end{scala}
+tests whether $test$ is true; if it is, it executes $c_1$; otherwise it
+executes $c_2$.
+
+Note that the test must be inside parentheses, and (unlike some languages)
+there is no ``\SCALA{then}'' after the test.
+
+The command
+\begin{scala}
+  if (£$test$£) £$c_1$£
+\end{scala}
+is similar, except it does nothing if $test$ is false.
+
+If either $c_1$ or $c_2$ above comprises more than a single statement, then it
+should be surrounded by curly brackets.
+\end{scalaBox}
+
+%%%%%
+
+\begin{mysamepage}
+Alternatively, the factorial function can be written using a |while| loop
+(Scala box~\ref{sb:while}):
+%
+\begin{scala}
+  def fact(n: Int): Int = {
+    require(n >= 0)
+    var f = 1; var i = 0 // Invariant: £$\sm f = \sm i! \land 0 \le \sm i \le n$£.
+    while(i < n){ i += 1; f *= i }
+    // £$\sm i = \sm n$£ so £$\sm f = \sm n!$£.
+    f
+  }
+\end{scala}
+\end{mysamepage}
+
+%%%%%
+
+\begin{scalaBox}{\SCALAKW{while} loops}
+\label{sb:while}
+The code 
+\begin{scala}
+  while(£$test$£) £$body$£
+\end{scala} 
+does the following
+\begin{enumerate}
+  \item evaluates $test$;
+  \item if $test = true$, executes $body$, and returns to step~1;
+  \item if $test = false$, finishes.
+\end{enumerate}
+Hence it repeatedly executes $body$ while $test$ is true. 
+
+The body of the |while| loop is the \emph{single} statement following the
+test.  If the intention is that the body comprises more than a single
+statement, then those statements should be surrounded by curly brackets.
+\end{scalaBox}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Encapsulation
+
+\section{Encapsulation}
+\label{sec:scala-encapsulation}
+
+Code may be encapsulated in objects (Scala box~\ref{sb:objects}), classes
+(Scala box~\ref{sb:classes}), traits (Scala box~\ref{sb:traits}), and abstract
+classes~\ref{sb:abstract-class}.  Scala differentiates between classes (of
+which there may be many instances) and objects (of which there is a single
+instance).  A class and object may be companions of one another (Scala
+box~\ref{sb:companion}).  A class or object may extend a trait or abstract
+class (Scala box~\ref{sb:extends}).  
+
+%%%%%
+
+\begin{scalaBox}{Classes}
+\label{sb:classes}
+A class is a template for objects.  A class can be defined using syntax
+\begin{scala}
+  class MyClass[£$\sm A_1, \ldots, \sm A_k$£](£$\sm x_1: \sm T_1, \ldots, \sm x_n: \sm T_n$£){ ... } 
+\end{scala}
+Here $\sm A_1, \ldots, \sm A_k$ are polymorphic type parameters (Scala
+box~\ref{sb:polymorphic}), $\sm x_1,\linebreak[1] \ldots,\linebreak[1] \sm
+x_n$ are parameter names, and $\sm T_1, \ldots, \sm T_n$ are corresponding
+types (possibly using the type parameters).  
+
+An instance of~|MyClass| can be created with
+\begin{scala}
+  val myObj = new MyClass[£$\sm B_1, \ldots, \sm B_k$£](£$\sm e_1, \ldots, \sm e_n$£)
+\end{scala}
+where $\sm B_1, \ldots, \sm B_k$ are types with which the type parameters are
+instantiated, and $\sm e_1, \ldots, \sm e_n$ are expressions with types $\sm
+T_1, \ldots, \sm T_n$ when the type parameters are instantiated with $\sm B_1,
+\ldots, \sm B_k$.  The object |myObj| then has type |MyClass|.
+\end{scalaBox}
+
+%%%%%
+
+\begin{scalaBox}{Companion objects}
+\label{sb:companion}
+If a class and an object have the same name, then they are known as
+\emph{companions}.  Typically, the companion object will include definitions
+that relate generally to instantiations of the class, rather than being
+operations on a particular instantiation.
+
+Companions can access |private| and |protected| fields of one another. 
+\end{scalaBox}
+
+%%%%%
+
+\begin{scalaBox}{Traits}
+\label{sb:traits}
+A trait can be defined using syntax 
+\begin{scala}
+  trait MyTrait[£$\sm A_1, \ldots, \sm A_k$£]{ ... }
+\end{scala}
+where $\sm A_1, \ldots, \sm A_k$ are polymorphic type parameters (Scala
+box~\ref{sb:polymorphic}).  A trait typically defines the interface of one or
+more subclasses, or defines some common code used in subclasses.  
+
+A trait cannot be instantiated directly: instead subclasses can be defined and
+instantiated.
+\end{scalaBox}
+
+%%%%%
+
+\begin{scalaBox}{Abstract classes}
+\label{sb:abstract-class}
+An abstract class can be defined using syntax
+\begin{scala}
+  abstract class MyClass[£$\sm A_1, \ldots, \sm A_k$£](£$\sm x_1: \sm T_1, \ldots, \sm x_n: \sm T_n$£){ ... } 
+\end{scala}
+%
+Some values or functions can be abstract: the abstract class contains their
+types, but with no definition; instead, a subclass provides the definition
+(Scala box~\ref{sb:extends}).
+
+An abstract class cannot be instantiated directly: instead subclasses can be
+defined and instantiated.
+
+The main differences between traits and  abstract classes are:
+\begin{itemize}
+\item An abstract class can have construction parameters, whereas a trait
+  cannot (both can have type parameters);
+
+\item A class or object can inherit from \emph{multiple} traits, but from only
+  a single abstract class.
+\end{itemize}
+\end{scalaBox}
+
+%%%%%
+
+\begin{scalaBox}{\protect\SCALAKW{extends}}
+\label{sb:extends}
+An object~|O| or class~|C| can be defined to extend a trait or abstract
+class~|T| using syntax
+\begin{scala}
+  object O extends T{ ... }
+  class C extends T{ ... }
+\end{scala}
+It must provide an implementation for each of the operations defined by that
+trait or abstract class.
+%% The object
+%% of class can use any (non-private) value of function of~$t$.
+
+The object~|O| can be used anywhere a value of type~|T| is expected.
+Likewise, any object that is an instance of~|C| can be used anywhere a value
+of type~|T| is expected: we say that |C| is a \emph{subclass} of~|T|.
+
+The definition of~|O| or |C| can use any non-private value, type or function
+defined in~|T|.
+\end{scalaBox}
+
+%%%%%
+
+\pagebreak[3]
+
+We use case classes (Scala box~\ref{sb:case-classes}) at various points in
+this book.
+
+\pagebreak[3]
+
+Fields of an object, class or trait may be marked as either private (Scala
+box~\ref{sb:private}) or protected (Scala box~\ref{sb:protected}).  Any field
+not so marked is public.
+%%%%%
+
+\begin{scalaBox}{\protect\SCALAKW{case} classes}
+\label{sb:case-classes}
+A definition of the following form (or with any number of parameters)
+\begin{scala}
+  case class C(x: X, y: Y) { ... }
+\end{scala}
+%
+defines |C| as a \emph{case class}.  This has a number of consequences.
+\begin{itemize}
+\item Objects of type |C| can be defined without using ``|new|'', for example
+|val o = C(x1, y1)|
+
+\item The parameters of |C| act like |val|s: if |o| is of type~|C|, then its
+  parameters can be accessed as |o.x| and |o.y|.
+
+\item The compiler provides a natural definition of the function |toString|
+  that converts an object of type~|C| to a string.  For the class~|C|, the
+  |toString| function will produce a string such as ``|C(6, 7)|'' (assuming
+  the types |X| and~|Y| are both~|Int|).
+
+\item The compiler provides a natural definition of equality: two objects of
+  type~|C| will be equal if their |x| and |y| parameters are equal.  Normally,
+  two objects are considered equal if they are precisely the same object,
+  i.e.~stored at the same address in memory. 
+
+%% \item The compiler provides a natural definition of the function |hashCode|;
+%%   see Chapter~\ref{chap:hash-tables}.  This definition is compatible with the
+%%   definition of equality: if two objects are equal then they have the came
+%%   hash codes. 
+
+\item Pattern matching (Scala box~\ref{sb:pattern-matching}) can be used.
+  With the above definition, a pattern |C(pat|$_1$|, pat|$_2$|)| matches a
+  value |C(x,y)| provided |x| and |y| match |pat|$_1$ and |pat|$_2$,
+  respectively, and bind names according to those patterns.
+\end{itemize}
+\end{scalaBox}
+
+%%%%%
+
+\begin{scalaBox}{\protect\SCALAKW{private}}
+\label{sb:private}
+If a field of a class, object or trait is marked with the keyword |private|,
+then it can be accessed only by code inside the same class, object or trait,
+or within a companion object or class (Scala box~\ref{sb:companion}).
+\end{scalaBox}
+
+%%%%%
+
+\begin{scalaBox}{\SCALAKW{protected}}
+\label{sb:protected}
+If a field of a class or trait is marked with the keyword |protected|, then it 
+can be accessed only by code inside the same class or trait, or classes or
+traits that extend it.
+\end{scalaBox}

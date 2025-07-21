@@ -29,13 +29,19 @@ Along the way, we discussed how to use logging to help with debugging; later
 we will use similar techniques for testing.  We also discussed how to identify
 possible deadlocks as cycles of waiting, and how to avoid them.
 
-As a caveat, you should note that alternations are fairly heavyweight
-constructs.  Under the bonnet, the implementation has to do quite a lot of
+As a caveat, you should note that an alternation is a fairly heavyweight
+construct.  Under the bonnet, the implementation has to do quite a lot of
 work to identify whether any of its ports is ready for communication.  Don't
 use an alternation unless there is a good reason to do so, i.e.,~you really
-need a thread to be able to communicate on either of two channels.  Sometimes
-it's easier and more efficient to force communications to happen in a
-particular order, rather than allowing multiple different orders.
+need a thread to be able to communicate on either of two channels.  
+ Sometimes it's easier and more efficient to force
+communications to happen in a particular order, rather than allowing multiple
+different orders.
+
+In some cases, an alternation between two in-ports can be avoided by merging
+the two channels into a single channel, and using a union type of data to
+represent the two different cases: we will illustrate this technique in the
+next chapter.
 
 Sometimes a shared channel can produce the same effect as an \SCALA{alt}.  For
 example, we could construct a variant of the dining philosophers where each
@@ -51,9 +57,13 @@ which it can receive messages from either of the adjacent philosophers:
 %
 %% Note that the \SCALA{pick} communication could be from either neighbouring
 %% philosopher, so these need to be |ManyOne| channels.
-Note that we need separate |pick| and |drop| channels, so that when one of the
-philosophers is holding the fork, the other cannot pick it up.  However, such
-a technique isn't always applicable. 
+Note that we need separate |pick| and |drop| channels: otherwise, an attempted
+pick by one philosopher might be misinterpreted as a drop by another
+philosopher who is currently holding the fork. 
+%, so that when one of the
+%philosophers is holding the fork, the other cannot pick it up.  
+%% However, such
+%% a technique isn't always applicable. 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

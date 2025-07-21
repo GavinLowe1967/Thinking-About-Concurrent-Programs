@@ -20,7 +20,7 @@ class FilterChan[A] extends FilterChanT[A]{
 
   /** Synchronously send x. */
   def send(x: A) = { 
-    val replyChan = new SyncChan[Unit]; fromSender!(x, replyChan); replyChan?()
+    val replyChan = new OnePlaceBuffChan[Unit]; fromSender!(x, replyChan); replyChan?()
   }
 
   /** Channel receivers use to send to the server. */
@@ -28,7 +28,7 @@ class FilterChan[A] extends FilterChanT[A]{
   
   /** Synchronously receive a value that satisfied p. */
   def receive(p: A => Boolean): A = {
-    val replyChan = new SyncChan[A]; fromReceiver!(p, replyChan); replyChan?()
+    val replyChan = new OnePlaceBuffChan[A]; fromReceiver!(p, replyChan); replyChan?()
   }
 
   private val shutdownChan = new SyncChan[Unit]

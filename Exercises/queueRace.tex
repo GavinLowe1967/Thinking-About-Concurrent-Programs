@@ -14,7 +14,7 @@ class Queue[A]{
   /** Is the queue empty? */
   def isEmpty = last == head
 
-  /** Add x to the queue. */
+  /** Add £x£ to the queue. */
   def enqueue(x: A) = {
     val node = new Node(x, null); last.next = node; last = node
   }
@@ -142,6 +142,6 @@ that returns |None| when the queue is empty, or |Some(x)| if |x| is dequeued.
 \end{enumerate}
 
 A solution (to the last five issues) is to adapt the implementation so that
-each invocation runs in isolation.  This is the approach we'll adopt later in
-the course.  
+each invocation runs in isolation.  This is the approach we adopt in the rest
+of the book.
 \end{answerI}

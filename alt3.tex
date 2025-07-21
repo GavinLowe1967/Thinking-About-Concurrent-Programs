@@ -1,4 +1,3 @@
-
 \section{Avoiding Deadlocks}
 \label{sec:avoid-deadlocks}
 
@@ -19,7 +18,7 @@ This corresponds to an anti-clockwise cycle in
 Figure~\ref{fig:dining-philosophers-2}.
 
 In fact, deadlocks correspond to cycles of waiting more generally.  Consider a
-system based on message passing, and suppose that for every channel~$c$, there
+system based on message passing.  Suppose that for every channel~$c$, there
 is some thread that sometimes sends on~$c$, and some thread that sometimes
 receives on~$c$ (or else the system is badly configured).  Consider a
 deadlocked state, and suppose no thread has terminated or is performing an
@@ -101,14 +100,15 @@ the send was successful.  Likewise there is an operation
   def receiveWithin(millis: Long): Option[A] =
 \end{scala}
 %
-that tries to receive a value for up to |millis| milliseconds.  If it
-successfully receives a value~|x|, the operation returns~|Some(x)|; otherwise
-it returns~|None| to indicate a timeout.  There are also operations
+that tries to receive a value for up to |millis| milliseconds.  The operation
+returns a result of type |Option[A]| (see Scala box~\ref{sb:option-type}): if it
+successfully receives a value~|x|, it returns~|Some(x)|; otherwise it
+returns~|None| to indicate a timeout.  There are also operations
 |sendWithinNanos| and |receiveWithinNanos| where the time is given in
 nanoseconds.
 
 The last part of Exercise~\ref{ex:diningPhils} asks you to implement this
-technique of timing out and dropping the fork.
+technique of timing out, dropping the fork, and trying again later.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -158,7 +158,7 @@ The following code copies data from |in| to |out|, and can hold up to two
 pieces of data at a time: it is a two-place buffer. 
 %
 \begin{scala}  
-  def buff2X[T](in: ??[T], out: !![T]): ThreadGroup = {
+  def buff2[T](in: ??[T], out: !![T]): ThreadGroup = {
     def empty(): Unit = { val x = in?(); full(x) }
     def full(x: T): Unit = {
       alt( out =!=> { x } ==> { empty() } | in =?=> { y => out!x; full(y) } )
@@ -180,7 +180,7 @@ pieces of data at a time: it is a two-place buffer.
 %% \end{scala}
 %
 This runs a thread that executes |empty()|, catching |Stopped| exceptions.
-Note how when it is holding a value~|x| (in state |full(x)|), it can either
+When it  holds a value~|x|, in state |full(x)|, it can either
 output~|x|, or input a new value~|y|, at which point it is full so must
 output~|x|, after which it is just holding~|y|.
 
@@ -189,7 +189,7 @@ Here's an alternative definition.  The variable \SCALA{empty} records whether
 the buffer is empty.  When $\sm{empty} = \sm{false}$,\, \SCALA{x} stores the
 next value to be output.
 %
-\begin{mysamepage}
+%\begin{mysamepage}
 \begin{scala}
   def buff2Alt[T](in: ??[T], out: !![T]) = thread{
     var x: T = null.asInstanceOf[T]  // Contents, possibly invalid.
@@ -201,7 +201,7 @@ next value to be output.
     )
   }
 \end{scala}
-\end{mysamepage}
+%\end{mysamepage}
 %
 \noindent
 In the first branch, the code \SCALA{\{ empty = true; x \}} is an expression

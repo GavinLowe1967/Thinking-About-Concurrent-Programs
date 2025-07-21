@@ -46,7 +46,7 @@ class PartialRAServer(numResources: Int){
   }
 
   // Fork off the server
-  server.fork
+  fork(server)
 
   /** Request a resource. 
     * In fact, this version never returns None. */

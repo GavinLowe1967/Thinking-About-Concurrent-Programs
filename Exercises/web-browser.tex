@@ -27,11 +27,15 @@ re-loads every few minutes, and another that the user is actively reading.
 Suppose the user tries to scroll down in the second page just after the first
 page starts a re-load; then the user has to wait until the re-load completes
 before the second page scrolls; this could take several seconds, and so annoy
-the user.  (The Firefox browser used to act in this way.)  If the different
+the user.  (Some browsers used to act in this way in the past.)  If the different
 tabs used different threads, then they could run concurrently so the user
-wouldn't see this delay.  This would still be the case on a uni-processor
-machine: the fact that the two processes are competing for the processor would
-slow things down a bit, but probably not enough for the user to notice.
+wouldn't see this delay.  
+
+This would still be the case on a uni-processor machine.  However, the fact
+that multiple threads are competing for the processor would slow things down a
+bit.  Web browsers and web pages seem to have become more bloated over the
+years, because it's assumed that they will run on a multi-processor machine,
+so I suspect a uni-processor machine would struggle in some cases.
 
 The problem is, of course, that two threads might try to access some shared
 data (e.g.~the history list) simultaneously, leading to race conditions.

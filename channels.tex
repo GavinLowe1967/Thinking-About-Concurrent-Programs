@@ -8,23 +8,23 @@
 
 \section{Summary}
 
-In this chapter we have seen the basics of message passing concurrency.  The
+In this chapter we have seen the basics of message-passing concurrency.  The
 idea is straightforward: threads can send messages to one another.
 
 We have arranged that threads have no shared variables.  This means that we
 avoid any memory races, of the form that we saw in Chapter~\ref{chap:intro}.
 In later chapters, we will relax this condition, and allow some shared
 variables.  However, we will still need to ensure disciplined access to those
-variables, and message passing will be one technique that we can use to
+variables: message passing will be one technique that we can use to
 coordinate the threads.  
 
-We have seen how to use message passing using the SCL library.  Threads
+We have seen how to implement message passing using the SCL library.  Threads
 communicate via \emph{channels}, which comprise an \emph{in-port} and an
 \emph{out-port}.  Threads can send messages at an out-port, which are received
 at the corresponding in-port.  Channels can be either \emph{synchronous} or
 \emph{asynchronous} (buffered).  A port can be shared between several threads.
 Channels can be closed, for example to indicate the end of a stream of data;
-and this can be used to signal the termination of a concurrent network.  
+and this can be used to coordinate the termination of a concurrent network.
 
 We have seen a number of examples illustrating message passing.  These have
 mostly used fine-grained concurrency, where systems are built from very small

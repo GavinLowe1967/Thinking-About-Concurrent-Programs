@@ -1,25 +1,25 @@
 At present, we can write definitions of threads that try to send or receive on
-a \emph{single} channel.  However, it's often useful for a thread to be able
-to try to send or receive on either of two or more channels: the
+a \emph{single} channel at a time.  However, it's often useful for a thread to
+be able to try to send or receive on either of two or more channels: the
 \emph{alternation}, or \emph{alt}, construct does that for us.
 %
-In this chapter, we will study alternation: we will start by describing the
+In this chapter, we will study alternation: we start by describing the
 basic syntax of alternation in SCL, and then use it in examples.
 
 %%%%%
 
-We start by describing how a thread can try to receive from any one of several
-different in-ports.  The construct
+The following construct defines a thread that tries to receive from any one of
+several different in-ports:
 %
 \begin{scala}
   alt( in£$_1$£ =?=> {f£$_1$£} | ... | in£$_n$£ =?=> {f£$_n$£} )
 \end{scala}
 %
-waits until one of the in-ports \SCALA{in}$_1$, \ldots, \SCALA{in}$_n$
-is ready to communicate, reads a value~$v$ from the port, and applies the
-relevant function |f|$_i$ to~$v$.  If |in|$_i$ is an in-port passing data
-of type~|A|, then $\sm f_i$ must be a function that takes an argument of
-type~|A|. 
+This waits until one of the in-ports \SCALA{in}$_1$, \ldots, \SCALA{in}$_n$ is
+ready to communicate, reads a value~$v$ from the port, and applies the
+relevant function |f|$_i$ to~$v$.  If |in|$_i$ is an in-port passing data of
+type~|A|, then $\sm f_i$ must be a function that takes an argument of
+type~|A|.
 
 In such constructs, it is common to define each function using a
 \emph{function literal}: the notation |x => c| (pronounced ``|x|~maps
@@ -60,7 +60,7 @@ tags the value, and outputs it.
 
 It's sometimes useful to specify that a particular in-port should be
 considered only if some boolean condition, or \emph{guard}, is true.  In the
-construct
+construct%
 %
 \begin{scala}
   alt( guard£$_1$£ && in£$_1$£ =?=> {f£$_1$£} | ... | guard£$_n$£ && in£$_n$£ =?=> {f£$_n$£} )
@@ -81,9 +81,9 @@ If a branch is feasible and the in-port is available for communication
 branch is \emph{ready}.
 %
 The alt waits until a branch is ready, and receives from the in-port.  If
-several are ready, it chooses between them.  If all the branches become
-infeasible (because of channels being closed), the alt throws an |AltAbort|
-exception.
+several are ready, it chooses between them.  If all the branches subsequently
+become infeasible (because of channels being closed), the alt throws an
+|AltAbort| exception.
 
 %%%%% \heading{\scalashape serve}
 
@@ -117,18 +117,20 @@ The construct
 %
 is very similar to the previous |repeat{ alt(...) }| construct, but with two
 differences.
-
-One difference is that the earlier construct creates a new alternation object,
-from class |ox.scl.channel.Alt|, on each iteration, whereas the |serve|
-creates a single alternation object which is used repeatedly.
+%
+One difference is that the earlier construct creates a new alternation object
+(from class |ox.scl.channel.Alt|) on each iteration, whereas the |serve|
+creates a single alternation object which is used repeatedly.  This gives a
+small gain in efficiency. 
 
 %%%%% \heading{Fairness}
 
-The implementation of  |alt| tests whether the branches are ready in the order
-given.  In the |repeat{alt(...)}| construct, a new |Alt| object is created
-for each iteration, so if the first branch is repeatedly ready, it will be
-repeatedly selected, and the other branches will be starved.
-
+The implementation of |alt| initially tests whether the branches are ready in
+the order given, selecting the first one that is ready (if any).  In the
+|repeat{alt(...)}| construct, a new |Alt| object is created for each
+iteration, so if the first branch is repeatedly ready, it will be repeatedly
+selected, and the other branches will be starved.
+%
 By contrast, the |serve| aims to be fair.  It uses the same |Alt| on each
 iteration.  It remembers which branch was selected on the previous iteration,
 and tests whether branches are ready starting from the following one (looping
@@ -164,7 +166,7 @@ Henceforth, we will use the word ``alternation'' to mean either an |alt| or
 
 Fairness crops up in a number of scenarios in concurrent programming.
 %
-A typical fairness property is that if a particular option is continuously
+A~typical fairness property is that if a particular option is continuously
 logically possible, then it eventually happens.  Fairness for an alternation
 means that if a particular branch is continuously ready, and the alternation
 performs enough iterations, then eventually that branch is selected.
@@ -176,9 +178,10 @@ fair, despite not giving equal shares.
 Fairness is psychologically attractive: certainly, being fair to other people
 in everyday life is a good thing.  However, it's not always appropriate in a
 concurrent program.  In some scenarios, achieving fairness has a performance
-overhead.  And sometimes fairness can be achieved only by a more complicated
-program.  You should consider whether or not fairness is desirable.  Often you
-can achieve higher throughput, and a simpler program, without fairness.
+overhead (although it's negligible in the case of a |serve|).  And sometimes
+fairness can be achieved only by a more complicated program.  You should
+consider whether or not fairness is desirable.  Often you can achieve higher
+throughput, and a simpler program, without fairness.
 
 %%%%%  Generalised
 
@@ -193,14 +196,16 @@ of branches that is generated using a |for| expression.
 \end{scala}
 %
 The branches are indexed by the variable~|i|; we will sometimes refer to an
-alternation like this as \emph{indexed}.  This is fair to each in-port: if a
-particular in-port is continually ready, it will be selected within at most
-|ins.length| iterations.  The construct terminates when all the ports in |ins|
-are closed, or |out| is closed.
-
+alternation like this as \emph{indexed}.  The branch for index~|i| is willing
+to input on |ins(i)|; if it receives~|x|, it outputs the pair |(i, x)|.  This
+|serve| is fair to each in-port: if a particular in-port is continually ready,
+it will be selected within at most |ins.length| iterations.  The construct
+terminates when all the ports in |ins| are closed, or |out| is closed.
 
 There is a restriction on the use of alternations.  A port may not be
 simultaneously feasible in two alternations; in other words, a port may not be
-shared between alternations.  The implementation detects such misuses, and
-throws an exception.  However, a port may be shared between an alternation and
-a thread performing a simple receive via the ``|?|'' operation.
+shared between alternations.  This is a design decision that makes the
+implementation easier and slightly more efficient.  It does not seem to be
+problematic in practice.  The implementation detects such misuses, and throws
+an exception.  However, a port may be shared between an alternation and a
+thread performing a simple receive via the ``|?|'' operation.

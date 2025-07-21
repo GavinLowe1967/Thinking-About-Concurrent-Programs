@@ -21,7 +21,7 @@ My solution is below.  Each branch needs a suitable guard.
 %
 \begin{scala}  
   def ChangeMachine(
-      inPound: ?[Unit], out5p: ![Unit], out10p: ![Unit], out20p: ![Unit]
+      inPound: ??[Unit], out5p: !![Unit], out10p: !![Unit], out20p: !![Unit]
   ) = thread{
     var credit = 0 // Credit in pence.
     serve(

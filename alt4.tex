@@ -69,10 +69,11 @@ More precisely, it returns an index~|k| such that
 \[\mstyle
 \sm a\interval{\sm l}{\sm k} \le \sm a(\sm k) < 
   \sm a\interval{\sm k+1}{\sm r} 
-\land \sm l \le \sm k < \sm r.
+\land \sm l \le \sm k < \sm r,
 \]
+where we use obvious notation to talk about all the values in a segment. 
 
-The implementation of~|partition| chooses the first element |a(l)| as the
+The implementation of~|partition(l, r)| chooses the  element |a(l)| as the
 pivot~|x|.  The main loop keeps |x| in position~|l|; it is swapped into the
 correct position only at the end.  The loop maintains the invariant
 \[\mstyle
@@ -162,11 +163,13 @@ task (without returning subtasks).
     private def server = thread("server"){
       val queue = new scala.collection.mutable.Queue[Task]
       queue.enqueue((0, a.length)); var busyWorkers = 0
-      serve(
+      serve(queue.nonEmpty || busyWorkers > 0)(
         queue.nonEmpty && getC =!=> { busyWorkers += 1; queue.dequeue() }
-        | busyWorkers > 0 && addC =?=> { case (t1,t2) => 
-            queue.enqueue(t1); queue.enqueue(t2); busyWorkers -= 1 }
-        | busyWorkers > 0 && doneC =?=> { _ => busyWorkers -= 1 }
+        | addC =?=> { case (t1,t2) => 
+            assert(busyWorkers > 0); busyWorkers -= 1 
+            queue.enqueue(t1); queue.enqueue(t2)
+          }
+        | doneC =?=> { _ => assert(busyWorkers > 0); busyWorkers -= 1 }
       )
       assert(queue.isEmpty && busyWorkers == 0)
       getC.endOfStream()
@@ -190,15 +193,37 @@ operation.
 The server itself stores the pending tasks in a queue (although we could have
 used a different collection class, such as a stack).  It also uses a variable
 |busyWorkers| to record the number of workers currently working on a task.
-Most of the implementation is then fairly straightforward.  The main |serve|
-loop terminates when all the guards are false, namely when the queue is empty
-and $\sm{busyWorkers} = 0$: this is the termination condition we identified
-earlier.  Note in particular how that second and third branches each has a
-guard |busyWorkers > 0| in order to achieve this termination condition: and we
-should certainly expect this condition to hold whenever a worker tries to send
-on |addC| or |doneC|.  When the |serve| loop terminates the server performs
-|endOfStream| on the |getC| channel, to signal to the workers that there are
-no more tasks to complete.
+Most of the implementation is then fairly straightforward.  
+
+The main loop is defined using an extension of the |serve| construct.  The
+command |serve(guard)(bs)| acts like |serve(bs)| (with branches~|bs|), but
+will repeat only while |guard| is true.  Thus it terminates either when
+|guard| becomes false, or the body throws a |StoppedException|. 
+
+In this case, the main |serve| loop terminates when its guard
+\SCALA{queue.nonEmpty \|\| busyWorkers > 0} is false,
+%% loop terminates when all the guards are false, 
+i.e.~when the queue is empty and $\sm{busyWorkers} = 0$: this is the
+termination condition we identified earlier.
+%% Note in particular how that second and third branches each has a
+%% guard |busyWorkers > 0| in order to achieve this termination condition (and we
+%% should certainly expect this condition to hold whenever a worker tries to send
+%% on |addC| or |doneC|).  
+Alternatively, we could have included a guard |busyWorkers > 0| on the second
+and third branches:
+\begin{scala}
+  serve(
+    queue.nonEmpty && getC =!=> { ... }
+    | busyWorkers > 0 && addC =?=> { ... }
+    | busyWorkers > 0 && doneC =?=> { ... }
+  )
+\end{scala}
+This version terminates when all the guards are false, i.e.~again when the
+queue is empty and $\sm{busyWorkers} = 0$.
+
+When the |serve| loop terminates, the server performs |endOfStream| on the
+|getC| channel, to signal to the workers that there are no more tasks to
+complete.
 %
 \begin{instruction}
 Make sure you understand the implementation of |Bag|.
@@ -251,7 +276,7 @@ copies, and check the two results contain the same elements.  This can be
 repeated many times.
 
 Unfortunately, this implementation performs poorly.  On an array containing a
-million values, it is about 100 times slower than the sequential algorithm.
+million values, it is about 100 times slower than the sequential algorithm!
 The main reason for this is that there are simply too many messages sent over
 channels, and this creates a very large overhead.  For example, consider a
 subtask containing just two elements; this will lead to one message issuing
@@ -269,7 +294,7 @@ We can improve the implementation in several ways.
 \begin{enumerate}
 \item \label{obs:quicksort-1}
   Rather than returning two subtasks to the bag, a worker could return
-  just one, and complete the second task itself.  This means that we save a
+  just one, and complete the second task itself.  This means that we save one
   message in each such case.
 
 \item There is no point in returning subtasks to the bag if they contain at
@@ -306,10 +331,10 @@ other subtask.
     private def server = thread("server"){
       val queue = new scala.collection.mutable.Queue[Task]
       queue.enqueue((0, a.length)); var busyWorkers = 0
-      serve(
+      serve(queue.nonEmpty || busyWorkers > 0)(
         queue.nonEmpty && getC =!=> { busyWorkers += 1; queue.dequeue() }
-        | busyWorkers > 0 && addC =?=> { t => queue.enqueue(t) }
-        | busyWorkers > 0 && doneC =?=> { _ => busyWorkers -= 1 }
+        | addC =?=> { t => assert(busyWorkers > 0); queue.enqueue(t) }
+        | doneC =?=> { _ => assert(busyWorkers > 0); busyWorkers -= 1 }
       )
       assert(queue.isEmpty && busyWorkers == 0)
       getC.endOfStream()
@@ -361,7 +386,6 @@ class ConcurrentQuicksort2(protected val a: Array[Int], numWorkers: Int)
     var l = -1; var r = -1
     repeat{
       if(l == r){ val task = Bag.get(); l = task._1; r = task._2; assert(r-l > 1)}
-      }  
       if(r-l < Limit){ qsort(l,r); r = l; Bag.done() }
       else{
         val m = partition(l, r)
@@ -370,7 +394,7 @@ class ConcurrentQuicksort2(protected val a: Array[Int], numWorkers: Int)
           r = m
         }
         else if(r-(m+1) > 1) l = m+1 // Continue with £(m+1,r)£.
-        else{ r = l; Bag.done() } // This segment finished.
+        else{ r = l; Bag.done() } // This segment is complete.
       }
     }
   }
@@ -398,10 +422,14 @@ a\interval{\sm m+1}{\sm r}$ is not trivial, it continues with that subsegment.
 Otherwise, the task is complete, so it updates |r| to record that, and signals
 that fact to the bag.
 
+\begin{instruction}
+Make sure you understand the implementation.
+\end{instruction}
+
 %This implementation is far faster than the previous concurrent implementation.
-For arrays of size 1,000,000, using eight workers, this implementation is
-slightly faster than the sequential implementation, so about 100 times
-faster than the previous concurrent implementation.  For arrays of size
-10,000,000, it is about four times faster than the sequential
-implementation; and for arrays of size 100,000,000, it is about five times
-faster.
+For arrays of size 1,000,000, using eight workers on a machine with eight
+cores, this implementation is slightly faster than the sequential
+implementation, so about 100 times faster than the previous concurrent
+implementation.  For arrays of size 10,000,000, it is about four times faster
+than the sequential implementation; and for arrays of size 100,000,000, it is
+about five times faster.
