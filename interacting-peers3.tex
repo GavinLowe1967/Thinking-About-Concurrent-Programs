@@ -1,0 +1,168 @@
+\section{Leadership Election in a Ring}
+
+We now consider a different problem based on a ring.  Suppose we have |n|
+nodes arranged in a unidirectional ring, each of which has a unique identity.
+However, the nodes do not know what |n| is, and the identities might not be in
+the range $\interval{0}{\sm n}$.  This might be the case in a distributed
+system, where the identities are MAC addresses or IP addresses.  Further, each
+node has ports with which it communicates with its neighbours in the ring.
+
+We want a protocol to elect one node as a leader (or controller) for
+subsequent computation.  More precisely, each node should end up with a
+boolean indicating whether it is the leader: the leader could then inform the
+others of its own identity, if that is required.  We will encapsulate
+solutions into classes with the following interface.
+%
+\begin{scala}
+trait LeadershipElection{
+  /** Run the protocol using identity £id£, receiving messages on £in£, and sending 
+    * on £out£.  Return a £Boolean£ indicating whether this node is the leader. */
+  def apply(id: Int, in: ??[Int], out: !![Int]): Boolean
+}
+\end{scala}
+%
+
+We will consider two protocols for this problem. 
+Note that there is no way to adapt the first ring protocol for the sum
+problem, because there is no way to decide who should initiate the protocol:
+this would requires that we already have a leader! 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Instead, we consider a simple adaptation of the second ring protocol for the
+sum protocol.  We identify the node with the maximum identity, and it becomes
+leader.  The code is in Figure~\ref{fig:leadership1}.  Each identity is passed
+round the ring.  Each node keeps track, in variable |max|, of the maximum
+identity it has seen.  When it receives back its own identity, it can deduce
+that it has seen all the identities, and so is done.  It is the leader if
+|max| equals its own identity.
+
+%%%%%
+
+\begin{figure}[htbp]
+\begin{scala}
+class SimpleLeaderRing extends LeadershipElection{
+  def apply(id: Int, in: ??[Int], out: !![Int]): Boolean = {
+    var max = id; var done = false; out!id
+    while(!done){
+      val x = in?()
+      if(x > max) max = x
+      else if(x == id) done = true
+      if(!done) out!x    
+    }
+    max == id
+  }
+}
+\end{scala}
+\caption{The first leadership election protocol.}
+\label{fig:leadership1}
+\end{figure}
+
+%%%%%
+
+\begin{instruction}
+Study the details of the implementation.
+\end{instruction}
+
+Every node sees every identity, so this protocol uses $\sm n^2$ messages, sent
+in |n|~rounds. 
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+The second protocol, due to Peterson~\cite{peterson-election}, is more
+efficient.  It reduces the total number of messages to $O(\sm n \log \sm n)$.
+For simplicity, we assume that all the identities are non-negative.
+
+%%%%%
+
+\begin{figure}
+\begin{scala}
+/** The Peterson Leadership Election protocol. 
+  * This implementation assumes all identities are non-negative. */
+class PetersonLeader extends LeadershipElection{
+  def apply(id: Int, in: ??[Int], out: !![Int]): Boolean = {
+    var relaying = false; var leader = false; var tid = id
+    while(!leader && !relaying){
+      out!tid; val x = in?()
+      if(x == tid){ out!(-1); leader = true }
+      else{
+        out!x; val y = in?()
+        if(x > tid && x > y) tid = x
+        else relaying = true
+      }
+    }
+    // Relaying.
+    while(relaying){
+      val x = in?(); out!x
+      if(x < 0) relaying = false
+    }
+    leader
+  }
+}
+\end{scala}
+\caption{The Peterson leadership election protocol.}
+\label{fig:leadership2}
+\end{figure}
+
+%%%%%
+
+The code is in Figure~\ref{fig:leadership2}.  In each round, some of the node
+are \emph{active}, and the remainder are \emph{relaying}: the active nodes are
+ones that are still candidates to become the election, while those relaying
+simply pass on messages.  Initially all nodes are active.  Each active node
+has a \emph{temporary identity}~|tid|: this is one of the original identities,
+but each node's temporary identity changes from round to round.
+
+In each round, each active node sends its temporary identity on the ring.  If
+a node then receives back its own temporary identity, it must be the only
+active node, and so becomes the leader.  It passes a negative value round the
+ring to signal to the other nodes that the protocol is complete (this is why
+we assumed non-negative identities; an alternative would be to change the type
+of the channels, and to use a different subtype for the termination messages).
+
+If there are more than two active nodes, each temporary identity is passed
+forward to two other active nodes: thus each active node sees the temporary
+identities~|x| and |y| of the first two active nodes upstream from it.  If the
+first of these temporary identities, |x|, is larger than the other, and also
+larger than the node's temporary identity, then this node remains active,
+adopting |x| as its new temporary identity.  Otherwise, the node becomes a
+relayer.
+
+
+
+\begin{instruction}
+Study the details of the code.
+\end{instruction}
+
+We now justify the correctness of this protocol.  We start with the safety
+property that, assuming the protocol terminates, a single node returns |true|
+to indicate that it is the leader.  First, note that the largest initial
+identity survives each round: only smaller identities are eliminated.  Next,
+note that on each round, the active nodes have distinct temporary identities:
+if a temporary identity survives a round, it is adopted by the next downstream
+active node.  Thus, if an active node receives back its own temporary
+identity, it must indeed be the only active node, and its temporary identity
+is the maximum of the initial identities.  Hence, if the protocol terminates,
+a single node returns |true|.
+
+We now show that the protocol does indeed terminate (a liveness property), and
+justify the earlier claim about the number of messages.  Consider a particular
+round, other than the final round; and consider three consecutive active
+nodes, $n_0$, $n_1$ and~$n_2$, in downstream order, with temporary identities
+$tid_0$, $tid_1$ and~$tid_2$, respectively.  Suppose $n_2$ remains active
+after this round; then we must have $tid_1 > tid_0$ (since these values
+instantiate $n_2$'s |x| and |y| variables).  But $n_1$ receives $tid_0$ for
+its |x| variable, and $tid_1$ was its previous temporary identity, so $n_1$
+becomes a relayer.
+
+Hence, in each round (except the final round), out of any two consecutive
+active nodes, at least one becomes a relayer.  This means that the number of
+active nodes is reduced by at least a half in each round.  Hence the protocol
+terminates in at most $1 + \lfloor \log \sm n \rfloor$ rounds.
+
+On each round, every node sends and receives two messages: this is obviously
+true of the active nodes; and the relayers simply receive and send the
+messages sent by the closest upstream active node.  Hence $2 \sm n$ messages
+are sent on each round, and so the total number of messages is $O(\sm n \log
+\sm n)$.

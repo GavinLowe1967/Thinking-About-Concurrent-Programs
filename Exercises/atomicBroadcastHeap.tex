@@ -1,0 +1,73 @@
+\begin{questionS}
+Recall the synchronous atomic broadcast problem from
+Exercise~\ref{ex:atomicBroadcast}, which allows a sender to synchronously
+broadcast a value to |n| receivers.  We consider now a slight variant, where
+each receiver has an identity in the range $\interval{0}{\sm n}$, which it
+passes as a parameter to the |receive| operation.  Thus we are after a class
+with the following signature.
+%
+\begin{scala}
+class AtomicBroadcast[A](n: Int){
+  require(n >= 2)
+
+  /** Synchronously send £x£ to the £n£ receivers. */
+  def send(x: A): Unit
+
+  /** Synchronously receive the sender's value.
+    * @param £me£ this thread's identity, in the range £$\interval{0}{\sm n}$£. */
+  def receive(me: Int): A 
+}
+\end{scala}
+%
+Implement such a class using a binary heap, so that the number of messages
+sent internally in each synchronisation is $O(\log \sm n)$.  For simplicity,
+you may assume $\sm n \ge 2$. 
+\end{questionS}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{answerS}
+We arrange the threads into a heap, with the sender at the root. 
+
+We use two arrays of channels.  Channel |signal(i)| is used to signal from the
+receiver with identity~|i| to its parent, indicating that all the receivers in
+its subtree have called |receive|.  We use channel |go(i)| for |i|'s parent to
+send to~|i| the value of the current |send|.  Thus we use two phases: in the
+first phase, messages are sent up the heap on the |signal| channels, so the
+sender can wait until all receivers have called the operation; and in the
+second phase, the sender's value is distributed down the heap on the |go|
+channels. 
+
+The code is then a fairly simple adaption of the code in the sum example.
+Note that the way we have arranged the heap affects the calculation of the
+indices for the two children (you might want to draw a picture to check this).
+Because we have placed the sender at the root, the code in each case is
+slightly simplified.  The assumption $\sm n \ge 2$ means that both of the
+sender's children must exist: we could easily avoid this assumption using
+suitable |if| statements.
+%
+\begin{scala}
+class AtomicBroadcast[A](n: Int){
+  require(n >= 2)
+
+  private val signal = Array.fill(n)(new SyncChan[Unit])
+  private val go = Array.fill(n)(new SyncChan[A])
+
+  def send(x: A): Unit = {
+    signal(0)?(); signal(1)?() // Wait for all receivers.
+    go(0)!x; go(1)!x // Distribute £x£ down the heap. 
+  }
+
+  def receive(me: Int): A = {
+    val child1 = 2*me+2; val child2 = 2*me+3
+    if(child1 < n) signal(child1)?()
+    if(child2 < n) signal(child2)?()
+    signal(me)!()
+    val x = go(me)?()
+    if(child1 < n) go(child1)!x
+    if(child2 < n) go(child2)!x
+    x
+  }
+}
+\end{scala}
+\end{answerS}

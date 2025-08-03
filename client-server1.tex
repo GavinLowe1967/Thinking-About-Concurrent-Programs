@@ -8,8 +8,8 @@ consider a web server that services requests from web clients (e.g.~web
 browsers), or a networked file server that services requests from user
 programs to read and write files.
 
-The client-server pattern is also used in the implementation of some
-operating systems, e.g.~Minix.  Various servers run within the operating
+The client-server pattern is also used in the implementation of some operating
+systems, e.g.~Minix~\cite{minix}.  Various servers run within the operating
 system, for example to provide access to the file system or the terminal.  The
 advantage of this approach is one of modularisation.  Each server can be
 considered a separate program, which means that the operating system kernel
@@ -47,7 +47,7 @@ client code with thread-safe operations on the datatype.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{A resource allocation server}
+\section{A Resource Allocation Server}
 
 We consider the example of a server that is responsible for managing and
 allocating multiple resources of the same kind.  Such servers are common in

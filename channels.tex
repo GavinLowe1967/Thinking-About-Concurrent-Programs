@@ -9,7 +9,8 @@
 \section{Summary}
 
 In this chapter we have seen the basics of message-passing concurrency.  The
-idea is straightforward: threads can send messages to one another.
+idea is straightforward: threads can send messages to one another.  The
+technique originated with the work of Tony Hoare~\cite{Hoare78}.
 
 We have arranged that threads have no shared variables.  This means that we
 avoid any memory races, of the form that we saw in Chapter~\ref{chap:intro}.
@@ -67,23 +68,23 @@ In this book, we use Scala together with the Scala Concurrency Library (SCL).
 However, message-passing concurrency can also be used in a number of other
 languages or with different concurrency primitives.
 
-Message-passing concurrency started with the programming language {\sf occam}.
-It was developed by INMOS in the early 1980s, targeting their transputer
-microprocessors.
+Message-passing concurrency started with the programming language {\sf
+  occam}~\cite{occam}.  It was developed by INMOS in the early 1980s,
+targeting their transputer microprocessors.
 
-Concurrent Scala Objects (CSO) is a library of concurrency primitives, mostly
-message-passing, developed by Bernard Sufrin.  SCL is heavily based on CSO,
-and inherits much of the same syntax.  
+Communicating Scala Objects~\cite{CSO} (CSO) is a library of concurrency
+primitives, mostly message-passing, developed by Bernard Sufrin.  SCL is
+heavily based on CSO, and inherits much of the same syntax.
 
-Go\footnote{\url{https://golang.org/}} is a programming language created
-by Google that uses message passing.  It is probably the most
-mainstream such language.
+Go~\cite{go} is a programming language created by Google that uses message
+passing.  It is probably the most mainstream such language.
+% \footnote{\url{https://golang.org/}} 
 
 
-Rust supports concurrency in a number of styles, including message
-  passing\footnote{%
-    \url{https://doc.rust-lang.org/book/ch16-02-message-passing.html}}. 
-Erlang uses similar ideas, in a functional setting.
+Rust~\cite{rust} supports concurrency in a number of styles, including message
+  passing.
+%\footnote{ \url{https://doc.rust-lang.org/book/ch16-02-message-passing.html}}. 
+Erlang~\cite{erlang} uses similar ideas, in a functional setting.
 
 Message-passing libraries are available for a number of other languages.  For
 example, JCSP\footnote{\url{http://www.cs.kent.ac.uk/projects/ofa/jcsp/}} is

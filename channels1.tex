@@ -24,7 +24,7 @@ used with processes.
 
 %%%%%
 
-\section{Defining and using channels}
+\section{Defining and Using Channels}
 
 Think of a channel as a wire.  Messages are sent at one end, and received at
 the other end.
@@ -173,7 +173,7 @@ not use any sharing of ports in this chapter, but we will in later chapters.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Example: printing multiples of four}
+\section{Example: Printing Multiples of Four}
 
 We now consider a slightly larger example, which is an instance of a paradigm
 known as \emph{fine-grained concurrency}: the system is built from several
@@ -223,9 +223,7 @@ object Mults4{
 
 %%%%%
 
-The definition of |system| creates appropriate channels and puts the
-components together as illustrated below.
-%
+\begin{figure}
 \begin{center}
 \begin{tikzpicture}
 \draw (0,0) node[draw] (nats) {\scalashape nats};
@@ -253,7 +251,14 @@ components together as illustrated below.
 \draw (alts2)++(1,-3) node {\small\scalashape \vdots};
 \end{tikzpicture}
 \end{center}
-%
+\caption{The construction of the system to produce multiples of four.}
+\label{fig:Mult4-pic}
+\end{figure}
+
+%%%%%%
+
+The definition of |system| creates appropriate channels and puts the
+components together as illustrated in Figure~\ref{fig:Mult4-pic}.
 The |nats| thread outputs the natural numbers on~|x1|.  The first instance of
 |alts| receives these, and outputs every alternate value, i.e.~the even
 natural numbers, on~|x2|.  The second instance of |alts| receives these, and
@@ -267,7 +272,7 @@ Make sure you understand how the components cooperate together.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Buffered channels}
+\section{Buffered Channels}
 
 In the previous examples, we used synchronous channels.  In effect, on each
 channel, the send and receive of each value happen at the same time: the

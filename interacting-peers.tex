@@ -1,0 +1,63 @@
+\chapter{Interacting Peers}
+
+\input{interacting-peers1} % intro, centralised, fully-connected
+\input{interacting-peers2} % rings and heaps
+\input{interacting-peers3} % leadership election in a ring.
+\input{interacting-peers4} % building a spanning tree.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Summary}
+
+In this chapter, we have studied the idea of interacting peers, where a number
+of threads or processes, executing basically the same code, work together to
+achieve some goal.  The peers can be connected together via various
+topologies, including a centralised topology, a fully connected topology, a
+ring, or a binary tree.  In the centralised topology, the central controller
+can be a bottleneck.  In the fully connected topology, the number of messages
+grows quadratically with the number of nodes, which might be excessive.  Rings
+can be effective in a number of situations.  A binary tree is often a
+particularly efficient topology, allowing many problems to be solved in time
+$O(\log n)$ for $n$ nodes.
+
+We illustrated each of the topologies by using them to find the sum of
+values initially held by the nodes.  This generalises to allow the data to be
+combined together in different ways: Exercise~\ref{ex:ringFold} investigates
+this for the case of a ring.
+%% easily: given an
+%% associative, commutative function~$f$, we can use these patterns to calculate
+%% \[\mstyle
+%% f(f( \ldots f (f( f(x_0, x_1), x_2), x_3), \ldots), x_{n-1})
+%% \]
+%% where $x_0,\ldots,x_{n-1}$ are the data values. 
+We reasoned about the different programs by identifying \emph{invariants}:
+properties that were true at key points in the program, for example at the end
+of each iteration. 
+
+We also considered another problem for a ring topology, namely that of
+leadership election.  A straightforward algorithm solves this problem in using
+$O(n^2)$ messages for $n$ nodes  The more sophisticated Peterson algorithm
+solves it using $O(n \log n)$ messages, by eliminating at least half the
+candidates on each round.
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\exercises
+
+
+\input{Exercises/ringFold}
+
+\input{Exercises/distTermination}
+
+\input{Exercises/atomicBroadcastHeap}
+
+\input{Exercises/gridMax}
+
+\framebox{Second part of grid max?}
+
+% Example from 2022Exam/largestComponent.tex -- probably not
+
+
+

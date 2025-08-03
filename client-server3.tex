@@ -1,4 +1,4 @@
-\section{Example: an exchanger}
+\section{Example: An Exchanger}
 
 In this section, we consider how to use a client-server mechanism to solve a
 synchronisation problem.  
@@ -446,8 +446,8 @@ i.e., the nodes can be partitioned intro two subsets (here the |send|s and
 We then want to ask whether there is a subset of the edges that includes every
 node exactly once: in graph-theoretic terms, this is known as a \emph{perfect
   matching}.  There are standard algorithms for finding a perfect matching, if
-one exists, for example the Ford-Fulkerson method~\cite{ford-fulkerson}.  We
-can therefore use such an algorithm to decide whether the log represents a
+one exists, for example the Ford-Fulkerson method~\cite{ford-fulkerson, CLRS}.
+We can therefore use such an algorithm to decide whether the log represents a
 valid execution.  This technique can be applied more generally for testing
 synchronisation objects.
 

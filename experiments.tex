@@ -1,8 +1,10 @@
-\chapter{Experimental design}
+\chapter{Experimental Design}
 \label{app:experiments}
 
 In this appendix, we describe how to design good experiments, and the basics
-of statistical analysis.  
+of statistical analysis.  For more information, I recommend
+\emph{Statistically Rigorous Java Performance Evaluation}, by Andy Georges,
+Dries Buytaert and Lieven Eeckhout~\cite{Georges+}.
 
 Typically, our experiments will seek to find how the running time of a program
 is affected by various parameters of our program.  Some of these parameters
@@ -11,8 +13,6 @@ the parameters are tuneable, such as the number of threads used.  We want to
 know how to choose values for the tuneable parameters, based on the input
 parameters, so as to make the program run quickly. 
 
-\framebox{See} \emph{Statistically Rigorous Java Performance Evaluation}, by
-Andy Georges, Dries Buytaert and Lieven Eeckhout.
 
 You should aim to make experimental results reproducible.  You should document
 how you ran the experiment, and details of the hardware on which it was
@@ -92,7 +92,7 @@ observations to match real use cases.
 
 %%%%%
 
-\section{Statistical analysis}
+\section{Statistical Analysis}
 
 Given $k$ observations $x_i$ (for $0 \le i < k$), we can calculate their
 mean~$m$:

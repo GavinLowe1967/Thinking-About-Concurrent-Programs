@@ -1,0 +1,126 @@
+\begin{question}
+\begin{enumerate}
+\item
+Suppose $n^2$ worker threads are arranged in a $n$ by $n$ grid.  Each thread
+starts with an integer value $x$.  The aim is for each thread to end up in
+possession of the maximum of these $n^2$ values.  Each thread may send
+messages to the threads above it and to the right of it in the grid, where we
+treat the bottom row as being above the top row, and the left hand column as
+being to the right of the right hand column (so the topology is that of a
+torus).
+
+Write code solving this problem, making use of worker thread with the
+following signature:
+%
+\begin{scala}
+  def worker(i: Int, j: Int, x: Int, readUp: ??[Int], writeUp: !![Int], 
+            readRight: ??[Int], writeRight: !![Int]) = thread{ ... }
+\end{scala}
+%
+Give your code the following signature, where |xss| gives the values initially
+held by the threads, and the |apply| operation returns the results obtained by
+each worker:
+%
+\begin{scala}
+class GridMax(n: Int, xss: Array[Array[Int]]){
+  require(n >= 1 && xss.length == n && xss.forall(_.length == n))
+
+  /** Run the system, and return array storing results obtained. */
+  def apply(): Array[Array[Int]] = ...
+}
+\end{scala}
+%
+The book website includes a \framebox{test harness} you can use to test the
+code.
+
+
+\item Now suppose we remove the condition that messages may be sent upwards
+  and rightwards: instead you may define channels however you like.  Write
+  code to again find the maximum value, but that runs in time $O(\log n)$. 
+\end{enumerate}
+\end{question}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{answerI}
+\paragraph*{Part a.}
+We will use buffered channels (alternatively, arrange for the reads and
+writes, below, to be concurrent).  
+
+The program runs in two phases.  In the first phase, values are propagated
+along rows, treating each row as a ring.  More precisely, each node keeps
+track of the maximum value it has seen so far, and passes that maximum value
+on (an alternative is to pass on the original |x| values themselves).  After
+$k$ iterations, it holds the maximum of the values that started up to $k$
+places to its left (looping round).  At the end of this phase, each node holds
+the maximum value in its row.  In the second phase, those row-maximums are
+propagated up the columns, using the same technique.
+%
+\begin{scala}
+class GridMax(n: Int, xss: Array[Array[Int]]){
+  require(n >= 1 && xss.length == n && xss.forall(_.length == n))
+
+  /** Array to hold results. */
+  private val results = Array.ofDim[Int](n,n)
+
+  private def worker(i: Int, j: Int, x: Int, readUp: ??[Int], writeUp: !![Int], 
+                   readRight: ??[Int], writeRight: !![Int])
+    = thread("worker"+(i,j)){
+    var myMax = x
+    // Propagate values along rows.
+    for(k <- 1 until n){ writeRight!myMax; myMax = myMax max readRight?() }
+    // Propagate values upwards.
+    for(k <- 1 until n){ writeUp!myMax; myMax = myMax max readUp?() }
+    // Store result.
+    results(i)(j) = myMax
+  }
+
+  /** Channels by which values are passed rightwards; indexed by coords of
+    * recipients. */
+  private val right = Array.fill(n,n)(new OnePlaceBuffChan[Int])
+
+  /** Channels by which values are passed upwards; indexed by coords of
+    * recipients. */
+  private val up = Array.fill(n,n)(new OnePlaceBuffChan[Int])
+
+  /** Run the system, and return array storing results obtained. */
+  def apply(): Array[Array[Int]] = {
+    val workers = 
+      || (for(i <- 0 until n; j <- 0 until n) yield
+            worker(i, j, xss(i)(j),
+                   up(i)(j), up(i)((j+1)%n), right(i)(j), right((i+1)%n)(j)))
+    run(workers)
+    results
+  }
+}
+\end{scala}
+
+%%%%%
+
+\paragraph*{Part b.} 
+
+We give an ``identity'' to each node: the node with coordinates $(i,j)$
+receives the identity $n \times i + j$.  Note that these identities are
+unique, and cover the range $\interval{0}{n^2}$.  We can then use these
+identities to form the nodes into a binary heap, and adapt the code from the
+sum example.  The main changes from the previous part are below.
+%   
+\begin{scala}
+  private val n2 = n*n
+
+  /* Channels to send messages up and down the heap, indexed by child
+   * identities. */
+  private val up, down = Array.fill(n2)(new SyncChan[Int]) 
+
+  def worker(i: Int, j: Int, x: Int) = thread(s"worker($i, $j)"){
+    val myId = n*i+j; val child1 = 2*myId+1; val child2 = 2*myId+2
+    var myMax = x
+    if(child1 < n2) myMax = myMax max up(child1)?()
+    if(child2 < n2) myMax = myMax max up(child2)?()
+    if(myId != 0){ up(myId)!myMax; myMax = down(myId)?() }
+    if(child1 < n2) down(child1)!myMax
+    if(child2 < n2) down(child2)!myMax
+    results(i)(j) = myMax
+  }
+\end{scala}
+\end{answerI}

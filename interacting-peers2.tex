@@ -1,0 +1,318 @@
+\section{A Ring Topology}
+
+A common way to coordinate multiple threads is via a ring, where each thread
+communicates with just its two neighbours (see
+Figure~\ref{fig:interacting-peers}(c)).  A ring may be either
+\emph{unidirectional}, where messages go only one way round the ring, or
+\emph{bidirectional}, where messages can go both ways round the ring.  It is
+common to use the word \emph{token} for a message sent in a ring.
+
+Rings are particularly common in distributed systems, where several nearby
+computers are physically wired into a ring.  However, our examples in this
+chapter will consider nodes in a \emph{logical} ring.  
+
+We will see two protocols for the sum example using a unidirectional ring with
+|n| nodes, where each node~$i$ sends messages to node $(i+1) \bmod \sm n$ and
+receives from node $(i-1) \bmod \sm n$ (so messages are sent clockwise in
+Figure~\ref{fig:interacting-peers}(c)).  In the first protocol, a single token
+is passed twice round the ring.  In the second protocol, |n| tokens are
+simultaneously passed round the ring.
+
+%%%%%%%%%%
+
+\subsection{The First Ring Protocol}
+
+The first protocol uses two stages.  During the first stage, node~\SCALA{0}
+acts as the initiator, by sending a token containing its value.  Each node in
+turn receives the token, which contains the sum so far, calculates the new
+sum, including its own value, and sends it on.  More precisely, letting $x_j$
+be the initial value for node~$j$, the value passed from node $i$ to
+node~$(i+1) \bmod n$ equals:
+%
+\[\mstyle
+\sum \set{x_j \| 0 \le j \le i}.
+\]
+When the value gets back to node \SCALA{0} it equals the overall sum, 
+\[\mstyle
+\sum \set{x_j \| 0 \le j \le \sm n-1}.
+\]
+This value is then passed around the ring in the second stage, and each node
+returns this value.
+
+%%%%%
+
+\begin{figure}
+\begin{scala}
+/** Implementation of £Sum£ using a ring, with a distinguished initiator.
+  * The initiator is the thread with identity £0£. */
+class Ring(n: Int) extends Sum{
+  require(n >= 2)
+
+  /** Channels connecting the nodes.  Channel £chan($i$)£ goes from node
+    * £$(i-1)\bmod \sm n$£ to node £$i$£; so node £$i$£ receives on £chan($i$)£ and sends
+    * on £chan($(i+1)\bmod \sm n$)£. */
+  private val chan = Array.fill(n)(new SyncChan[Int])
+ 
+  def apply(me: Int, x: Int): Int = {
+    val in = chan(me); val out = chan((me+1)%n)
+    if(me == 0){                  // This is the initiator.
+      out!x                       // Start the communications going.
+      val sum = in?()             // Receive sum back.
+      out!sum                     // Send it round.
+      sum
+    }
+    else{
+      val sum1 = in?()            // Receive sum so far.
+      out!sum1+x                  // Pass on updated values.
+      val sum = in?()             // Receive final sum.
+      if(me != n-1) out!sum   // Pass it on.
+      sum
+    }
+  } 
+}
+\end{scala}
+\caption{The sum example using a ring topology with a single token.}
+\label{fig:sum-ring1}
+\end{figure}
+
+%%%%%
+
+The program is in Figure~\ref{fig:sum-ring1}.  We use an array |chan| of
+channels, where channel |chan(|$i$|)| connects node~$(i-1)\bmod \sm n$ to
+node~$i$.  This means that node~$i$ receives on |chan(|$i$|)| and sends on
+|chan(|$(i+1)\bmod \sm n$|)|.  It is always a good idea to be clear about how
+arrays of channels are indexed.  The code for each node starts by defining the
+names |in| and |out| for the relevant channels: this is good practice, as it
+makes the subsequent code far clearer.
+
+The code is then fairly straightforward, and explained by comments.  One small
+optimisation is that in the second stage, node~$\sm n - 1$ does not send the
+token back to node~$0$, since there is no need.
+%
+\begin{instruction}
+Study the details of the code. 
+\end{instruction}
+
+This protocol uses $2\sm n-1$ messages, sent sequentially.  Each node is
+inactive for most of the time.  This pattern is most effective for problems
+where each node can do computation between sending a message and receiving the
+next. 
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection{The Second Ring Protocol}
+
+We now consider the second ring protocol.  All the values are passed round the
+ring concurrently in separate tokens.  Thus each node sees all the values, so
+can calculate the maximum. 
+
+More precisely, on its $k$th iteration, each node~$i$ receives a value
+from node~$(i-1) \bmod \sm n$ that originated with node $(i-k)\bmod \sm n$; it
+sends this value on to node~$(i+1)\bmod \sm n$, and keeps track of the
+sum, \SCALA{sum}, it has seen so far:
+%
+\begin{eqnarray*}
+\sm{sum} & = & \sum \set{x_{(i-j)\bmod \ss n} \| 0 \le j \le k}.
+\end{eqnarray*}
+%
+At the end of iteration~$\sm n-1$, it holds the overall sum.
+
+%%%%%
+
+\begin{figure}
+\begin{scala}
+/** Implementation of £Sum£ using a symmetric ring. */
+class RingSym(n: Int) extends Sum{
+  /** Channels connecting the nodes.  Channel £chan($i$)£ goes from node
+    * £$(i-1)\bmod \sm n$£ to node £$i$£; so node £$i$£ receives on £chan($i$)£ and sends
+    * on £chan($(i+1)\bmod \sm n$)£.  These channels need to be buffered. */
+  private val chan = Array.fill(n)(new OnePlaceBuffChan[Int])
+
+  def apply(me: Int, x: Int): Int = {
+    val in = chan(me); val out = chan((me+1)%n)
+    var sum = x
+    out!x                 // Send my value round.
+    for(k <- 1 until n){
+      val w = in?()       // Receive next value.
+      sum += w
+      out!w               // Pass it on.
+    }
+    val w = in?(); assert(x == w) // Receive my value back.
+    sum
+  }
+\end{scala}
+\caption{The sum example using a ring topology with multiple tokens.}
+\label{fig:sum-ring2}
+\end{figure}
+
+%%%%%
+
+The code is in Figure~\ref{fig:sum-ring2}.  The channels are indexed as for
+the previous ring protocol.  However, it is necessary to use buffered channels
+in this case: each node starts by sending, so if we used synchronous channels,
+there would be an immediate deadlock.  We use one-place buffered channels;
+however, a bit more buffering might help to overcome inconsistencies in speeds
+of nodes.
+
+\begin{instruction}
+Study the details of the code, and check the properties claimed above.
+\end{instruction}
+
+This protocol uses a total of $\sm n^2$ messages, so considerably more than
+the previous protocol.  (We could omit the final message sent by each node, to
+reduce this to $\sm n(\sm n - 1)$.)  However, it uses only |n| rounds,
+compared with $2\sm n-1$ for the previous protocol.  Each node is active for
+most of the time (so one slow node will slow down the whole ring).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Tree-Based Protocol}
+
+The final protocol works by arranging nodes into a binary tree.  In the
+initial stage, values get passed up the tree, starting from the leaves: each
+node passes to its parent the sum of the subtree for which it is the root.  At
+the end of this stage, the root of the tree obtains the overall sum.  In the
+second stage, this sum is passed back down the tree.
+
+More precisely, we arrange the nodes into a binary \emph{heap}: see
+Figure~\ref{fig:interacting-peers}(d).  Node~$0$ is the root of the tree.
+Node~$i$ is the parent of nodes $2i+1$ and $2i+2$ (if those nodes exist).
+
+
+%% \begin{center}
+%% \begin{tikzpicture}[xscale = 0.8, yscale = 1.0]
+%% \draw(0,0) node[draw] (0) {0};
+%% \draw (0)++(-1.2,-1) node[draw] (1) {1}; \draw[<->] (0) -- (1);
+%% \draw (0)++(1.2,-1) node[draw] (2) {2}; \draw[<->] (0) -- (2);
+%% \draw (1)++ (-0.7,-1) node[draw] (3) {3}; \draw[<->] (1) -- (3);
+%% \draw (1)++ (0.7,-1) node[draw] (4) {4}; \draw[<->] (1) -- (4);
+%% \draw (2)++ (-0.7,-1) node[draw] (5) {5}; \draw[<->] (2) -- (5);
+%% \draw (2)++ (0.7,-1) node[draw] (6) {6}; \draw[<->] (2) -- (6);
+%% \draw (3)++ (-0.35,-1) node[draw] (7) {7}; \draw[<->] (3) -- (7);
+%% \draw (3)++ (0.35,-1) node[draw] (8) {8}; \draw[<->] (3) -- (8);
+%% \draw (4)++ (-0.35,-1) node[draw] (9) {9}; \draw[<->] (4) -- (9);
+%% \end{tikzpicture}
+%% \end{center}
+
+%%%%%
+
+The code is in Figure~\ref{fig:sum-tree}.  We use two arrays of channels, |up|
+and |down| to pass data up and down the tree.  The arrays are indexed by the
+\emph{child} node: \SCALA{up(i)} and \SCALA{down(i)} are used to communicate
+between node~$i$ and its parent, node~$(i-1) \div 2$.
+
+%%%%%
+
+\begin{figure}
+\begin{scala}
+class Tree(n: Int) extends Sum{
+  /** Channels leading up and down the tree.  Each array is indexed by
+    * the child's identity. */
+  private val up, down = Array.fill(n)(new SyncChan[Int])
+  
+  def apply(me: Int, x: Int) = {
+    val child1 = 2*me+1; val child2 = 2*me+2  // Identities of children.
+    var sum = x                                     // Sum seen so far.
+    // Receive sub-sums from both children.
+    if(child1 < n){ val sum1 = up(child1)?(); sum += sum1 }
+    if(child2 < n){ val sum2 = up(child2)?(); sum += sum2 }
+    // £sum£ is the sum of values for the subtree rooted at me.
+    // Send £sum£ to parent, and wait for overall sum.
+    if(me != 0){ up(me)!sum; sum = down(me)?() }
+    // Send £sum£ to children.
+    if(child1 < n) down(child1)!sum
+    if(child2 < n) down(child2)!sum
+    sum
+  }
+}
+\end{scala}
+\caption{The tree-based protocol.}
+\label{fig:sum-tree}
+\end{figure}
+
+%%%%%
+
+Each node starts by defining names |child1| and |child2| for the indices of
+its two children, if they exist.  Again, this is good practice, as it makes
+the subsequent code clearer.  As an aside, it is easy to get the indexing
+wrong in such cases: I recommend drawing a picture like that in
+Figure~\ref{fig:interacting-peers}(d).  
+
+The node receives values from its two
+children, if those children exist, i.e.~they have identities less than~|n|.
+The values received will be the subtotals for the two subtrees; so adding
+these values to the node's own value gives the subtotal for the tree rooted at
+this node.  The node then passes this value to its parent, if this is not the
+root.  It then waits to receive back a value from its parent (again, if this
+is not the root), which it passes down to its children.
+
+\begin{instruction}
+Study the code.  In particular, consider the different steps taken by leaf
+nodes, internal nodes, and the root.
+\end{instruction}
+
+%%%%%
+
+We now justify the correctness of the protocol, by formalising the claim we
+made above.  We write $decendents(i)$ for the indices of the nodes in the
+subtree rooted at~$i$:
+%
+\begin{eqnarray*}
+descendents(i) & = & 
+  \set{i} 
+    \begin{align}
+      \null \union (\If 2i+1 < \sm n \mbox{ then } descendents(2i+1) 
+      \mbox{ else } \set{}) \\
+      \null \union
+      (\If 2i+2 < \sm n  \mbox{ then }  descendents(2i+2) \mbox{ else } \set{}).
+    \end{align}
+\end{eqnarray*}
+%
+Then we claim that each node~$i$ with $0 < i < \sm n$ passes to its parent the
+sum of the values held by the nodes in the subtree rooted at~$i$, that is:
+%
+\[\mstyle
+\sum \set{x_j \| j \in descendents(i)}
+\]
+The claim can be proven by induction on the size of $descendents(i)$, as
+follows.
+%
+\begin{itemize}
+\item
+Consider the case where $2i + 2 < \sm n$, so node~$i$ has two children.  Then
+\[
+\begin{array}{cl}
+& \displaystyle\sum \set{x_j \| j \in descendents(i)}  \\
+= & \qquad\mbox{(expanding the definition of $descendents(i)$)} \\
+
+& \displaystyle\sum 
+  \set{x_j \mid j \in \set{i} \union  descendents(2i+1) \union
+               descendents(2i+2) } \\
+= & \qquad\mbox{(addition is associative)} \\ 
+& x_i 
+  \begin{align}
+  \null + \displaystyle \sum \set{x_j \| j \in descendents(2i+1)} \\
+  \null + \displaystyle \sum \set{x_j \| j \in descendents(2i+2)}.
+  \end{align}
+\end{array}
+\]
+By the inductive hypothesis, the second term is the value received from
+$\sm{child1} = 2i+1$, and the third term is the value received from
+$\sm{child2} = 2i+2$.  Hence the above value equals the value that node~$i$
+passes to its parent, as required.
+
+\item
+The cases where node~$i$ has one or no children are similar.
+\end{itemize}
+%
+Hence, we can deduce that node~$0$ ends up with the overall sum, which is
+passed back down the tree.
+
+This protocol uses $2(\sm n-1)$ messages (each node except~0 sends one message
+on its \SCALA{up} channel, and receives one message on its \SCALA{down}
+channel).  There are four messages between each internal node and its
+children, so the total number of rounds is about $4\lfloor \log \sm n \rfloor$
+rounds, i.e.~about $4$ times the height of the tree.  This is the most
+efficient of the patterns we have seen, so we will use the tree pattern again
+in later chapters.

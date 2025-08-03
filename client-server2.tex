@@ -1,4 +1,4 @@
-\section{Testing the resource allocation server}
+\section{Testing the Resource Allocation Server}
 
 We want to test the resource allocation server.  The property we want to
 test is that two clients never hold the same resource: if a resource~$r$ is
@@ -135,7 +135,7 @@ Study the details of the test program.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
 
-\section{Supporting arbitrary many clients}
+\section{Supporting Arbitrary Many Clients}
 
 So far, we have assumed a fixed number of clients, with this number known when
 the resource server is created.  This allowed us to create one reply channel
@@ -209,7 +209,7 @@ send the response even if the client isn't yet ready for it.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Buffering requests}
+\section{Buffering Requests}
 
 Previously, if the server couldn't meet a request, it immediately replied with
 a |None| value.  An alternative is to store such requests until they can be

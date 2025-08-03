@@ -1,0 +1,14 @@
+Sum.scala: the different Sum programs.
+
+Sumtest.scala: test for Sum.scala.
+
+LeadershipElection.scala: leadership election in a ring.
+
+RingFold.scala: a fold over data values held in a ring (exercise).
+
+AtomicBroadcast.scala: synchronous atomic broadcast using a heap (exercise).
+FIXME: Makefile needs fixing for prerequisite of test harness 
+
+GridMax.scala: maximum in a grid (exercise).
+
+GridMaxTest.scala: test for grid max (test harness for website)

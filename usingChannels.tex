@@ -201,17 +201,19 @@ but we want to test a more sophisticated implementation against it.
 \label{fig:mergesort-test}
 \end{figure}
 
-The code in Figure~\ref{fig:mergesort-test} implements this idea.  The |doTest|
-function performs a single test.  If uses an array |xs| of size~|size|, where
-|size| is picked randomly in the range $\interval{0}{\sm{MaxSize}}$; each
-element of |xs| is picked randomly in the range $\interval{0}{\sm{Max}}$.  The
-|sender| thread sends the elements of~|xs| to the |qSort| network on the |in|
-channel, then signals the end of the stream.  The |receiver| thread receives
-the outputs from |qSort|, and stores them in~|ys|.  The final assertion tests
-whether a sorted version of |xs| (produced using the |sorted| function from
-the Scala |Array| class) contains the same elements as the outputs; if this
-doesn't hold, it prints information about the inputs and outputs, to help with
-debugging.
+The code in Figure~\ref{fig:mergesort-test} implements this idea.  The
+|doTest| function performs a single test.  If uses an array |xs| of
+size~|size|, where |size| is picked randomly in the range\footnote{We use the
+  notation $\interval{a}{b}$ to represent the numbers in the half-open
+  interval from $a$ up to but not including~$b$.}
+$\interval{0}{\sm{MaxSize}}$; each element of |xs| is picked randomly in the
+range $\interval{0}{\sm{Max}}$.  The |sender| thread sends the elements
+of~|xs| to the |qSort| network on the |in| channel, then signals the end of
+the stream.  The |receiver| thread receives the outputs from |qSort|, and
+stores them in~|ys|.  The final assertion tests whether a sorted version of
+|xs| (produced using the |sorted| function from the Scala |Array| class)
+contains the same elements as the outputs; if this doesn't hold, it prints
+information about the inputs and outputs, to help with debugging.
 
 The |main| function  runs |doTest| many times.
 %% %
@@ -231,7 +233,7 @@ Study the details of the testing program.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Reasoning about the ordering of actions}
+\section{Reasoning About the Order of Actions}
 
 We will sometimes want to reason about the order in which particular
 actions---such as memory reads and writes, and sends and receives of

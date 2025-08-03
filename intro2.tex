@@ -1,5 +1,4 @@
-
-\section{Disciplined interaction}
+\section{Disciplined Interaction}
 
 The main challenge of concurrent programming is ensuring disciplined
 interaction between threads.  Without this, even very simple concurrent
@@ -243,13 +242,17 @@ Likewise, it would be valid to rewrite the body of~|t2| to
 \end{scala}
 and again the logic around the signal doesn't hold.  
 
-Alternatively, it would
-be valid for the compiler to rewrite the body of~|t2| to
+\pagebreak[3]
+
+Alternatively, it would be valid for the compiler to rewrite the body of~|t2|
+to
 % 
+\begin{mysamepage}
 \begin{scala}
   if(!done){ while(true){ } }
   val myAnswer = answer; assert(myAnswer == 42)
 \end{scala}
+\end{mysamepage}
 This is a fairly standard form of rewrite: it avoids rereading the variable
 |done|.  Now, this thread can read |done = false| and loop forever, so the
 program gets stuck.  In fact, on my machine, the program runs for a few

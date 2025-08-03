@@ -39,12 +39,14 @@
 \renewcommand{\floatpagefraction}{.75}
 \sloppy\raggedbottom
 
+\setcounter{tocdepth}{1}
+
 \title{Thinking about Concurrent Programs}
 \author{Gavin Lowe}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\includeonly{preface}
+\includeonly{interacting-peers}
 
 \begin{document}
 \maketitle
@@ -70,16 +72,19 @@
 }
 \include{alt}
 \include{client-server}
+\include{interacting-peers}
+\include{datatypes}
+%%%%%
 
-\chapter{Concurrent Datatypes}
-\label{chap:datatypes}
 %
-Unisex bathroom (2009 exam) -- to datatypes chapter.  twoTypesProc.tex
 
-
-%% In heaps chapter, implement an atomic broadcast. 
+%% In heaps chapter, implement an atomic broadcast.  Also index of largest
+%% item example. 
 
 %%%%%
+
+\bibliographystyle{plain}
+\bibliography{cpBook}
 
 \appendix
 

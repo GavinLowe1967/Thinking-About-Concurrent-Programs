@@ -1,12 +1,5 @@
 \subsection{Tuning experiments}
 
-Figure~\ref{fig:bag-of-tasks-experiment} shows timing results for the
-bag-of-tasks example.  Each plot considers a particular choice for the number
-of intervals, |n|, and the number of tasks, |nTasks|.  The x-axis considers
-different numbers of workers, and the y-axis gives the times taken.  Each run
-used unbounded buffered channels.  Each observation performed $2^{27}/\sm{n}$
-runs.
-
 %%%%%
 
 \begin{figure}
@@ -18,6 +11,13 @@ runs.
 \end{figure}
 
 %%%%%
+
+Figure~\ref{fig:bag-of-tasks-experiment} shows timing results for the
+bag-of-tasks example.  Each plot considers a particular choice for the number
+of intervals, |n|, and the number of tasks, |nTasks|.  The x-axis considers
+different numbers of workers, and the y-axis gives the times taken.  Each run
+used unbounded buffered channels.  Each observation performed $2^{27}/\sm{n}$
+runs.
 
 It is useful to consider the quantity $\sm n / \sm{nTasks}$ for each plot,
 i.e.~the number of intervals per tasks, which runs from $2^9$ to $2^{13}$ by
