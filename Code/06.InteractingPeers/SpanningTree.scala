@@ -4,7 +4,9 @@ import ox.scl._
 
 import scala.collection.mutable.ArrayBuffer
 
-/** adjacency should be symmetric and irreflexive. */ 
+/** Build a spanning tree for the graph with `n` nodes [0..`n`), and adjacency
+  * relation given by `adjacency`.  The adjacency relation should be symmetric
+  * and irreflexive. */ 
 class SpanningTree(n: Int, adjacency: Array[Array[Boolean]]){
   require(adjacency.length == n && adjacency.forall(_.length == n))
 
@@ -12,8 +14,8 @@ class SpanningTree(n: Int, adjacency: Array[Array[Boolean]]){
   private type Edge = (NodeId,NodeId)
 
   private trait Msg
-  /** A message from `prev` telling the recipient to start exploration. */
-  private case class Start(prev: NodeId) extends Msg
+  /** A message from `pred` telling the recipient to start exploration. */
+  private case class Start(pred: NodeId) extends Msg
   /** A message indicating that the sender has constructed a subtree using
     * `edges`. */
   private case class Finished(edges: List[Edge]) extends Msg
@@ -34,37 +36,37 @@ class SpanningTree(n: Int, adjacency: Array[Array[Boolean]]){
     val size = ins.length; require(outs.length == size); var edges = List[Edge]()
     if(size != 0){
       // Identity of this node's predecessor, and its index in the arrays.
-      var prev = -1; var pIx = -1; var terminated = false
+      var pred = -1; var pIx = -1; var terminated = false
       // Waiting phase
       if(me != 0) attempt{
         alt(| ( 
           for(i <- 0 until size)
-          yield ins(i) =?=> { case Start(p) => prev = p; pIx = i }
+          yield ins(i) =?=> { case Start(p) => pred = p; pIx = i }
         ) )
       }{ terminated = true; if(verbose) println(s"$me: terminated") }
       if(!terminated){
         // Sending phase
-        if(verbose)println(s"$me: sending; prev = $prev; pIx = $pIx")
+        if(verbose)println(s"$me: sending; pred = $pred; pIx = $pIx")
         for(i <- 0 until size; if i != pIx) outs(i)!Start(me)
         // Receiving phase
-        val pendingIn = Array.fill(size)(true)
-        if(pIx >= 0) pendingIn(pIx) = false
-        if(verbose) println(s"$me: receiving; "+pendingIn.mkString(", "))
+        val pending = Array.fill(size)(true)
+        if(pIx >= 0) pending(pIx) = false
+        if(verbose) println(s"$me: receiving; "+pending.mkString(", "))
         // Receive back Finished message from any neighbour we're waiting on.
         serve(| (
           for(i <- 0 until size)
-          yield pendingIn(i) && ins(i) =?=> { m =>
+          yield pending(i) && ins(i) =?=> { m =>
             if(verbose) println(s"$me: received $m")
             m match{
               case Finished(es) => edges = es++edges
               case Start(_) => // outs(i)!No
               // case No =>
             }
-            pendingIn(i) = false
+            pending(i) = false
           }
         ) ) // end of serve
         // Finishing phase
-        if(pIx >= 0) outs(pIx)!Finished((prev,me)::edges)
+        if(pIx >= 0) outs(pIx)!Finished((pred,me)::edges)
       } // end of if(!terminated)
       if(verbose) println(s"$me: finishing: $edges")
     } // end of if(ins.nonEmpty)
@@ -113,22 +115,18 @@ object SpanningTreeTest{
     for(i <- 0 until n; j <- 0 until i; if Random.nextDouble() <= 0.3){ 
       adjacency(i)(j) = true; adjacency(j)(i) = true 
     }
-    // println(adjacency.map(_.mkString(", ")).mkString("\n"))
     val tree = new SpanningTree(n, adjacency)()
 
-    // Check adjacency and result compatible
+    // Check `adjacency` and `result` are compatible.
     def errMsg = adjacency.map(_.mkString(", ")).mkString("\n")+"\n"+tree
-    // Nodes reached by the tree
+    // Nodes reached by the tree.
     val reached = new Array[Boolean](n); reached(0) = true
     for((a,b) <- tree){
       assert(reached(a), s"Unreached source of edge: ($a, $b)\n"+errMsg)
+      assert(!reached(b), s"Node reached by two paths: $b\n"+errMsg)
       assert(adjacency(a)(b), s"Non-edge used: ($a, $b)\n"+errMsg) 
       reached(b) = true
     }
-    // Count number reached
-    var numReached = 0; for(i <- 0 until n; if reached(i)) numReached += 1
-    // Does `tree` have the right length to be a tree?
-    assert(numReached == tree.length + 1, s"Not a tree.\n"+errMsg)
     // Check no other node should have been reached.
     for(i <- 0 until n; if !reached(i); j <- 0 until n)
       assert(!(reached(j) && adjacency(i)(j)), s"$i not reached:\n"+errMsg)

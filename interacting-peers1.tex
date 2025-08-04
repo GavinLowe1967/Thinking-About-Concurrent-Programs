@@ -123,8 +123,14 @@ i.e., those messages have to be sent in that sequential order.  We will be
 interested in identifying the length of the longest totally ordered chain, and
 how that relates to the number of threads.
 
-In the latter part of this chapter, we will consider a more sophisticated
-problem for a ring topology, namely to elect one of the nodes as a leader. 
+In the second half of this chapter, we consider two examples suitable for
+distributed systems.  The first considers a ring topology, with the goal of
+electing one of the nodes as a leader or controller.  The second example
+considers a more general graph, where one node is designated as the
+controller, each node knows only about its neighbours, and the goal is to find
+all the nodes reachable from the controller, and to construct a spanning tree
+for those nodes.
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -140,7 +146,7 @@ value.
 
 %%%%%
 
-\begin{figure}
+\begin{figure}[bht]
 \begin{scala}
 /** Implementation of £Sum£ using a controller.  The controller is the node
   * with identity £0£. */

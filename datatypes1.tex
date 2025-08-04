@@ -145,16 +145,17 @@ class ServerTotalQueue[T] extends TotalQueue[T]{
 Study the details of the implementation.
 \end{instruction}
 
-....................................................................
-
 %%%%%
 
-\begin{slide}
-\heading{Correctness}
+\section{Correctness}
 
-What does correctness mean for a concurrent queue?
-%% How can we test concurrent queue implementations?
-%% We need first to be clear about what correctness means. 
+We want to test the concurrent total queue implementation.  But first, we need
+to understand better what ``correct'' actually means in this case.  And, by
+extension, we will understand correctness conditions for other concurrent
+datatypes. 
+
+Informally, the correctness condition is:
+%
 \begin{itemize}
 \item Operation invocations should take place (apparently) in a one-at-a-time
   way, without interference between invocations.
@@ -165,112 +166,144 @@ invocation was invoked and when it returns.
 \item The values returned by invocations should be the same as for a sequential
 queue (when the invocations are performed in the same order). 
 \end{itemize}
+%
+The correctness condition for other concurrent datatypes is the same, except
+with the sequential queue in the third item replaced by a corresponding
+sequential datatype.
 
 This property is called \emph{linearization}.  The points at which invocations
-appear to take effect are called \emph{linearization points}.  (See the
-Concurrent Algorithms and Data Structures course for a formal definition.)
-\end{slide}
+appear to take effect are called \emph{linearization points}.  It is an
+attractive property, because it matches most programmers' mental models of how
+such a concurrent datatype should behave. 
 
-%%%%%%
+We will give a more formal definition of linearization shortly.  But first, we
+give some examples.  
 
-%% \begin{slide}
-%% \heading{Correctness}
-
-%% With the server-based queue, each operation appears to take place at the point
-%% of the corresponding channel communication.  This communication is between the
-%% call and return of the operation.  The server ensures the values are
-%% compatible with this order of the operations.
-%% \end{slide}
-
-%% %%%%%
-
-\begin{slide}
-\heading{Linearization examples}
-
-In the timeline below, the dequeue of 4 can be explained by the invocations
-being linearized at the points marked ``X''.
-%
-\unScalaMid
-\begin{tikzpicture}[scale=0.8]
-\draw (0,0) node {$t_0$:}; 
-\draw[|-|] (1.5,0) -- node[above] {\scalashape enqueue(4)} (6,0);
-\draw(2,0) node{X};
-\draw (0,-1) node {$t_1$:}; 
-\draw[|-|] (1,-1) -- node[above] {\scalashape enqueue(5)} (4,-1);
-\draw(3,-1) node{X};
-\draw[|-|] (5,-1) -- node[above] {\scalashape dequeue(): Some(4)} (9,-1);
-\draw(6,-1) node{X};
-\end{tikzpicture}
-
-
-Note that the history
-\begin{scala}
-  enqueue(4), enqueue(5), dequeue(): Some(4)
-\end{scala}
-would be valid on a corresponding sequential queue. 
-\end{slide}
+Figure~\ref{fig:linearization} gives four timelines.  In each, time goes from
+left to right.  Each row is labelled with the identity of a thread
+(e.g.~$t_0$).  Each horizontal line represents the execution of an operation,
+with the endpoints of the line representing the call of the operation and its
+return, respectively; the line is labelled with the name of the operation, its
+parameters, and the value returned, although we omit the latter for
+operations, like |enqueue|, that return the trivial |Unit| type.
 
 %%%%%
 
-\begin{slide}
-\heading{Linearization examples}
-
-But with different linearization points, a dequeue of 5 might have happened.
-
-\begin{tikzpicture}[scale=0.8]
+%\unScalaMid
+\begin{figure}
+\def\X{node{\scalastyle X};}
+\begin{tikzpicture}[scale=1.0]
+\draw (-1.5,0) node{1.};
 \draw (0,0) node {$t_0$:}; 
 \draw[|-|] (1.5,0) -- node[above] {\scalashape enqueue(4)} (6,0);
-\draw(3,0) node{X};
+\draw(2,0) \X;
 \draw (0,-1) node {$t_1$:}; 
 \draw[|-|] (1,-1) -- node[above] {\scalashape enqueue(5)} (4,-1);
-\draw(2,-1) node{X};
-\draw[|-|] (5,-1) -- node[above] {\scalashape dequeue(): Some(5)} (9,-1);
-\draw(6,-1) node{X};
+\draw(3,-1) \X;
+\draw[|-|] (5,-1) -- node[above] {\scalashape dequeue():Some(4)} (9,-1);
+\draw(6,-1) \X;
+%%%%%
+\draw (0,-2.8) node (O) {$t_0$:}; 
+\draw (O)++(-1.5,0) node{2.};
+\draw[|-|] (O)++(1.5,0) -- node[above] {\scalashape enqueue(4)} ++(4.5,0);
+\draw (O)++(3,0) \X;
+\draw (O)++(0,-1) node {$t_1$:}; 
+\draw[|-|] (O)++(1,-1) -- node[above] {\scalashape enqueue(5)} ++(3,0);
+\draw (O)++(2,-1) \X;
+\draw[|-|] (O)++(5,-1) -- node[above] {\scalashape dequeue():Some(5)} ++(4,0);
+\draw(O)++(6,-1) \X;
+%%%%%
+\draw (O)++(0,-2.8) node (O) {$t_0$:}; 
+\draw (O)++(-1.5,0) node{3.};
+\draw[|-|] (O)++(4.5,0) -- node[above] {\scalashape enqueue(4)} ++(3,0);
+\draw (O)++(5.5,0) \X;
+\draw (O)++(0,-1) node {$t_1$:}; 
+\draw[|-|] (O)++(1,-1) -- node[above] {\scalashape enqueue(5)} ++(3,0);
+\draw (O)++(2,-1) \X;
+\draw[|-|] (O)++(6,-1) -- node[above] {\scalashape dequeue():Some(5)} ++(4,0);
+\draw (O)++(7,-1) \X;
+%%%%%
+\draw (O)++(0,-2.8) node (O) {$t_0$:}; 
+\draw (O)++(-1.5,0) node{4.};
+\draw[|-|] (O)++(1,0) -- node[above] {\scalashape enqueue(4)} ++(2.5,0);
+\draw (O)++(2,0) \X;
+\draw[|-|] (O)++(4,0) -- node[above] {\scalashape enqueue(5)} ++(2.5,0);
+\draw (O)++(5,0) \X;
+\draw (O)++(0,-1) node{$t_1$:};
+\draw[|-|] (O)++(7,-1) -- 
+  node[above] {\scalashape dequeue():Some(4)} ++(2.5,0);
+\draw (O)++(7.5,-1) \X;
+\draw (O)++(0,-2) node{$t_2$:};
+\draw[|-|] (O)++(4.5,-2) -- 
+  node[above] {\scalashape dequeue():None} ++(4.5,0);
+\draw (O)++(8.5,-2) \X;
 \end{tikzpicture}
-
-Again note that the history
-\begin{scala}
-  enqueue(5), enqueue(4), dequeue(): Some(5)
-\end{scala}
-would be valid on a corresponding sequential queue. 
-\end{slide}
+\caption{Four timelines illustrating linearization.}
+\label{fig:linearization}
+\end{figure}
+%\scalaMid
 
 %%%%%
 
-\begin{slide}
-\heading{Linearization examples}
+In timeline~1, thread $t_0$ enqueues~|4|, and thread $t_1$ enqueues~|5| and
+dequeues~|4| (so the |dequeue| operation returns |Some(4)|).   This history is
+linearizable, if the operations take place at the points
+labelled~``{\scalashape X}''.  This would correspond to a sequential
+history:\footnote{We denote sequences within angle brackets, $\seq{\ldots}$.}
+\[
+\seq{ \sm{enqueue(4)},\, \sm{enqueue(5)},\, \sm{dequeue():Some(4)}}
+\]
+which would be valid on a corresponding sequential queue.
+
+%%%%%
+
+Timeline~2 is similar, except the |dequeue| returns |Some(5)|.  This is also
+linearizable, where the operations take place at the points
+labelled~``{\scalashape X}'', which would correspond to the valid sequential history
+\[
+\seq{ \sm{enqueue(5)},\, \sm{enqueue(4)},\, \sm{dequeue():Some(5)}}
+\]
+
+%%%%%
+
+%\begin{slide}
+\heading{Linearization examples - 3}
 
 With the following timeline, the dequeue must return 5: any other return would
 not be linearizable.
 %
-\begin{tikzpicture}[scale=0.8]
-\draw (0,0) node {$t_0$:}; 
-\draw[|-|] (4.5,0) -- node[above] {\scalashape enqueue(4)} (7.5,0);
-%\draw(3,0) node{X};
-\draw (0,-1) node {$t_1$:}; 
-\draw[|-|] (1,-1) -- node[above] {\scalashape enqueue(5)} (4,-1);
-%\draw(2,-1) node{X};
-\draw[|-|] (6,-1) -- node[above] {\scalashape dequeue(): Some(5)} (10,-1);
-%\draw(6,-1) node{X};
-\end{tikzpicture}
+%% \begin{tikzpicture}[scale=0.8]
+%% \draw (0,0) node {$t_0$:}; 
+%% \draw[|-|] (4.5,0) -- node[above] {\scalashape enqueue(4)} (7.5,0);
+%% %\draw(3,0) node{X};
+%% \draw (0,-1) node {$t_1$:}; 
+%% \draw[|-|] (1,-1) -- node[above] {\scalashape enqueue(5)} (4,-1);
+%% %\draw(2,-1) node{X};
+%% \draw[|-|] (6,-1) -- node[above] {\scalashape dequeue(): Some(5)} (10,-1);
+%% %\draw(6,-1) node{X};
+%% \end{tikzpicture}
 
-And the following history is not linearizable, because the queue is non-empty
-throughout $t_2$'s operation.
-%
-\begin{tikzpicture}[scale=0.8]
-\draw (0,0) node {$t_0$:}; 
-\draw[|-|] (1,0) -- node[above] {\scalashape enqueue(4)} (3.5,0);
-\draw[|-|] (4,0) -- node[above] {\scalashape enqueue(5)} (6.5,0);
-\draw (0,-1) node{$t_1$:};
-\draw[|-|] (7,-1) -- node[above] {\scalashape dequeue():Some(4)} (9.5,-1);
-\draw (0,-2) node{$t_2$:};
-\draw[|-|] (4.5,-2) -- node[above] {\scalashape dequeue():None} (9,-2);
-\end{tikzpicture}
-\scalaMid
-\end{slide}
+Example 4
+
+%% And the following history is not linearizable, because the queue is non-empty
+%% throughout $t_2$'s operation.
+%% %
+%% \begin{tikzpicture}[scale=0.8]
+%% \draw (0,0) node {$t_0$:}; 
+%% \draw[|-|] (1,0) -- node[above] {\scalashape enqueue(4)} (3.5,0);
+%% \draw[|-|] (4,0) -- node[above] {\scalashape enqueue(5)} (6.5,0);
+%% \draw (0,-1) node{$t_1$:};
+%% \draw[|-|] (7,-1) -- node[above] {\scalashape dequeue():Some(4)} (9.5,-1);
+%% \draw (0,-2) node{$t_2$:};
+%% \draw[|-|] (4.5,-2) -- node[above] {\scalashape dequeue():None} (9,-2);
+%% \end{tikzpicture}
+%% \scalaMid
+%% \end{slide}
 
 %%%%%
 
+
+\framebox{Formal definition of linearization.}
 
 %%%%%
 

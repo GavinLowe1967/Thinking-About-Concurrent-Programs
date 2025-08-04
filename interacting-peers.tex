@@ -13,12 +13,12 @@ In this chapter, we have studied the idea of interacting peers, where a number
 of threads or processes, executing basically the same code, work together to
 achieve some goal.  The peers can be connected together via various
 topologies, including a centralised topology, a fully connected topology, a
-ring, or a binary tree.  In the centralised topology, the central controller
-can be a bottleneck.  In the fully connected topology, the number of messages
-grows quadratically with the number of nodes, which might be excessive.  Rings
-can be effective in a number of situations.  A binary tree is often a
-particularly efficient topology, allowing many problems to be solved in time
-$O(\log n)$ for $n$ nodes.
+ring, a binary tree.  In the centralised topology,
+the central controller can be a bottleneck.  In the fully connected topology,
+the number of messages grows quadratically with the number of nodes, which
+might be excessive.  Rings can be effective in a number of situations.  A
+binary tree is often a particularly efficient topology, allowing many problems
+to be solved in time $O(\log n)$ for $n$ nodes.
 
 We illustrated each of the topologies by using them to find the sum of
 values initially held by the nodes.  This generalises to allow the data to be
@@ -40,6 +40,8 @@ $O(n^2)$ messages for $n$ nodes  The more sophisticated Peterson algorithm
 solves it using $O(n \log n)$ messages, by eliminating at least half the
 candidates on each round.
 
+Finally, we considered the problem of finding a spanning tree of edges in a
+general graph. 
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -55,7 +57,6 @@ candidates on each round.
 
 \input{Exercises/gridMax}
 
-\framebox{Second part of grid max?}
 
 % Example from 2022Exam/largestComponent.tex -- probably not
 

@@ -167,7 +167,7 @@ most of the time (so one slow node will slow down the whole ring).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Tree-Based Protocol}
+\section{Heap-Based Protocol}
 
 The final protocol works by arranging nodes into a binary tree.  In the
 initial stage, values get passed up the tree, starting from the leaves: each
@@ -202,9 +202,13 @@ and |down| to pass data up and down the tree.  The arrays are indexed by the
 \emph{child} node: \SCALA{up(i)} and \SCALA{down(i)} are used to communicate
 between node~$i$ and its parent, node~$(i-1) \div 2$.
 
+\begin{instruction}
+Study the details of the definition of a node. 
+\end{instruction}
+
 %%%%%
 
-\begin{figure}
+\begin{figure}[bht]
 \begin{scala}
 class Tree(n: Int) extends Sum{
   /** Channels leading up and down the tree.  Each array is indexed by
