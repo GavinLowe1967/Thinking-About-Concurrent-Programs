@@ -1,14 +1,17 @@
+\section{A Partial Queue}
 
-
-\begin{slide}
-\heading{A partial queue}
-
-In the previous chapter we implemented a total concurrent queue that returns
+In previous sections, we implemented a total concurrent queue that returns
 |None| if |dequeue| is called when the queue is empty.  
 %
 An alternative is to block that thread until there is a value to be dequeued.
-This gives a partial queue, with the following interface.
+This gives a partial queue, with the interface given by |PartialQueue| in
+Figure~\ref{fig:partial-queue}.  It is worth noting that if the queue is empty
+and all threads are attempting a dequeue, the system will deadlock; we will
+return to this point later.
 
+%%%%%
+
+\begin{figure}
 \begin{scala}
 trait PartialQueue[T]{
   /** Enqueue x. */
@@ -18,22 +21,15 @@ trait PartialQueue[T]{
   def dequeue(): T
 
   /** Shut down the queue. */
-  def shutdown
+  def shutdown()
 }
-\end{scala}
-Note that if the queue is empty and all threads are attempting a dequeue, the
-system will deadlock. 
-\end{slide}
 
-%%%%%
-
-\begin{slide}
-\heading{A partial queue}
-
-\begin{scala}
 class ServerPartialQueue[T] extends PartialQueue[T]{
-  // Channel for dequeueing
+  // Channels used for enqueueing and dequeueing.
+  private val enqueueChan = new SyncChan[T]
   private val dequeueChan = new SyncChan[T]
+
+  def enqueue(x: T) = enqueueChan!x
 
   def dequeue(): T = dequeueChan?()
 
@@ -45,152 +41,310 @@ class ServerPartialQueue[T] extends PartialQueue[T]{
     )
   }
 
-  ... // other parts as earlier
+  fork(server)
+
+  def shutdown() = { enqueueChan.close(); dequeueChan.close() }
 }
 \end{scala}
-\end{slide}
+\caption{The interface for partial queues, and an implementation using a
+  server.}
+\label{fig:partial-queue}
+\end{figure}
 
 %%%%%
 
-\begin{slide}
-\heading{Testing}
+Figure~\ref{fig:partial-queue} also contains an implementation that uses a
+server thread internally.  The main point of interest here is that the |serve|
+uses a guard on the dequeuing branch that allows dequeues only when the queue
+is non-empty. 
 
-We can test this queue for linearizability, much as for the previous version.
-However, we have to amend the sequential specification object to recognise
-that a dequeue cannot happen when the queue is empty. 
+\begin{instruction}
+Study the details of the implementation.
+\end{instruction}
+
+%%%%%
+
+We can test the partial queue for linearizability, much as for the total
+queue.  Figure~\ref{fig:partial-queue-lin-tester} includes the main parts.
+Again, we can use an immutable queue as the sequential specification object.
+
+%%%%%
+
+\begin{figure}
 \begin{scala}
-  def seqDequeue(q: S) : (Int, S) = {
-    require(q.nonEmpty); q.dequeue()
+  import scala.collection.immutable.Queue
+
+  type SeqQueue = Queue[Int]; type ConcQueue = PartialQueue[Int]
+
+  def seqEnqueue(x: Int)(q: SeqQueue) : (Unit, SeqQueue) = 
+    ((), q.enqueue(x))
+  def seqDequeue(q: SeqQueue) : (Int, SeqQueue) = {
+    require(q.nonEmpty); q.dequeue
+  }
+
+  /** A worker for the LinTesters */
+  def worker(me: Int, log: LinearizabilityLog[SeqQueue, ConcQueue]) = {
+    val random = new scala.util.Random
+    for(i <- 0 until 20){
+      if(me%2 == 0){
+        val x = random.nextInt(20)
+        log(_.enqueue(x), s"enqueue($x)", seqEnqueue(x))
+      }
+      else log(_.dequeue, "dequeue", seqDequeue)
+    }
+  }
+
+  def doTest = {
+    val concQueue = new ServerPartialQueue[Int]; val seqQueue = Queue[Int]()
+    val tester =
+      LinearizabilityTester[SeqQueue,ConcQueue](seqQueue, concQueue, 4, worker)
+    if(tester() <= 0) sys.exit()
+    concQueue.shutdown()
   }
 \end{scala}
-An operation invocation on the concurrent datatype cannot be linearized in a
-state where the corresponding operation on the sequential datatype throws an
-|IllegalArgumentException|.
-
-Also we have to be careful that we never get into a deadlocked state where all
-the threads are attempting a dequeue from the empty queue.  I arrange for half
-the threads to perform just enqueues, and the others to perform just dequeues.  
-\end{slide}
+\caption{Outline of a linearizability tester for a partial queue.}
+\label{fig:partial-queue-lin-tester}
+\end{figure}
 
 %%%%%
 
-\begin{slide}
-\heading{Termination}
+One difference from the tester for the total queue is that the |dequeue|
+operation now has a nontrivial precondition, namely that the queue is nonempty.
+We need to arrange that the linearizability tester does not linearize such an
+operation when the precondition does not hold.  The way to do this is to
+include a |require| statement (see Scala box~\ref{sb:assertions}) in the
+corresponding sequential operation~|seqDequeue|.  This will throw an
+|IllegalArgumentException| when the precondition does not hold.  Internally,
+the linearizability tester catches this exception, but does not allow the
+|dequeue| to be linearized at this point.
 
-Suppose the queue is empty, and all the threads are attempting a dequeue.
-With the previous design, the system would be deadlocked.
+As noted earlier, a partial queue can deadlock if it gets into a state where
+the queue is empty and all the threads are attempting a |dequeue|.  To avoid
+this, I arrange for half the threads to perform just |enqueue|s, and the others
+to perform just |dequeue|s.
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{A Terminating Partial Queue}
+
+As we've noted, with the previous design, if the queue is empty, and all the
+threads are attempting a |dequeue|, then the system is deadlocked.
+%
 A better approach would be for the server to detect such a state, and react
-accordingly.  We choose to shut down the queue in this case, and arrange for
-each dequeue attempt to throw a |Stopped| exception (an alternative would be
-to use an |Option| value).
+accordingly.  We choose to terminate the queue in this case.  We arrange for
+the |dequeue| operation to return an |Option| result, with |None| used to
+indicate the termination case.  (an alternative would be to throw a |Closed|
+exception).
 
 In order to do this, the server needs to know how many threads are attempting
-a dequeue.  That means we can't just block the |dequeueChan| channel when the
-queue is empty.  Instead, we arrange for the dequeueing thread to pass a reply
-channel on the |dequeueChan|.  These reply channels are stored until the
-request can be made.  If the number of stored reply channels equals the number
-of workers, the queue shuts down.
-\end{slide}
+a |dequeue|.  That means we can't just block the |dequeueChan| channel when
+the queue is empty, as we did previously.  Instead, we arrange for the
+dequeueing thread to pass a reply channel to the server.  These reply channels
+are stored until the request can be made.  If the number of stored reply
+channels equals the number of workers, the queue shuts down.
+
+An outline of an implementation is in Figure~\ref{fig:terminating-queue}.
+This is mostly straightforward.
 
 %%%%%
 
-\begin{slide}
-\heading{Termination}
-
+\begin{figure}
 \begin{scala}
 /** A partial queue that terminates if all worker threads are attempting to
   * dequeue, and the queue is empty.
   * @param numWorkers the number of worker threads. */
 class TerminatingPartialQueue[A](numWorkers: Int){
-  private type ReplyChan = Chan[A]
+  /** Channel for enqueueing. */
+  private val enqueueChan = new SyncChan[A]
+
+  private type ReplyChan = SyncChan[Option[A]]
+
   /** Channel for dequeueing. */
   private val dequeueChan = new SyncChan[ReplyChan]
 
-  /** Attempt to dequeue a value.
-    * @throws Stopped exception if the queue has been shutdown. */
-  def dequeue(): A = {
-    val reply = new SyncChan[A] // or a BuffChan[A]
-    dequeueChan!reply
-    reply?()
-  }
-  ... 
-}
-\end{scala}
-\end{slide}
-
-%%%%%
-
-\begin{slide}
-\heading{Termination}
-
-We might also want to externally shut down the server, (e.g.~in a search
-algorithm, if we find what we're looking for).
-
-It's necessary for the server to control termination in this case, so we
-arrange for the |shutdown| method to send a message to the server. 
-%
-\begin{scala}
+  /** Channel for shutting down the queue. */
   private val shutdownChan = new SyncChan[Unit]
 
-  /** Shut down this queue. */
-  def shutdown = attempt{ shutdownChan!(()) }{ }
-\end{scala}
-Note: it's possible that the server has already terminated and |shutdownChan|
-closed, in which case we catch the |Stopped| exception.
+  /** Enqueue £x£. */
+  def enqueue(x: A): Unit = enqueueChan!x
 
-%% The construct
-%% \begin{scala}
-%%   attempt{ p }{ q }
-%% \end{scala}
-%% Executes |p|; but if |p| throws a |Stopped| exception, that exception is
-%% caught, and |q| is executed. 
-\end{slide}
-  
+  /** Attempt to dequeue a value. */
+  def dequeue(): Option[A] = {
+    val reply = new ReplyChan; dequeueChan!reply; reply?()
+  }
+
+  /** Shut down this queue. */
+  def shutdown() = attempt{ shutdownChan!() }{ }
+
+  /** The server process. */
+  private def server = thread("server"){ ... } // See Figure £\ref{fig:terminating-queue-server}£.
+
+  fork(server)
+}
+\end{scala}
+\caption{Outline of the terminating partial queue.}
+\label{fig:terminating-queue}
+\end{figure}
+
 %%%%%
 
-\begin{slide}
-\heading{The server}
+It is useful to have a |shutdown| operation, to allow the queue to be shut
+down by an external client, independently of it internally terminating.  We do
+this in the normal way by sending a message on a suitable channel.  However,
+if the queue has already terminated, this will throw a |StopException|, which
+we catch.
 
+The server is in Figure~\ref{fig:terminating-queue-server}.  This maintains
+its own queue~|queue| of enqueued values, in the normal way.  It also
+maintains a queue |waiters| of reply channels for |dequeue| operations that
+are currently blocked.  It maintains the invariant that either |queue| or
+|waiters| is empty, since otherwise it should have sent one of the values
+from~|queue| to one of the waiting threads.  
+
+%%%%%
+
+\begin{figure}
 \begin{scala}
   private def server = thread("server"){
-    // Currently held values
-    val queue = new Queue[A]()
-    // Queue holding reply channels for current dequeue attempts.
-    val waiters = new Queue[ReplyChan]()
-    // Invariant: queue.isEmpty or waiters.isEmpty
-
-    // Termination: signal to all waiting workers
-    def close = {
-      for(c <- waiters) c.close
-      enqueueChan.close; dequeueChan.close; shutdownChan.close
+    val queue = new Queue[A] // Currently held values.
+    val waiters = new Queue[ReplyChan] // Reply channels for current dequeues.
+    // Invariant: £queue.isEmpty£ or £waiters.isEmpty£.
+    var done = false
+    /* Termination function: signal to waiting £dequeue£s, and close main
+     * channels. */
+    def close() = {
+      for(c <- waiters) c!None
+      enqueueChan.close(); dequeueChan.close(); shutdownChan.close()
     }
-    ...
-  }
-\end{scala}
-\end{slide}
-
-%%%%%
-
-\begin{slide}
-\heading{The server main loop}
-
-\begin{scala}
-    serve(
+    serve(!done)(
       enqueueChan =?=> { x => 
-        if(waiters.nonEmpty){ // pass x directly to a waiting dequeue
-          assert(queue.isEmpty); waiters.dequeue()!x
+        if(waiters.nonEmpty){ // Pass £x£ directly to a waiting dequeue.
+          assert(queue.isEmpty); waiters.dequeue()!Some(x)
         }
         else queue.enqueue(x)
       }
       | dequeueChan =?=> { reply =>
-          if(queue.nonEmpty) reply!(queue.dequeue()) // service request immediately
-          else{                                        // thread has to wait
+          if(queue.nonEmpty)
+            reply!Some(queue.dequeue()) // Service request immediately.
+          else{
             waiters.enqueue(reply)
-            if(waiters.length == numWorkers) close
+            if(waiters.length == numWorkers) done = true
           }
         }
-      | shutdownChan =?=> { _ => close }
+      | shutdownChan =?=> { _ => done = true }
     )
+    close()
+  }
 \end{scala}
-\end{slide}
+\caption{The server for the terminating partial queue.}
+\label{fig:terminating-queue-server}
+\end{figure}
+
+%%%%%
+
+To avoid repeated code, we include a function |close| to shutdown the server.
+This sends |None| to all the waiting |dequeue|s, and closes the main channels
+(so any subsequent operation would throw a |Closed| exception).
+
+If the server receives a message to enqueue a value~|x|, if there is a waiting
+|dequeue| (so |queue| is empty, by the invariant), it sends~|Some(x)| to the
+first such; otherwise, it adds~|x| to |queue|.  If the server receives a
+dequeue request, if |queue| is nonempty, it returns the first element to the
+dequeue (inside a |Some| value).  Otherwise, it adds the reply channel to
+|waiters|; if all the clients are not waiting, the termination condition has
+been reached, so the queue shuts down.
+
+\begin{instruction}
+Study the details of the implementation.  In particular, check that the
+claimed invariant is maintained.
+\end{instruction}
+
+%%%%%%%%%%
+
+We can apply linearizability testing to the terminating partial queue.
+Figure~\ref{fig:terminating-queue-tester} gives the main parts; other parts
+are standard. 
+
+%%%%%
+
+\begin{figure}
+\begin{scala}
+  /** The type of queues to test. */
+  type ConcQueue = TerminatingPartialQueue[Int]
+
+  /** The sequential specification object. */ 
+  type SeqQueue = Option[scala.collection.immutable.Queue[Int]]
+
+  /** Sequential enqueue. */
+  def seqEnqueue(x: Int)(oq: SeqQueue) : (Unit, SeqQueue) = oq match{
+    case Some(q) => ((), Some(q.enqueue(x)))
+    case None => throw new IllegalArgumentException  // Isn't allowed.
+  }
+
+  /** Sequential dequeue. */
+  def seqDequeue(oq: SeqQueue) : (Option[Int], SeqQueue) = oq match{
+    case Some(q) => 
+      if(q.nonEmpty){ val(x,q1) = q.dequeue; (Some(x), Some(q1)) } 
+      else (None, None) // Enter termination state. 
+    case None => (None, None) // Already terminated.
+  }
+
+  /* A worker. */
+  def worker(me: Int, log: LinearizabilityLog[SeqQueue, ConcQueue]) = {
+    val random = new Random(me+Random.nextInt()); var done = false
+    while(!done){
+      if(random.nextFloat() < 0.3){
+        val x = random.nextInt(MaxVal)
+        log(_.enqueue(x), s"enqueue($x)", seqEnqueue(x))
+      }
+      else
+        log(q => {val res = q.dequeue(); done = (res == None); res},
+          "dequeue", seqDequeue)
+    }
+  }
+\end{scala}
+\caption{The main parts of the linearizability tester for a terminating
+  partial queue.}
+\label{fig:terminating-queue-tester}
+\end{figure}
+
+%%%%%
+
+%% One issue that the tester has to deal with is that the |dequeue| operation can
+%% throw a |Closed| exception.  The linearizability testing framework cannot deal
+%% directly with those exceptions.  It is more convenient to use an |Option|
+%% type, with a |Closed| exception mapping to |None|.  The helper function
+%% |tryDequeue| attempts a |dequeue|, mapping the result in this way.   
+
+In each state, the terminating partial queue is either still running, or it
+has reached the termination point.  The type of sequential specification
+objects needs to reflect this.  We choose to do this using an |Option| value,
+with a value |Some(q)| representing a queue that has not yet terminated with
+contents~|q|, and |None| representing a queue that has terminated.  The
+function |seqEnqueue| is the enqueue operation on the sequential specification
+type: this can't happen when the queue is terminated.  Likewise, the function
+|seqDequeue| is the dequeue operation on the specification object: if this
+when the queue is empty, it enters the termination state.
+
+Each worker repeatedly enqueues with probability~$0.3$, and otherwise
+dequeues.  It terminates when a dequeue returns |None|.  The expression
+%\begin{scala}
+\SCALA{q => \{val res = q.dequeue(); done = (res == None); res\}}
+%\end{scala}
+is a function that takes a terminating partial queue~|q|, and returns the
+result of |q.dequeue()|, but has the side effect of setting |done| to true
+if this result is |None|.  
+
+This tester doesn't quite capture the property we require, in particular, that
+the queue terminates only in the correct state.  It would allow a history
+where |dequeue|s return |None| (when the queue is empty) \emph{before} all the
+worker threads are waiting to dequeue, providing all the remaining threads
+subsequently call |dequeue| and return |None| (with the actual implementation,
+those subsequent calls would throw a |Closed| exception, but a different,
+faulty implementation might act differently).  However, if there were such a
+history, then there would also be histories where one of the remaining threads
+subsequently calls |enqueue|, which would cause an error: the linearizability
+tester wouldn't allow such an enqueue to be linearized in the terminated state
+(with the given implementation, the |enqueue| on the terminating queue would
+throw a |Closed| exception).

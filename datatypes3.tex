@@ -1,0 +1,257 @@
+\section{Testing for Linearizability}
+
+We now consider how we can test the implementation of a total concurrent queue
+from Section~\ref{sec:total-queue}, and more generally, how we can test other
+implementations of concurrent datatypes.
+
+The basic idea is as follows. We run some threads on the concurrent datatype,
+performing random operations, and record the history of operation calls and
+returns.  We then search for a corresponding sequential history that explains
+linearizability, and that is a valid history for the corresponding sequential
+datatype.  If none is found, we signal an error.  We can repeat this procedure
+many times.
+
+Algorithms for searching for the corresponding sequential history have been
+investigated by Wing and Gong~\cite{wing-gong}, and by
+me~\cite{gavin:lin-testing}.  The SCL library includes the latter, which can
+be used without understanding the underlying algorithms. 
+
+Figure~\ref{fig:queue-lin-tester} gives a stripped-down testing script for a
+concurrent total queue.  (The full version, on the book website, can be used
+with multiple concurrent queue implementations, and replaces the numerical
+constants by variables, specifiable via the command line.)
+
+%%%%%
+
+\begin{figure}
+\begin{scala}[numbers = left]
+object QueueTest{
+  /* The concurrent datatype, and sequential specification type. */
+  type ConcQueue = TotalQueue[Int] 
+  type SeqQueue = scala.collection.immutable.Queue[Int]
+
+  /* Sequential operations. */
+  def seqEnqueue(x: Int)(q: S): (Unit, S) = ((), q.enqueue(x))£\label{line:seqEnqueue}£
+  def seqDequeue(q: S): (Option[Int], S) =   
+    if(q.isEmpty) (None, q) 
+    else{ val (r,q1) = q.dequeue(); (Some(r), q1) }
+
+  /** A worker in the testing system. */
+  def worker(me: Int, log: LinearizabilityLog[S, C]) = {£\label{line:queue-lin-tester-worker}£
+    val random = new scala.util.Random
+    for(i <- 0 until 200)
+      if(random.nextFloat() <= 0.3){
+        val x = random.nextInt(20)
+        log(_.enqueue(x), s"enqueue($x)", seqEnqueue(x))£\label{line:queue-lin-tester-worker-enqueue}£
+      }
+      else log(_.dequeue(), "dequeue", seqDequeue)£\label{line:queue-lin-tester-worker-dequeue}£
+  }
+
+  /** Perform a single test. */
+  def doTest = {
+    val concQueue = new ServerTotalQueue[Int]; val seqQueue = Queue[Int]()
+    val tester = 
+      LinearizabilityTester[SeqQueue,ConcQueue](seqQueue, concQueue, 4, worker)£\label{line:construct-lin-tester}£
+    if(tester() <= 0) sys.exit()
+    concQueue.shutdown()
+  }
+
+  def main(args: Array[String]) = {
+    for(r <- 0 until 10000){ doTest; if(r%20 == 0) print(".") }
+    println()
+  }
+}
+\end{scala}
+\caption{A linearizability tester for a concurrent total queue.}
+\label{fig:queue-lin-tester}
+\end{figure}
+
+%%%%%
+
+The test program works on a |TotalQueue[Int]|; we define |ConcQueue| as a type
+synonym.
+
+The test program also requires a corresponding sequential specification
+object.  The underlying linearizability framework requires this to be
+\emph{immutable} (unlike in Section~\ref{sec:linearization}): the state of the
+specification object should not change; instead, operations produce new
+instances of the same type.  The framework also requires the specification
+object to be deterministic.  Here, we use an immutable queue
+from the Scala API; we define |SeqQueue| as a type synonym. 
+
+In general, given a type |S| of the sequential specification object, for each
+operation |op: A| on the concurrent datatype, we need a corresponding function
+|seqOp: S => (A, S)| on the sequential datatype, which returns the expected
+value\footnote{More precisely, the two values should be equal, as tested using
+  the ``{\scalashape ==}'' method.} (of type~|A|), paired with the new value
+of the sequential datatype. 
+
+For the case of a concurrent total queue, the relevant definitions are from
+line~\ref{line:seqEnqueue}.  These are simple wrappers around the API
+operations.  The operation |seqEnqueue(x)| corresponds to |enqueue(x)| on the
+concurrent queue.  Given a sequential queue~|q|, this returns the unit value
+(matching the return from~|enqueue|) and a new sequential queue, formed by
+enqueuing~|x| on~|q|.  The operation |seqDequeue| corresponds to |dequeue()|
+on the concurrent queue.  When given an empty queue~|q|, it returns |None| (to
+match the value expected from |dequeue()|), and the original state of~|q|.
+When given a nonempty queue, it performs a dequeue using the API
+operation, which returns the value~|r| dequeued and the new state of the
+queue, and then constructs the appropriate result (including |Some(r)|, to
+match the value expected from |dequeue()|).
+
+%%%%%
+
+The function |worker| (from line~\ref{line:queue-lin-tester-worker}) defines
+a worker that performs and logs operations on the concurrent datatype,
+associating each concurrent operation with a corresponding operation on the
+sequential datatype.  Here, the worker performs 200 operations; each is (with
+probability 0.3) an enqueue of a random value, or (with probability~0.7) a
+dequeue.
+
+
+The worker takes a log object |log| as a parameter; each operation is
+performed and logged via a call to |log| (more precisely, the |apply| function
+of~|log|; see Scala box~\ref{sb:apply}), taking three parameters:
+%
+\begin{itemize}
+\item
+The operation to be performed on the concurrent datatype;
+
+\item A string describing the operation: this is used in debugging output in
+  the case that a non-linearizable history is found, and is also used
+  internally for optimisations; semantically different operations should have
+  distinct strings;
+
+\item
+The corresponding function on the sequential datatype.
+\end{itemize}
+%
+The call to |log| logs the invocation of the concurrent operation,
+performs the concurrent operation, and logs the result returned.
+
+In Figure~\ref{fig:queue-lin-tester},
+line~\ref{line:queue-lin-tester-worker-enqueue} performs |enqueue(x)| on the
+concurrent queue, and associates it with the function |seqEnqueue(x)| on the
+specification object.  Line~\ref{line:queue-lin-tester-worker-dequeue}
+performs |dequeue()| on the concurrent queue, and associates it with the
+function |seqDequeue| on the specification object.  Each uses an anonymous
+function (see Scala box~\ref{sb:anon-function}) to define the operation on the
+concurrent queue: each underscore (``\SCALA{_}'') represents a hole into which
+the concurrent queue is placed.
+
+The function |doTest| performs a single test.  This starts by creating a
+concurrent queue to test, and a corresponding sequential specification object.
+Line~\ref{line:construct-lin-tester} constructs a linearizability testing
+object~|tester|.  This takes two type parameters, representing the type of
+sequential specification objects and concurrent objects (we could omit these
+type parameters, but I find it useful to include them).  It takes value
+parameters representing the specification object, the concurrent object to be
+tested, the number of worker threads to run (here~4), and the definition of a
+worker.
+%
+The expression |tester()| then runs the testing object (by calling its |apply|
+function).  This runs the workers concurrently, logging the operation calls on
+the concurrent datatype.  It then tests whether the resulting history is
+linearizable, returning a positive result if so, and otherwise printing
+suitable debugging information on the screen.  The |doTest| function
+terminates the program if the history is not linearizable.  Finally, it shuts
+down the concurrent queue.
+
+The |main| function calls |doTest| many times. 
+
+Figure~\ref{fig:lin-testing-error} gives sample debugging information for a
+(deliberately) incorrect implementation of a |TotalQueue|.  More precisely,
+the implementation uses buffered channels, rather than synchronous channels;
+we saw earlier why this is incorrect.  The test was run with just three worker
+threads, each performing a single operation, so as to keep the history short.
+The error is reflected by the value of |None| returned (at line~5) by the
+|dequeue| done by thread~|2|.  Each of threads~|0| and~|1| had completed an
+|enqueue| by this point, so the |dequeue| should have returned one of their
+values; in fact, the |enqueue|s were concurrent, so could have been linearized
+in either order, and so either of their values would have been allowed.
+
+%%%%%  
+
+\begin{figure}
+\begin{verbatim}
+0: 0 invokes enqueue(69)
+1: 1 invokes enqueue(60)
+2: 0 returns ()
+3: 1 returns ()
+4: 2 invokes dequeue
+5: 2 returns None
+-- Previous event not linearized
+-- Allowed return values: Some(69), Some(60)
+\end{verbatim}
+\caption{Output of {\scalashape QueueTest} on a non-linearizable history.}
+\label{fig:lin-testing-error}
+\end{figure}
+
+%%%%%
+
+Linearizability testers for other concurrent datatypes take a very similar
+form.  My normal approach to writing such a tester is to take an existing one
+and to adapt it.  
+
+Under the bonnet, the linearizability tester performs a search, in effect,
+considers all possible linearizations of the history---i.e.~all ways of
+ordering the operations consistent with the history---and testing whether that
+ordering is compatible with the sequential datatype.  The search can complete
+quite quickly in practice; for example, the tester in
+Figure~\ref{fig:queue-lin-tester}, which performs 10,000 tests, with a total
+of 8,000,000 operation executions, takes slightly more than two minutes to run
+on my computer.
+
+However, the search to linearize a particular history can be very large, and
+so be time-consuming.  Indeed, the problem of deciding whether a given history
+is linearizable is NP-complete in general, so there are bound to be some bad
+cases.  It is therefore worth taking steps to limit the time taken by the
+search.  A good pragmatic approach is to start with short runs---a small
+number of threads performing a small number of operations each---and to move
+to longer runs if the testing goes well.
+
+Testing certain concurrent datatypes requires particular considerations.  In
+the case of a queue, if two |enqueue|s happen concurrently, they could be
+linearized in either order; the linearizability tester has to consider both
+possibilities; which one is correct becomes apparent only when one of the
+values is dequeued.  If the queue holds quite a lot of values, there might be
+several pairs that were enqueued concurrently.  This means that the search
+space can grow exponentially with the length of the queue.  To avoid this, we
+should take steps to make it unlikely that the queue holds too many values.
+In Figure~\ref{fig:queue-lin-tester}, we did this by making dequeues more
+frequent than enqueues.
+
+By default, the linearizability tester logs operation calls and returns using
+thread-local logs, pairing each event with a timestamp.  We saw a similar
+technique in an earlier chapter.  If you're using an operating system that
+doesn't support timestamps property, setting the optional parameter |tsLog| to
+|false| will use a different type of log; for example:
+%
+\begin{scala}
+  val tester = LinearizabilityTester[SeqQueue, ConcQueue](
+    seqQueue, concQueue, 4, worker, tsLog = false)
+\end{scala}
+
+It is worth reiterating that the sequential specification object must be
+immutable: its state should not change.  Failing to respect this requirement
+is a fairly common error.
+
+It is beneficial to ensure that the specification object has a natural
+definition for equality, and an associated hash code.  This is true for the
+immutable |Queue|s we used here: two such objects are equal if they contain
+the same sequence of data; and in this case their hash codes will be equal.
+The same is true for other objects in the |scala.collection.immutable|
+package.  The linearization checker uses a hash set to keep track of nodes of
+the search graph it has seen previously, so as to avoid repeating work.  For
+this to be effective, it needs to be able to identify when two sequential
+specification objects represent the same state.
+
+It is also worth reiterating that the strings used in logging semantically
+different operations should be distinct.  My normal style is to use a string
+that looks like the syntax of the operation call, including any parameters:
+this is what is most useful in debugging output (if an error of
+linearizability is found).  But also these strings are used internally as an
+optimisation (the tester records the effect of each sequential operation on the
+specification object, using the string as a key; this avoids repeating the
+same operation on the same specification object).
+

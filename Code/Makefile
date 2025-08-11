@@ -9,6 +9,7 @@ all:
 	cd 04.Alternation; make
 	cd 05.ClientServer; make
 	cd 06.InteractingPeers; make
+	cd 07.ConcurrentDatatypes; make
 
 clean:
 	rm $(ROOT)/*/*.class; fsc -shutdown

@@ -11,7 +11,7 @@ trait TotalQueue[T]{
   def dequeue(): Option[T]
 
   /** Shut down the queue. */
-  def shutdown: Unit
+  def shutdown(): Unit
 }
 
 // -------------------------------------------------------
@@ -37,7 +37,7 @@ class ServerTotalQueue[T] extends TotalQueue[T]{
 
   def dequeue(): Option[T] = dequeueChan?()
 
-  def shutdown = { enqueueChan.close(); dequeueChan.close() }
+  def shutdown() = { enqueueChan.close(); dequeueChan.close() }
 }
 
 // ==================================================================
@@ -64,34 +64,33 @@ class ServerTotalQueue2[T] extends TotalQueue[T]{
     val c = new SyncChan[Option[T]]; dequeueChan!c; c?() 
   }
 
-  def shutdown = { enqueueChan.close(); dequeueChan.close() }
+  def shutdown() = { enqueueChan.close(); dequeueChan.close() }
 }
 
-// -------------------------------------------------------
+// =======================================================
 
-// import scala.util.Random
+/** A deliberately faulty implementation of TotalChan.  The error is that this
+  * uses buffered channels. */ 
+class FaultyTotalQueue[T] extends TotalQueue[T]{
 
-// object QueueTest1{
-//   val iters = 20000000
-//   val MaxVal = 20 // Maximum value placed in the queue
-//   var enqueueProb = 0.3 // probability of doing an enqueue
+  private val enqueueChan = new OnePlaceBuffChan[T]
 
-//   var doDequeues = true
+  private val dequeueChan = new OnePlaceBuffChan[Option[T]]
 
-//   def worker(me: Int, q: TotalQueue[Int]) = thread{
-//     for(i <- 0 until iters){
-//       if(Random.nextFloat <= enqueueProb) q.enqueue(Random.nextInt(MaxVal))
-//       else q.dequeue
-//       //println(s"$me: $i")
-//       if(me == 0 && i%5000 == 0) print(".")
-//     }
-//     println(s"$me done")
-//   }
+  private def server = thread("server"){
+    val queue = new Queue[T]
+    serve(
+      enqueueChan =?=> { x => queue.enqueue(x) }
+      | dequeueChan =!=> { if(queue.nonEmpty) Some(queue.dequeue()) else None }
+    )
+  }
 
-//   def main(args: Array[String]) = {
-//     if(args.nonEmpty && args(0) == "--enqueues") doDequeues = false
-//     val q = new ServerTotalQueue[Int]
-//     run(|| (for(id <- 0 until 4) yield worker(id,q)))
-//   }
+  fork(server)
 
-// }
+  def enqueue(x: T) = enqueueChan!x
+
+  def dequeue(): Option[T] = dequeueChan?()
+
+  def shutdown() = { enqueueChan.close(); dequeueChan.close() }
+
+}

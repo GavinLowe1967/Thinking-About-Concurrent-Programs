@@ -2,8 +2,11 @@
 \label{chap:datatypes}
 
 \input{datatypes1} % concurrent total queue, using a server;
-% linearizability testing
+\input{datatypes2} % linearizability 
+\input{datatypes3} % linearizability testing
+\input{datatypes-partial-queue} % partial queue, including termination
 
+\input{datatypes-graph-search} % breadth-first search.
 
 %%%%%
 
@@ -23,12 +26,26 @@ Total and partial datatypes;
 Linearization; 
 
 \item Testing for linearizability.
+
+\item 
+Example: a partial concurrent queue;
+
+\item
+Testing for linearizability: capturing preconditions;
+
+\item 
+Termination;
+
+\item Example: breadth-first search.
+
 \end{itemize}
 \end{slide}
 
 
 \exercises
 
-Total stack
+\input{Exercises/serverStack} % Total stack
 
-Unisex bathroom (2009 exam) -- to datatypes chapter.  twoTypesProc.tex
+\framebox{TODO}
+Unisex bathroom (2009 exam): twoTypesProc.tex; 
+partial stack

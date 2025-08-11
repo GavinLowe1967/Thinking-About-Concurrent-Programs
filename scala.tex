@@ -98,13 +98,12 @@ type~|A|, and returns the value of~|exp|.  For example, \SCALA{(x: Int) =>
 often be omitted, when the Scala compiler can deduce the type; for example, in
 \SCALA{List(1,2,3).map(x => x+1)}, the compiler can deduce that |x| must be an
 |Int|.
+
+An anonymous functions can also be defined using an underscore, ``\SCALA{_}'' to
+represent a ``hole'' into which the argument is put.  For example,
+\SCALA{((_:Int)+1)} again increments an |Int|.  Again, the type of the
+argument can often be omitted. 
 \end{scalaBox}
-%%%%%%%%%%%% I don't think we use the following. 
-%% Anonymous functions can also be defined using an underscore, ``\SCALA{_}'' to
-%% represent a ``hole'' into which the argument is put.  For example,
-%% \SCALA{((_:Int)+1)} again increments an |Int|.  Again, the type of the
-%% argument can often be omitted. 
-%% \end{scalaBox}
 
 %%%%%
 
@@ -167,3 +166,17 @@ box~\ref{sb:pattern-matching}), for example
   }
 \end{scala}
 \end{scalaBox}
+
+
+\begin{scalaBox}{{\scalashape apply} functions}
+\label{sb:apply}
+If an object~|o| has an operation called |apply| as follows:
+\begin{scala}
+  def apply(x: A) = ...
+\end{scala}
+then it can be invoked as |o(e)| where  |e| is an expression of type~|A|.
+This generalises to different numbers of parameters, including none.  
+\end{scalaBox}
+
+\framebox{TODO:}  equality and hash codes
+(from datatypes3).
