@@ -1,3 +1,5 @@
+package tacp.datatypes
+
 import scala.collection.mutable.{Set,ArrayBuffer}
 
 /** A graph of words, corresponding to the dictionary file fName.  Two words
@@ -22,15 +24,28 @@ class WordGraph(fName: String) extends Graph[String]{
 // -------------------------------------------------------
 
 object WordPath{
+  val numWorkers = 8 // Number of workers.
+
   def main(args: Array[String]) = {
-    var conc = true
-    val start = args(0); val target = args(1)
+    // Parse arguments. 
+    var start = ""; var target = ""; var conc = true; var i = 0
+    while(i < args.length) args(i) match{
+      case "--seq" => conc = false; i += 1
+      case w => 
+        if(start.isEmpty) start = w 
+        else if(target.isEmpty) target = w
+        else{ println(s"Extra argument: $w"); sys.exit() }
+        i += 1
+    }
+    if(target.isEmpty){ println("Missing argument(s)"); sys.exit() }
+
     val g = new WordGraph("knuth_words.txt")
     val searcher: GraphSearch[String] =
-      if(conc) new ConcGraphSearch(g) else new SeqGraphSearch(g)
-    searcher(start, (w: String) => w == target) match{
+      if(conc) new ConcGraphSearch(g, numWorkers) else new SeqGraphSearch(g)
+    def isTarget(w: String) = w == target
+    searcher(start, isTarget) match{
       case Some(p) => println(p.mkString(", "))
-      case None => println("No solution found")
+      case None => println("No solution found.")
     }
   }
 }

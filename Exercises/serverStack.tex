@@ -1,0 +1,148 @@
+\begin{questionS}
+Implement a concurrent total stack implementing the following trait.
+%
+\begin{scala}
+trait TotalStack[T]{
+  /** Push x onto the stack. */
+  def push(x: T): Unit
+
+  /** Optionally pop a value from the stack.
+    * @return £Some(x)£ where £x£ is the value popped, or £None£ if the stack is
+    * empty. */
+  def pop(): Option[T]
+
+  /** Shut down the queue. */
+  def shutdown(): Unit
+}
+\end{scala}
+% 
+% 
+Your implementation should use a server internally.
+
+Test your implementation using the linearizability testing framework.  You
+might base your sequential specification object on the following class (also
+available from the book website).
+% (unfortunately the Scala API no longer contains such a class).
+%
+\begin{scala}
+/** An immutable stack holding data of type £A£, as represented by £stack£. */
+class ImmutableStack[A](private val stack: List[A] = List()){
+  /** Push x onto the stack.  Returns a new stack extending this with x. */
+  def push(x: A): ImmutableStack[A] = new ImmutableStack(x :: stack)
+
+  /** Perform a pop from the stack.  Returns the value popped and the resulting
+    * stack. */
+  def pop2(): (A, ImmutableStack[A]) = {
+    require(stack.nonEmpty); (stack.head, new ImmutableStack(stack.tail))
+  }
+
+  /** Is the stack empty? */
+  def isEmpty = stack.isEmpty
+
+  override def hashCode = stack.hashCode
+
+  override def equals(other: Any) = other match{
+    case st: ImmutableStack[_] => st.stack == this.stack
+  }
+}
+\end{scala}
+\end{questionS}
+
+% ------------------------------------------------------------------
+
+\begin{answerS}
+My code is below.  This is a straightforward adaptation of the concurrent
+queue from the body of the chapter.
+%
+\begin{scala}
+class ServerStack[T] extends TotalStack[T]{
+  /** Channel for pushing. */
+  private val pushC = new SyncChan[T]
+
+  /** Channel for popping. */
+  private val popC = new SyncChan[Option[T]]
+
+  /** Push x onto the stack. */
+  def push(x: T) = pushC!x
+
+  /** Optionally pop a value from the stack.
+    * @return Some(x) where x is the value popped, or None if the stack is
+    * empty. */
+  def pop(): Option[T] = popC?()
+
+  private def server = thread{
+    val stack = new scala.collection.mutable.Stack[T]
+    serve(
+      pushC =?=> { x => stack.push(x) }
+      | popC =!=> { if(stack.isEmpty) None else Some(stack.pop()) }
+    )
+  }
+
+  fork(server)
+
+  /** Shut down the stack, terminating the server thread. */
+  def shutdown() = { pushC.close(); popC.close() }
+}
+\end{scala}
+
+
+My testing code is below.  Again this is a straightforward adaptation of the
+corresponding code for a queue in the book.   It would be better if the
+parameters could be set on the command line.  
+%
+\begin{scala}
+object StackTest{
+  /** Number of iterations by each worker. */
+  var iters = 200
+
+  /** Probability of each operation being a £push£. */
+  var pushProb = 0.30
+
+  /** Maximum value added to the stack. */
+  var maxValue = 20
+
+  /** Number of runs. */
+  var reps = 1000
+
+  /** Sequential specification type. */
+  type S =  ImmutableStack[Int] 
+
+  /** Type of concurrent object to be tested. */
+  type C = ServerStack[Int]
+
+  /** Sequential push operation. */
+  def seqPush(x: Int)(stack: S): (Unit, S) = ((), stack.push(x))
+
+  /** Sequential pop operation. */
+  def seqPop(stack: S): (Option[Int], S) =
+    if(stack.isEmpty) (None, stack)
+    else{ val(x, stack1) = stack.pop2(); (Some(x), stack1) }
+
+  /** A worker thread. */
+  def worker(me: Int, log: LinearizabilityLog[S,C]) = {
+    val random = new scala.util.Random
+    for(i <- 0 until iters)
+      if(random.nextFloat() <= pushProb){
+        val x = random.nextInt(maxValue)
+        log(_.push(x), s"push($x)", seqPush(x))
+      }
+      else log(_.pop(), "pop", seqPop)
+  }
+
+  /** Perform a single test. */
+  def doTest = {
+    val concStack = new ServerStack[Int]
+    val seqStack = new ImmutableStack[Int]
+    val tester = LinearizabilityTester[S, C](seqStack, concStack, 4, worker)
+    if(tester() <= 0) sys.exit()
+    concStack.shutdown()
+  }
+
+  // The main method
+  def main(args: Array[String]) = {
+    for(i <- 0 until reps){ doTest; if(i%10 == 0) print(".") }
+    println()
+  }
+}
+\end{scala}
+\end{answerS}
