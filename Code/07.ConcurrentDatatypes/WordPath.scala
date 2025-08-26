@@ -41,7 +41,7 @@ object WordPath{
 
     val g = new WordGraph("knuth_words.txt")
     val searcher: GraphSearch[String] =
-      if(conc) new ConcGraphSearch(g, numWorkers) else new SeqGraphSearch(g)
+      if(conc) new ConcBFGraphSearch(g, numWorkers) else new SeqBFGraphSearch(g)
     def isTarget(w: String) = w == target
     searcher(start, isTarget) match{
       case Some(p) => println(p.mkString(", "))

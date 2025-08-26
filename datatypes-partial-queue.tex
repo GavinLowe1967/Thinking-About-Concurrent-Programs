@@ -192,7 +192,7 @@ class TerminatingPartialQueue[A](numWorkers: Int){
 It is useful to have a |shutdown| operation, to allow the queue to be shut
 down by an external client, independently of it internally terminating.  We do
 this in the normal way by sending a message on a suitable channel.  However,
-if the queue has already terminated, this will throw a |StopException|, which
+if the queue has already terminated, this will throw a |Stopped| exception, which
 we catch.
 
 The server is in Figure~\ref{fig:terminating-queue-server}.  This maintains
@@ -209,14 +209,8 @@ from~|queue| to one of the waiting threads.
   private def server = thread("server"){
     val queue = new Queue[A] // Currently held values.
     val waiters = new Queue[ReplyChan] // Reply channels for current dequeues.
-    // Invariant: £queue.isEmpty£ or £waiters.isEmpty£.
     var done = false
-    /* Termination function: signal to waiting £dequeue£s, and close main
-     * channels. */
-    def close() = {
-      for(c <- waiters) c!None
-      enqueueChan.close(); dequeueChan.close(); shutdownChan.close()
-    }
+    // Main loop.  Invariant: £queue.isEmpty£ or £waiters.isEmpty£.
     serve(!done)(
       enqueueChan =?=> { x => 
         if(waiters.nonEmpty){ // Pass £x£ directly to a waiting dequeue.
@@ -234,7 +228,9 @@ from~|queue| to one of the waiting threads.
         }
       | shutdownChan =?=> { _ => done = true }
     )
-    close()
+    // Termination.
+    for(c <- waiters) c!None
+    enqueueChan.close(); dequeueChan.close(); shutdownChan.close()
   }
 \end{scala}
 \caption{The server for the terminating partial queue.}
@@ -243,17 +239,19 @@ from~|queue| to one of the waiting threads.
 
 %%%%%
 
-To avoid repeated code, we include a function |close| to shutdown the server.
-This sends |None| to all the waiting |dequeue|s, and closes the main channels
-(so any subsequent operation would throw a |Closed| exception).
+%% To avoid repeated code, we include a function |close| to shutdown the server.
+%% This sends |None| to all the waiting |dequeue|s, and closes the main channels
+%% (so any subsequent operation would throw a |Closed| exception).
 
 If the server receives a message to enqueue a value~|x|, if there is a waiting
 |dequeue| (so |queue| is empty, by the invariant), it sends~|Some(x)| to the
 first such; otherwise, it adds~|x| to |queue|.  If the server receives a
 dequeue request, if |queue| is nonempty, it returns the first element to the
 dequeue (inside a |Some| value).  Otherwise, it adds the reply channel to
-|waiters|; if all the clients are not waiting, the termination condition has
-been reached, so the queue shuts down.
+|waiters|; if all the clients are now waiting, the termination condition has
+been reached, so the queue shuts down: it sends |None| to all the waiting
+|dequeue|s, and closes the main channels (so any subsequent operation would
+throw a |Closed| exception).
 
 \begin{instruction}
 Study the details of the implementation.  In particular, check that the

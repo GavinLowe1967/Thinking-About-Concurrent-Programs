@@ -20,14 +20,15 @@ trait TotalStack[T]{
 Your implementation should use a server internally.
 
 Test your implementation using the linearizability testing framework.  You
-might base your sequential specification object on the following class (also
-available from the book website).
+might base your sequential specification object on the class in
+Figure~\ref{fig:immutable-stack} (also available from the book website).
 % (unfortunately the Scala API no longer contains such a class).
 %
+\begin{figure}
 \begin{scala}
 /** An immutable stack holding data of type £A£, as represented by £stack£. */
 class ImmutableStack[A](private val stack: List[A] = List()){
-  /** Push x onto the stack.  Returns a new stack extending this with x. */
+  /** Push £x£ onto the stack.  Returns a new stack, extending this with £x£. */
   def push(x: A): ImmutableStack[A] = new ImmutableStack(x :: stack)
 
   /** Perform a pop from the stack.  Returns the value popped and the resulting
@@ -46,6 +47,9 @@ class ImmutableStack[A](private val stack: List[A] = List()){
   }
 }
 \end{scala}
+\caption{An immutable stack.}
+\label{fig:immutable-stack}
+\end{figure}
 \end{questionS}
 
 % ------------------------------------------------------------------

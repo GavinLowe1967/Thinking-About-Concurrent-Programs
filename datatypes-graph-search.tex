@@ -144,20 +144,23 @@ return |None|: this will allow the system to terminate.
 The workers also share a set of nodes that have already been seen.  It would
 be a mistake to use a standard sequential set implementation, such as a
 |HashSet| from the Scala API, since this is not thread-safe.  Instead, we need
-a concurrent set.  We give the set the following signature.
-%
+a concurrent set.  We give the concurrent set the interface |ConcSet| in
+Figure~\ref{fig:ConcSet}.  Exercise~\ref{ex:conc-set} asks you to provide an
+implementation |ServerConcSet| of |ConcSet|, using a server thread.
+
+\begin{figure}
 \begin{scala}
-class ConcSet[A]{
+trait ConcSet[A]{
   /** Add £x£ to this set.  Return £true£ if £x£ was not previously in the set. */
   def add(x: A): Boolean
 
-  /** Shutdown the set. */
+  /** Shut down the set. */
   def shutdown(): Unit
 }
 \end{scala}
-%
-Exercise~\ref{ex:conc-set} asks you to provide an implementation using a
-server thread.
+\caption{The interface for a simple concurrent set.}
+\label{fig:ConcSet}
+\end{figure}
 
 We also assume that the |succs| method on the |Graph| object is thread-safe.
 In most cases, this method will just perform reads, so there will be no race
@@ -189,7 +192,7 @@ class ConcGraphSearch[N](g: Graph[N], numWorkers: Int)
     else{
       val queue = new TerminatingPartialQueue[(N, Path)](numWorkers)
       queue.enqueue((start, List(start)))
-      val seen = new ConcSet[N]; seen.add(start)
+      val seen = new ServerConcSet[N]; seen.add(start)
       val pathFound = new SyncChan[Path] // To send solution to £controller£.
       var result: Option[Path] = None // Holds final result. 
 

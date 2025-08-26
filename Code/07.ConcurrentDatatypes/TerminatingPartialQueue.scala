@@ -41,12 +41,6 @@ class TerminatingPartialQueue[A](numWorkers: Int){
     val waiters = new Queue[ReplyChan]
     // Inv: queue.isEmpty or waiters.isEmpty.
     var done = false
-    /* Termination function: signal to all waiting dequeues, and close main
-     * channels. */
-    def close() = {
-      for(c <- waiters) c!None
-      enqueueChan.close(); dequeueChan.close(); shutdownChan.close()
-    }
 
     serve(!done)(
       enqueueChan =?=> { x => 
@@ -68,7 +62,9 @@ class TerminatingPartialQueue[A](numWorkers: Int){
       shutdownChan =?=> { _ => done = true }
     )
 
-    close()
+    // Terminated.
+    for(c <- waiters) c!None
+    enqueueChan.close(); dequeueChan.close(); shutdownChan.close()
   }
 
   fork(server)

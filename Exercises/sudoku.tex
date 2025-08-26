@@ -1,0 +1,198 @@
+\begin{question}
+\label{ex:dfs} 
+This question concerns a concurrent program for depth-first search.  The book
+website includes a program that makes use of this depth-first search in order
+to solve sudoku problems.
+
+We will deal with graphs from the trait |Graph[T]| from the body of this
+chapter.  We will consider a search algorithm implementing the following
+abstract class.
+%
+%\begin{mysamepage}
+\begin{scala}
+/** Encapsulation of depth-first search in £g£. */
+abstract class DFGraphSearch[N](g: Graph[N]){
+  /** Perform a depth-first search in £g£, starting from £start£, for a node that
+    * satisfies £isTarget£.  */
+  def apply(start: N, isTarget: N => Boolean): Option[N] 
+}
+\end{scala}
+%\end{mysamepage}
+%
+Note that the |apply| method simply returns a node, rather than a path to a
+node. 
+
+Figure~\ref{fig:dfs-seq} gives code for sequential depth-first search, using a
+stack.  This
+version does not keep track of nodes seen previously: there is no need in our
+program to solve sudoku problems, since the same node will not be encountered
+twice. 
+
+%%%%% 
+
+\begin{figure}
+\begin{scala}
+class SeqDFGraphSearch[N](g: Graph[N]) extends DFGraphSearch[N](g){
+  def apply(start: N, isTarget: N => Boolean): Option[N] = {
+    val stack = new scala.collection.mutable.Stack[N](); stack.push(start)
+    while(stack.nonEmpty){
+      val n = stack.pop()
+      for(n1 <- g.succs(n)){
+        if(isTarget(n1)) return Some(n1) else stack.push(n1)
+      }
+    }
+    None
+  }
+}
+\end{scala}
+\caption{Sequential depth-first search.}
+\label{fig:dfs-seq}
+\end{figure}
+
+%%%%%
+
+Your task is to implement a concurrent version of this search.  Give your main
+class the following signature, where |numWorkers| gives the number of worker
+threads to use.
+%
+\begin{scala}
+class ConcDFGraphSearch[N](g: Graph[N], numWorkers: Int)
+    extends DFGraphSearch[N](g)
+\end{scala}
+%
+You will need to use a suitable concurrent stack.  You should think carefully
+about termination.
+
+The book website includes a file \texttt{DFGraphSearch.scala}, which includes
+the code in this question.  It also includes a file \texttt{Sudoku.scala},
+which solves sudoku problems using such a depth-first search, and a couple of
+files with suffix \texttt{.sud} that represent sudoku problems.
+\end{question}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{answerI}
+The following class implements a concurrent stack that, analogously to
+|TerminatingPartialQueue|, detects the termination case where the stack is
+empty and all workers are attempting a |pop|.
+%
+\begin{scala}
+import scala.collection.mutable.{Stack,Queue}
+
+/** A partial queue that terminates if all worker threads are attempting to
+  * dequeue, and the queue is empty.
+  * @param numWorkers the number of worker threads. */
+class TerminatingPartialStack[A](numWorkers: Int){
+  /** Channel for pushing. */
+  private val pushChan = new SyncChan[A]
+
+  private type ReplyChan = OnePlaceBuffChan[Option[A]]
+
+  /** Channel for popping. */
+  private val popChan = new SyncChan[ReplyChan]
+
+  /** Channel for shutting down the stack. */
+  private val shutdownChan = new SyncChan[Unit]
+
+  /** Push £x£.
+    * @throws Stopped if the stack has been shutdown. */
+  def push(x: A): Unit = pushChan!x
+
+  /** Attempt to pop a value.  Returns £None£ if the termination condition has
+    * been reached.
+    * @throws Stopped if the stack has been shutdown. */
+  def pop(): Option[A] = { 
+    val reply = new ReplayChan; popChan!reply; reply?() 
+  }
+
+  /** Shut down this stack. */
+  def shutdown() = attempt{ shutdownChan!(()) }{ }
+  // Note: it's possible that the server has already terminated, in which case
+  // we catch the £Stopped£ exception.
+
+  /** The server. */
+  private def server = thread("server"){
+    // Currently held values
+    val stack = new Stack[A]()
+    // Reply channels for current £pop£ attempts.
+    val waiters = new Queue[ReplyChan]() 
+    var done = false
+    // Main loop.  Invariant: stack.isEmpty or waiters.isEmpty.
+    serve(!done)(
+      pushChan =?=> { x => 
+        if(waiters.nonEmpty){ // Pass £x£ directly to a waiting £pop£
+          assert(stack.isEmpty); waiters.dequeue()!Some(x)
+        }
+        else stack.push(x)
+      }
+      |  
+      popChan =?=> { reply =>
+        if(stack.nonEmpty) 
+          reply!Some(stack.pop()) // Service request immediately.
+        else{
+          waiters.enqueue(reply)
+          if(waiters.length == numWorkers) done = true
+        }
+      }
+      |
+      shutdownChan =?=> { _ => done = true }
+    )
+    // Termination.
+    for(c <- waiters) c!None
+    pushChan.close(); popChan.close(); shutdownChan.close()
+  }
+
+  fork(server)
+}
+\end{scala}
+
+%%%%%
+
+The following class implements the concurrent depth-first search.  It is
+mostly similar to the code for concurrent breadth-first search from the body
+of the chapter, adapted to use a stack.  Again, we use a coordinator thread to
+deal with termination.
+%
+\begin{scala}
+class ConcDFGraphSearch[N](g: Graph[N], numWorkers: Int)
+     extends DFGraphSearch[N](g){
+  /** Perform a depth-first search in £g£, starting from £start£, for a node that
+    * satisfies £isTarget£.  This assumes that the start node is not itself a
+    * target. */
+  def apply(start: N, isTarget: N => Boolean): Option[N] = {
+    // The stack supporting the depth-first search, holding nodes.
+    val stack = new TerminatingPartialStack[N](numWorkers); stack.push(start)
+    val solnFound = new SyncChan[N] // From workers to controller.
+
+    // A worker thread
+    def worker = thread("worker"){
+      var done = false
+      repeat(!done){
+        stack.pop() match{
+          case Some(n) => 
+            for(n1 <- g.succs(n)){
+              if(isTarget(n1)) solnFound!n1 else stack.push(n1)
+            }
+          case None => done = true
+        }
+      }
+      solnFound.close() // Causes coordinator to terminate.
+    }
+
+    // Variable that ends up holding the result; written by coordinator. 
+    var result: Option[N] = None
+
+    // The coordinator.
+    def coordinator = thread("coordinator"){
+      attempt{ result = Some(solnFound?()) }{ }
+      stack.shutdown() // Close stack; this will cause most workers to terminate.
+      solnFound.close() // In case another thread has found solution.
+    }
+
+    val workers = || (for(_ <- 0 until numWorkers) yield worker)
+    run(workers || coordinator)
+    result
+  }
+}
+\end{scala}
+\end{answerI}

@@ -1,0 +1,72 @@
+\begin{questionS}
+\label{ex:conc-set}
+Give an implementation of the trait |ConcSet| from Figure~\ref{fig:ConcSet}:
+\begin{scala}
+class ServerConcSet[A] extends ConcSet[A]{ ... }
+\end{scala}
+The implementation should use a server internally.
+
+Test your implementation using the linearizability testing framework.  
+\end{questionS}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{answerS}
+The implementation of the concurrent set is very straightforward.
+%
+\begin{scala}
+class ServerConcSet[A] extends ConcSet[A]{
+  private type ReplyChan = OnePlaceBuffChan[Boolean]
+
+  /** Channel from clients to the server. */
+  private val addC = new SyncChan[(A, ReplyChan)]
+
+  /** Add £x£ to this set.  Return £true£ if £x£ was not previously in the set. */
+  def add(x: A): Boolean = {
+    val c = new ReplyChan; addC!(x,c); c?()
+  }
+
+  private def server = thread{
+    val set = new HashSet[A]
+    repeat{ val (x,c) = addC?(); val res = set.add(x); c!res }
+  }
+
+  fork(server)
+
+  /** Shut down the object. */
+  def shutdown() = addC.close()
+}
+\end{scala}
+
+The testing is also straightforward.  We use an immutable |HashSet| for the
+specification.  The interesting parts of the code are below.
+%
+\begin{scala}
+  /** Sequential specification type. */
+  type S = scala.collection.immutable.HashSet[Int]
+
+  /** Type of concurrent object to be tested. */
+  type C = ConcSet[Int]
+
+  /** Sequential add operation. */
+  def seqAdd(x: Int)(set: S): (Boolean, S) = 
+    if(set.contains(x)) (false, set) else (true, set+x)
+
+  /** A worker thread. */
+  def worker(me: Int, log: LinearizabilityLog[S,C]) = {
+    val random = new scala.util.Random
+    for(i <- 0 until iters){
+      val x = random.nextInt(maxValue)
+      log(_.add(x), s"add($x)", seqAdd(x))
+    }
+  }
+
+  /** Perform a single test. */
+  def doTest = {
+    val concSet = new ServerConcSet[Int]; val seqSet = new S
+    val tester = LinearizabilityTester[S, C](seqSet, concSet, 4, worker)
+    if(tester() <= 0) sys.exit()
+    concSet.shutdown()
+  }
+\end{scala}
+\end{answerS}
