@@ -16,7 +16,7 @@ class TerminatingPartialQueue[A](numWorkers: Int){
   private val dequeueChan = new SyncChan[ReplyChan]
 
   /** Channel for shutting down the queue. */
-  private val shutdownChan = new SyncChan[Unit]
+  // private val shutdownChan = new SyncChan[Unit]
 
   /** Enqueue x.
     * @throws Closed if the queue has been shutdown. */
@@ -29,7 +29,8 @@ class TerminatingPartialQueue[A](numWorkers: Int){
   }
 
   /** Shut down this queue. */
-  def shutdown() = attempt{ shutdownChan!() }{ }
+  def shutdown() = { enqueueChan.close(); dequeueChan.close() } 
+  // attempt{ shutdownChan!() }{ }
   // Note: it's possible that the server has already terminated, in which case
   // we catch the StopException.
 
@@ -58,13 +59,13 @@ class TerminatingPartialQueue[A](numWorkers: Int){
           if(waiters.length == numWorkers) done = true
         }
       }
-      |
-      shutdownChan =?=> { _ => done = true }
+      // |
+      // shutdownChan =?=> { _ => done = true }
     )
 
     // Terminated.
     for(c <- waiters) c!None
-    enqueueChan.close(); dequeueChan.close(); shutdownChan.close()
+    enqueueChan.close(); dequeueChan.close() // ; shutdownChan.close()
   }
 
   fork(server)

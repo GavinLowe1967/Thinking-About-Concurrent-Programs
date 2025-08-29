@@ -20,7 +20,7 @@ abstract class DFGraphSearch[N](g: Graph[N]){
 %\end{mysamepage}
 %
 Note that the |apply| method simply returns a node, rather than a path to a
-node. 
+node: this is enough for the application to sudoku problems.
 
 Figure~\ref{fig:dfs-seq} gives code for sequential depth-first search, using a
 stack.  This
@@ -81,7 +81,7 @@ import scala.collection.mutable.{Stack,Queue}
 
 /** A partial queue that terminates if all worker threads are attempting to
   * dequeue, and the queue is empty.
-  * @param numWorkers the number of worker threads. */
+  * @param £numWorkers£ the number of worker threads. */
 class TerminatingPartialStack[A](numWorkers: Int){
   /** Channel for pushing. */
   private val pushChan = new SyncChan[A]
@@ -91,24 +91,17 @@ class TerminatingPartialStack[A](numWorkers: Int){
   /** Channel for popping. */
   private val popChan = new SyncChan[ReplyChan]
 
-  /** Channel for shutting down the stack. */
-  private val shutdownChan = new SyncChan[Unit]
-
-  /** Push £x£.
-    * @throws Stopped if the stack has been shutdown. */
+  /** Push £x£. */
   def push(x: A): Unit = pushChan!x
 
   /** Attempt to pop a value.  Returns £None£ if the termination condition has
-    * been reached.
-    * @throws Stopped if the stack has been shutdown. */
+    * been reached. */
   def pop(): Option[A] = { 
     val reply = new ReplayChan; popChan!reply; reply?() 
   }
 
   /** Shut down this stack. */
-  def shutdown() = attempt{ shutdownChan!(()) }{ }
-  // Note: it's possible that the server has already terminated, in which case
-  // we catch the £Stopped£ exception.
+  def shutdown() = { pushChan.close(); popChan.close() }
 
   /** The server. */
   private def server = thread("server"){
@@ -134,12 +127,10 @@ class TerminatingPartialStack[A](numWorkers: Int){
           if(waiters.length == numWorkers) done = true
         }
       }
-      |
-      shutdownChan =?=> { _ => done = true }
     )
     // Termination.
     for(c <- waiters) c!None
-    pushChan.close(); popChan.close(); shutdownChan.close()
+    pushChan.close(); popChan.close()
   }
 
   fork(server)

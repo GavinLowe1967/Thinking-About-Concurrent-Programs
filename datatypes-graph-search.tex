@@ -10,8 +10,9 @@ explicitly or implicitly).  Examples include:
 \item Planning, where the nodes of the graph are intermediate stages towards
   some goal, and the edges are possible steps;
 
-\item Puzzle solving, such as sudoku, where the nodes of the graph are partial
-  solutions to the puzzle, and the edges correspond to steps of the puzzle;
+\item Solving puzzles, such as sudoku, where the nodes of the graph are
+  partial solutions to the puzzle, and the edges correspond to steps of the
+  puzzle (e.g.~adding one number in a sudoku puzzle);
 
 \item Verification of some computer system, where the nodes of the graph are
   states that the system can reach, and the edges are transitions that the
@@ -75,8 +76,8 @@ finding such a path linking \word{grass} to \word{green}, and gave the
 solution \word{grass}, \word{crass}, \word{cress}, \word{tress}, \word{trees},
 \word{frees}, \word{freed}, \word{greed}, \word{green}, although in fact there
 are shorter solutions.  We can build a |Graph| to represent this puzzle, where
-each node is a word (from some dictionary file), and with the successors of a
-node being those that differ by one letter.  The |GraphSearch| then solves the
+each node is a word (from some dictionary file), and where the successors of a
+node are those that differ by one letter.  The |GraphSearch| then solves the
 problem.
 
 %%%%%
@@ -166,13 +167,14 @@ We also assume that the |succs| method on the |Graph| object is thread-safe.
 In most cases, this method will just perform reads, so there will be no race
 conditions.  However, it is worth noting this requirement. 
 
-If a path is found, we need to arrange for that path to be returned.  We need
-to ensure the other threads terminate, and the queue is shut down.  However,
+If a path is found, we need to arrange for that path to be returned. However,
 if two threads each find a path, we need to return just one of them: it would
 be a mistake for each such thread to write its path into a shared variable, as
 this would be a race.  Instead, we use a coordinator thread: if a worker
-thread finds a path, it sends it to the coordinator on a channel~|pathFound|;
-the coordinator then arranges for the rest of the system to terminate.
+thread finds a path, it sends it to the coordinator on a channel~|pathFound|,
+which writes it into an object variable.  We also need to ensure the other
+threads terminate, and the queue is shut down; the coordinator will also be
+responsible for these aspects.
 
 Figure~\ref{fig:graph-search-conc} gives the concurrent implementation.  The
 implementation again treats the case that the start node is also a target node
@@ -241,15 +243,16 @@ shutdown; the |repeat| construct catches this exception.
 
 If the controller receives a path from a worker, it writes it to the variable
 |result|, which is subsequently returned.  However, if no path exists,
-|pathFound| is closed, as described above; the |attempt| construct catches the
-resulting |Closed| exception.  The controller then shuts down the queue: if it
-did indeed receive a path, this will cause the other workers to terminate.  It
-also shuts down the |seen| set, to allow its server to terminate.  Finally, it
-closes |pathFound|: this is necessary in the case that a second worker thread
-has found a solution and it trying to sent it to the controller. 
+|pathFound| is closed as described above, which causes the controller's
+attempted receive to throw a |Closed| exception; the |attempt| construct
+catches this.  The controller then shuts down the queue: if it did indeed
+receive a path, this will cause the other workers to terminate.  It also shuts
+down the |seen| set, to allow its server to terminate.  In addition, it closes
+|pathFound|: this is necessary in the case that a second worker thread has
+found a solution and it trying to sent it to the controller.
 
-Finally, the workers and the controller are run in parallel; when the system
-terminates, the value in |result| is returned. 
+The workers and the controller are run in parallel.  When the system
+terminates, the value in |result| is returned.
 
 \begin{instruction}
 Study the details of the implementation.

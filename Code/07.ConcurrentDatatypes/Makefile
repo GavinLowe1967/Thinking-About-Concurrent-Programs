@@ -1,6 +1,6 @@
 DIR = ../tacp/datatypes
 
-EXERCISES = $(DIR)/TotalStack.class $(DIR)/Sudoku.class
+EXERCISES = $(DIR)/TotalStack.class $(DIR)/Sudoku.class $(DIR)/PartialStack.class $(DIR)/ArrayMax.class
 
 all: $(DIR)/QueueTest.class $(DIR)/PartialQueueTest.class $(DIR)/WordPath.class $(EXERCISES)
 

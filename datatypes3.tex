@@ -1,8 +1,9 @@
 \section{Testing for Linearizability}
 
-We now consider how we can test the implementation of a total concurrent queue
-from Section~\ref{sec:total-queue}, and more generally, how we can test other
-implementations of concurrent datatypes.
+We now consider how we can test whether the implementation of a total
+concurrent queue from Section~\ref{sec:total-queue} is linearizable, and more
+generally, how we can test other implementations of concurrent datatypes for
+linearizability.
 
 The basic idea is as follows. We run some threads on the concurrent datatype,
 performing random operations, and record the history of operation calls and
@@ -25,19 +26,20 @@ constants by variables, specifiable via the command line.)
 
 \begin{figure}
 \begin{scala}[numbers = left]
+import scala.collection.immutable.Queue
+
 object QueueTest{
   /* The concurrent datatype, and sequential specification type. */
-  type ConcQueue = TotalQueue[Int] 
-  type SeqQueue = scala.collection.immutable.Queue[Int]
+  type ConcQueue = TotalQueue[Int]; type SeqQueue = Queue[Int]
 
   /* Sequential operations. */
-  def seqEnqueue(x: Int)(q: S): (Unit, S) = ((), q.enqueue(x))£\label{line:seqEnqueue}£
-  def seqDequeue(q: S): (Option[Int], S) =   
+  def seqEnqueue(x: Int)(q: SeqQueue): (Unit, SeqQueue) = ((), q.enqueue(x))£\label{line:seqEnqueue}£
+  def seqDequeue(q: SeqQueue): (Option[Int], SeqQueue) =   
     if(q.isEmpty) (None, q) 
     else{ val (r,q1) = q.dequeue(); (Some(r), q1) }
 
   /** A worker in the testing system. */
-  def worker(me: Int, log: LinearizabilityLog[S, C]) = {£\label{line:queue-lin-tester-worker}£
+  def worker(me: Int, log: LinearizabilityLog[SeqQueue, ConcQueue]) = {£\label{line:queue-lin-tester-worker}£
     val random = new scala.util.Random
     for(i <- 0 until 200)
       if(random.nextFloat() <= 0.3){
@@ -82,9 +84,9 @@ from the Scala API; we define |SeqQueue| as a type synonym.
 In general, given a type |S| of the sequential specification object, for each
 operation |op: A| on the concurrent datatype, we need a corresponding function
 |seqOp: S => (A, S)| on the sequential datatype, which returns the expected
-value\footnote{More precisely, the two values should be equal, as tested using
-  the ``{\scalashape ==}'' method.} (of type~|A|), paired with the new value
-of the sequential datatype. 
+returned value\footnote{More precisely, the two values should be equal, as
+  tested using the ``{\scalashape ==}'' method.} (of type~|A|), paired with
+the new value of the sequential datatype.
 
 For the case of a concurrent total queue, the relevant definitions are from
 line~\ref{line:seqEnqueue}.  These are simple wrappers around the API
@@ -190,8 +192,9 @@ in either order, and so either of their values would have been allowed.
 %%%%%
 
 Linearizability testers for other concurrent datatypes take a very similar
-form.  My normal approach to writing such a tester is to take an existing one
-and to adapt it.  
+form, as you will see if you complete the exercises at the end of this
+chapter.  My normal approach to writing such a tester is to take an existing
+one and to adapt it.
 
 Under the bonnet, the linearizability tester performs a search, in effect,
 considers all possible linearizations of the history---i.e.~all ways of
@@ -215,17 +218,18 @@ the case of a queue, if two |enqueue|s happen concurrently, they could be
 linearized in either order; the linearizability tester has to consider both
 possibilities; which one is correct becomes apparent only when one of the
 values is dequeued.  If the queue holds quite a lot of values, there might be
-several pairs that were enqueued concurrently.  This means that the search
-space can grow exponentially with the length of the queue.  To avoid this, we
-should take steps to make it unlikely that the queue holds too many values.
-In Figure~\ref{fig:queue-lin-tester}, we did this by making dequeues more
+several pairs that were enqueued concurrently, and the linearizability tester
+has to consider all possibilities.  This means that the search space can grow
+exponentially with the length of the queue.  To avoid this, we should take
+steps to make it unlikely that the queue holds too many values.  In
+Figure~\ref{fig:queue-lin-tester}, we did this by making dequeues more
 frequent than enqueues.
 
-By default, the linearizability tester logs operation calls and returns using
-thread-local logs, pairing each event with a timestamp.  We saw a similar
-technique in an earlier chapter.  If you're using an operating system that
-doesn't support timestamps property, setting the optional parameter |tsLog| to
-|false| will use a different type of log; for example:
+By default, the linearizability tester performs the logging of operation calls
+and returns using thread-local logs, pairing each event with a timestamp.  We
+saw a similar technique in an earlier chapter.  If you're using an operating
+system that doesn't support timestamps property, setting the optional
+parameter |tsLog| to |false| will use a different type of log; for example:
 %
 \begin{scala}
   val tester = LinearizabilityTester[SeqQueue, ConcQueue](
@@ -249,9 +253,9 @@ specification objects represent the same state.
 It is also worth reiterating that the strings used in logging semantically
 different operations should be distinct.  My normal style is to use a string
 that looks like the syntax of the operation call, including any parameters:
-this is what is most useful in debugging output (if an error of
-linearizability is found).  But also these strings are used internally as an
-optimisation (the tester records the effect of each sequential operation on the
-specification object, using the string as a key; this avoids repeating the
-same operation on the same specification object).
+this is what is most useful in debugging output if an error of linearizability
+is found.  But also these strings are used internally as an optimisation which
+assumes such distinct strings (the tester records the effect of each
+sequential operation on the specification object, using the string as a key;
+this avoids repeating the same operation on the same specification object).
 

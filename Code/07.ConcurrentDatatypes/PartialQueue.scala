@@ -8,7 +8,7 @@ trait PartialQueue[T]{
   def enqueue(x: T): Unit
 
   /** Dequeue a value.  Blocks until the queue is non-empty. */
-  def dequeue: T
+  def dequeue(): T
 
   /** Shut down the queue. */
   def shutdown(): Unit
@@ -37,7 +37,7 @@ class ServerPartialQueue[T] extends PartialQueue[T]{
   def enqueue(x: T) = enqueueChan!x
 
   /** Dequeue a value.  Blocks until the queue is non-empty. */
-  def dequeue: T = dequeueChan?()
+  def dequeue(): T = dequeueChan?()
 
   /** Shut down the queue. */
   override def shutdown() = { enqueueChan.close(); dequeueChan.close() }

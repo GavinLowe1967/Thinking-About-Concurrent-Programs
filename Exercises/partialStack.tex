@@ -1,0 +1,45 @@
+\begin{questionS}
+Now adapt your answer to Exercise~\ref{ex:serverStack} to implement a
+\emph{partial} stack, extending the following trait.
+%
+\begin{scala}
+trait PartialStack[T]{
+  /** Push £x£ onto the stack. */
+  def push(x: T): Unit
+
+  /** Pop a value from the stack.  Blocks until the stack is non-empty. */
+  def pop(): T
+
+  /** Shut down the stack. */
+  def shutdown(): Unit
+}
+\end{scala}
+%
+Also adapt the linearizability tester to test your implementation.
+\end{questionS}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{answerS}
+In the implementation, the only interesting change is to the definition of the
+server, so as to block |pop|s when the stack is empty:
+%
+\begin{scala}
+  private def server = thread("server"){
+    val stack = new scala.collection.mutable.Stack[T]
+    serve(
+      pushC =?=> { x => stack.push(x) }
+      | stack.nonEmpty && popC =!=> stack.pop()
+    )
+  }
+\end{scala}
+
+The only change to the linearizability tester is to the |seqPop| operation, to
+reflect the precondition. 
+%
+\begin{scala}
+  def seqPop(stack: S) : (Int, S) = {
+    require(!stack.isEmpty); stack.pop2()
+  }
+\end{scala}
+\end{answerS}

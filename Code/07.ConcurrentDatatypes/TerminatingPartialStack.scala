@@ -16,7 +16,7 @@ class TerminatingPartialStack[A](numWorkers: Int){
   private val popChan = new SyncChan[ReplyChan]
 
   /** Channel for shutting down the stack. */
-  private val shutdownChan = new SyncChan[Unit]
+  //private val shutdownChan = new SyncChan[Unit]
 
   /** Push x.
     * @throws Stopped if the stack has been shutdown. */
@@ -30,7 +30,8 @@ class TerminatingPartialStack[A](numWorkers: Int){
   }
 
   /** Shut down this stack. */
-  def shutdown() = attempt{ shutdownChan!(()) }{ }
+  def shutdown() = { pushChan.close(); popChan.close() } 
+    // attempt{ shutdownChan!(()) }{ }
   // Note: it's possible that the server has already terminated, in which case
   // we catch the Stopped exception.
 
@@ -57,12 +58,12 @@ class TerminatingPartialStack[A](numWorkers: Int){
           if(waiters.length == numWorkers) done = true
         }
       }
-      |
-      shutdownChan =?=> { _ => done = true }
+      // |
+      // shutdownChan =?=> { _ => done = true }
     )
     // Termination.
     for(c <- waiters) c!None
-    pushChan.close(); popChan.close(); shutdownChan.close()
+    pushChan.close(); popChan.close() // ; shutdownChan.close()
   }
 
   fork(server)

@@ -25,7 +25,7 @@ object PartialQueueTest{
         val x = random.nextInt(MaxVal)
         log(_.enqueue(x), s"enqueue($x)", seqEnqueue(x))
       }
-      else log(_.dequeue, "dequeue", seqDequeue)
+      else log(_.dequeue(), "dequeue", seqDequeue)
     }
   }
 

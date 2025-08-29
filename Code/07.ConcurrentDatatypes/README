@@ -1,0 +1,37 @@
+TotalQueue.scala: two implementations of a total queue.
+
+QueueTest.scala: a linearizability tester for TotalQueues. 
+
+PartialQueue.scala: a partial queue.
+
+PartialQueueTest: a linearizability tester for a partial queue.
+
+TerminatingPartialQueue.scala: a terminating partial queue.
+
+GraphSearch.scala: representation of a graph, and encapsulation of a graph
+search.
+
+ConcBFGraphSearch: sequential and concurrent breadth-first search. 
+
+WordPath.scala: the word search program.
+
+Exercises
+=========
+
+ImmutableStack.scala: an immutable stack, for use for testing in
+TotalStack.scala (part of distribution).
+
+TotalStack.scala: a total stack, and linearizability checker. 
+
+PartialStack.scala: a partial stack, and linearizability checker. 
+
+ConcSet.scala: concurrent set and testing; also used in BFS. 
+
+DFGraphSearch.scala: encapsulation of depth-first search, and a sequential
+implementation (part of distribution).
+
+TerminatingPartialStack.scala: a terminating partial stack. 
+
+ConcDFGraphSearch.scala: concurrent depth-first search.
+
+Sudoku.scala: solving sudoku problems (part of distribution). 

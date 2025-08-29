@@ -1,6 +1,6 @@
 A \emph{concurrent datatype} is a datatype, for example, a queue, stack, set
 or mapping, that can be safely accessed concurrently by multiple threads.
-Operation invocations should appear to take place in a one-at-a-time order,
+Operation executions should appear to take place in a one-at-a-time order,
 without interference.
 
 Threads that use the concurrent datatype can act much as they would with a
@@ -13,8 +13,33 @@ another.  But that concurrency is local, often inside a single object: local
 reasoning is much easier than global reasoning.  And there's a lot of scope
 for re-using concurrent datatypes.
 
-Datatype-based concurrent programming encapsulates \emph{all} the concurrency
-within a small number of concurrent datatypes.
+Datatype-based concurrent programming encapsulates all, or nearly all, the
+concurrency within a small number of concurrent datatypes.
+
+As mentioned in Chapter~\ref{chap:clientServer}, operations on concurrent
+objects can be either \emph{total}, i.e.~able to be performed in an arbirary
+state, or \emph{partial}, i.e.~where the operation blocks if a precondition
+does not hold.  The terms total and partial also apply to concurrent
+datatypes.
+
+We investigate these ideas in this chapter.  Most of the examples are based
+around concurrent queues; exercises at the end of the chapter ask you to adapt
+the techniques to concurrent stacks.
+
+We start with a straightforward implementation of a total queue using a server
+thread: a dequeue operation returns a special value to indicate that the queue
+is empty.  We then ask what it means for such a concurrent datatype to be
+correct.  The standard answer is a property called \emph{linearizability}: we
+define this property, and show how it can be tested for.  We then implement a
+partial queue using a server: a dequeue operation blocks when the queue is
+empty; we show how to adapt the linearizability test to this case.  An issue
+with this implementation is that if the queue is empty and all the client
+threads are attempting to dequeue, the system deadlocks.  We adapt the
+implementation to detect this case, and for all the clients to return an
+appropriate value.  Finally, we use such a concurrent queue to implement a
+concurrent graph search in approximate breadth-first order: much of the
+definition of a worker thread is the same as for a sequential search, because
+the concurrent queue is responsible for managing much of the concurrency.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -25,10 +50,10 @@ To illustrate some of the ideas, we will implement a concurrent queue.  First,
 we should ask: what interface should a concurrent queue have?  A sequential
 queue would typically have an interface like:
 %
-\begin{mysamepage}
+%\begin{mysamepage}
 \begin{scala}
 trait Queue[T]{
-  /** Enqueue x. */
+  /** Enqueue £x£. */
   def enqueue(x: T): Unit
 
   /** Dequeue a value.  Precondition: the queue is not empty. */
@@ -38,7 +63,7 @@ trait Queue[T]{
   def isEmpty: Boolean
 }
 \end{scala}
-\end{mysamepage}
+%\end{mysamepage}
 %
 The |dequeue| operation has a non-trivial precondition, so client code that
 uses the queue would be expected to check this first, for example, via code
@@ -62,24 +87,24 @@ return a special value to indicate that the precondition does not hold.  In
 Scala, it is natural to use an |Option| value, with |None| indicating that the
 precondition does not hold.  In some circumstances, it might be appropriate
 (and more efficient) to use |null| for this, if |null| can never be returned
-when the precondition does hold.  An alternative, is for the operation to
-throw an exception, and expect the thread to catch it.  Operations that treat
-preconditions in this way are called \emph{total}: they can take effect in any
-state.
+when the precondition does hold.  An alternative is for the operation to throw
+an exception, and expect the thread to catch it.  Recall that operations that
+treat preconditions in this way are called \emph{total}: they can take effect
+in any state.
 
-The other way to deal with the case that the precondition does not hold is to
-block the thread until the precondition becomes true.  Such operations are
-called \emph{partial}.
+%% The other way to deal with the case that the precondition does not hold is to
+%% block the thread until the precondition becomes true.  Such operations are
+%% called \emph{partial}.
 
-We will start with a total concurrent queue, with the following interface,
+We implement a total concurrent queue, with the following interface,
 where the |dequeue| operation returns an |Option| type, with |None| used to
 indicate am empty queue. 
 %
-\begin{mysamepage}
+%\begin{mysamepage}
 \begin{scala}
 /** A total queue. */
 trait TotalQueue[T]{
-  /** Enqueue x. */
+  /** Enqueue £x£. */
   def enqueue(x: T): Unit
 
   /** Dequeue a value.  Returns £None£ if the queue is empty. */
@@ -89,7 +114,7 @@ trait TotalQueue[T]{
   def shutdown: Unit
 }
 \end{scala}
-\end{mysamepage}
+%\end{mysamepage}
 
 A thread that performs a |dequeue| should handle both cases, for example, via
 code such as:
@@ -135,6 +160,7 @@ class ServerTotalQueue[T] extends TotalQueue[T]{
   fork(server)
 
   def shutdown() = { enqueueChan.close; dequeueChan.close }
+}
 \end{scala}
 \caption{A total queue implemented using a server.}
 \label{fig:total-queue-server}

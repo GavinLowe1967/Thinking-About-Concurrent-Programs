@@ -5,53 +5,63 @@
 \input{datatypes2} % linearizability 
 \input{datatypes3} % linearizability testing
 \input{datatypes-partial-queue} % partial queue, including termination
-
 \input{datatypes-graph-search} % breadth-first search.
 
 %%%%%
 
 \section{Summary}
 
-\begin{itemize}
-\item 
-Concurrent datatypes;
+In this chapter we have studied concurrent datatypes.  Such a concurrent
+datatype should act much like a corresponding sequential datatype, but provide
+thread-safe operations.  Different operation executions should appear to take
+place in a one-at-a-time order, without interference, in an order compatible
+with the calls and returns of the operations.
 
-\item
-Total and partial datatypes;
+The implementer of the datatype needs to think about concurrency.  However
+that concurrency is localised into a single object, so normally fairly easy to
+get right.  By contrast, client code can mostly ignore the fact that the
+datatype is being used concurrently.
 
-\item Example: a total concurrent queue;
+We have seen examples based around concurrent queues.  Exercises ask you to
+adapt these techniques to concurrent stacks.
 
-\item
-Linearization; 
+A concurrent datatype can be either total or partial.  In a total datatype,
+each operation can take place in any state.  This sometimes requires some
+thought concerning the operation's interface, for example returning a special
+value when a natural precondition isn't satisfied.  By contrast, in a partial
+datatype, an operation blocks when its precondition does not hold.
 
-\item Testing for linearizability.
+The concept of linearization captures the correctness of a concurrent
+datatype.  Operation executions should appear to take place in a one-at-a-time
+order, each taking place between the call and return, and such that the
+sequence of operation executions, and their return values, satisfies our
+requirements, typically that they match a corresponding sequential datatype.
 
-\item 
-Example: a partial concurrent queue;
+Testing for linearizability is fairly straightforward within SCL.  The tester
+needs to define workers that perform and log operations on the concurrent
+datatype, and needs to define how the corresponding operation behave on the
+sequential specification object.  In particular, the framework allows the
+tester to capture preconditions for partial operations. 
 
-\item
-Testing for linearizability: capturing preconditions;
+We illustrated the use of concurrent datatypes by implementing a graph search
+that followed approximate breadth-first order.  We needed to adapt the
+implementation of a partial queue so that it detects the termination case
+where the queue is empty and all workers are attempting to dequeue.  The code
+for each worker was then rather similar to that for the corresponding
+sequential algorithm, although ensuring termination required a bit of work.
 
-\item 
-Termination;
-
-\item Example: breadth-first search.
-
-\end{itemize}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \exercises
 
-\input{Exercises/serverStack} % Total stack
 
 \input{Exercises/serverSet} % concurrent set
 
-\input{Exercises/sudoku} % Concurrent DFS for sudoku (cf practical). % 
+\input{Exercises/serverStack} % Total stack
 
+\input{Exercises/partialStack} % Partial stack
 
-\framebox{TODO}
-Unisex bathroom (2009 exam): twoTypesProc.tex; 
-partial stack;
-sync3 (mod3S.tex) -- needs more explanation.
+\input{Exercises/sudoku} % Concurrent DFS for sudoku (cf practical). 
 
+% maximum in array

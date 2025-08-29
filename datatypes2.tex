@@ -8,14 +8,14 @@ datatypes.
 
 We define a \emph{history} to be a sequence of calls and returns of
 operations, corresponding to threads operating on the datatype.
-Informally, a history is correct if:
+Informally, a history of a concurrent queue is correct if:
 %
 \begin{itemize}
 \item Operation executions take place (apparently) in a one-at-a-time
   way, without interference between different executions.
 
 \item The point at which each operation execution takes effect is between the
-time the invocation was invoked and when it returns; we call this point
+time the operation was invoked and when it returns; we call this point
 the \emph{linearization point}.
 
 \item The values returned by operation executions should be the same as for a
@@ -29,8 +29,8 @@ sequential datatype.
 This property is called \emph{linearization}~\cite{herlihy-wing}.  It is an
 attractive property, because it matches most programmers' mental models of how
 such a concurrent datatype should behave.
-
-We will give a more formal definition of linearization shortly.  But first, we
+%
+We will give a formal definition of linearization shortly.  But first, we
 give some examples.  
 
 Figure~\ref{fig:linearization} gives four timelines depicting histories.  In
@@ -102,7 +102,7 @@ In timeline~1, thread $t_0$ enqueues~|4|, and thread $t_1$ enqueues~|5| and
 dequeues~|4| (so the |dequeue| operation returns |Some(4)|).  This history is
 linearizable, if the operations take place at the linearization points
 labelled~``{\scalashape X}''.  This would correspond to a sequential
-history:\footnote{We denote sequences within angle brackets, $\seq{\ldots}$.}
+history:\footnote{We write sequences within angle brackets, $\seq{\ldots}$.}
 \[\mstyle
 \seq{ \sm{enqueue(4)},\, \sm{enqueue(5)},\, \sm{dequeue():Some(4)}}
 \]
@@ -123,12 +123,14 @@ order.
 
 %%%%%
 
-In timeline~3, the enqueue of~|5| returns before the enqueue of~|4| is
-called.  That means that the two enqueues must take place in that order, since
-each linearization point must be within the time period of the operation
-execution.  The timeline is linearizable, as shown by the labelled
-linearization points.  However, if the |dequeue| had returned |Some(4)|, the
-history would not be linearizable. 
+In timeline~3, the enqueue of~|5| returns before the enqueue of~|4| is called.
+That means that the two enqueues must take place in that order, since each
+linearization point must be within the time period of the operation execution.
+This makes sense: if one operation returns before another is called, we would
+certainly expect them to take effect in that order.  The timeline is
+linearizable, as shown by the labelled linearization points.  However, if the
+|dequeue| had returned |Some(4)|, the history would not be linearizable; it
+would not correspond to how we expect a queue to behave.
 
 By contrast, timeline~4 is not linearizable: the |dequeue| by thread~$t_2$
 should not return |None|, because the queue is nonempty throughout that
@@ -138,9 +140,9 @@ would correspond to the sequential history
 \seq{ \sm{enqueue(4)},\, \sm{enqueue(5)},\,
    \sm{dequeue():Some(4)},\, \sm{dequeue():None}},
 \]
-which is invalid, since the second |dequeue| should return |Some(5)|.  An
-alternative choice for the linearization points would correspond to the
-sequential history 
+which is invalid, since the second |dequeue| should return |Some(5)|.  A
+different choice for the linearization points would correspond to the
+sequential history
 \[\mstyle
 \seq{ \sm{enqueue(4)},\, \sm{dequeue():None}},\, \sm{enqueue(5)},\,
    \sm{dequeue():Some(4)},
@@ -229,7 +231,7 @@ if they have the same execution identifier.  A concurrent history is
 event, i.e.~no execution is still pending at the end of the history.  Each of
 the histories depicted in Figure~\ref{fig:linearization} is complete. 
 
-Linearisation is specified with respect to a sequential specification
+Linearization is specified with respect to a sequential specification
 object~$Spec$, with the same operations and signatures as the concurrent
 object in question.  For the case of a total queue, we could define the
 sequential specification object as follows:
@@ -258,10 +260,10 @@ definition of~$Spec$.  Earlier, we gave several legal histories for |SeqQueue|
 
 Let $h$ be a complete concurrent history, and let $h_s$ be a legal history of
 the specification object.  We say that $h$ and~$h_s$ \emph{correspond} if they
-contain the same executions, i.e., for each $\call.op^i(x)$ and
+contain the same executions of operations, i.e., for each $\call.op^i(x)$ and
 $\return.op^i\::y$ in $h$,\, $h_s$ contains $op^i(x)\::y$, and vice versa.  We
-say that $h_s$ is a \emph{linearisation} of~$h$ if there is some way of
-interleaving the two histories (i.e.~creating a history containing the events
+say that $h_s$ is a \emph{linearization} of~$h$ if there is some way of
+interleaving the two histories (i.e.,~creating a history containing the events
 of~$h$ and~$h_s$, preserving the order of events) such that each $op^i(x)\::y$
 occurs between $\call.op^i(x)$ and $\return.op^i\::y$.  Informally, this
 indicates that the executions of~$h$ appeared to take place in the order
@@ -287,7 +289,7 @@ between the corresponding events of the concurrent history.
   \end{align}
 \]
 
-A concurrent history might not be complete, i.e.~it might have some pending
+A concurrent history might not be complete, i.e.,~it might have some pending
 executions that have been called but have not returned.  An \emph{extension}
 of a concurrent history~$h$ is formed by adding zero or more $\return$ events
 corresponding to pending executions.  We write $complete(h)$ for the
@@ -295,8 +297,8 @@ subsequence of~$h$ formed by removing all $\call$ events corresponding to
 pending executions.
 
 We say that a (not necessarily complete) concurrent history~$h$ is
-\emph{linearisable} if there is an extension~$h'$ of~$h$ such that
-$complete(h')$ is linearisable.  Informally, the $\return$ events that are
+\emph{linearizable} if there is an extension~$h'$ of~$h$ such that
+$complete(h')$ is linearizable.  Informally, the $\return$ events that are
 in~$h'$ but not~$h$ are for operation executions that have had an effect, but
 not returned in~$h$; the $\call$ events removed in $complete(h')$ are for
 operation executions that have not yet had an effect.
@@ -317,11 +319,11 @@ $\return.\enqueue^1\::\sm{()}$ at the end.  Then $complete(h')$ is
   \call.\enqueue^1\sm{(5)},\, \call.\dequeue^2\sm{()},\,
   \return.\dequeue^2\::\sm{Some(5)},\, \return.\enqueue^1\::\sm{()}\rangle,
 \]
-which is linearisable; hence $h$ is also linearisable.  In~$h$, the |enqueue|
+which is linearizable; hence $h$ is also linearizable.  In~$h$, the |enqueue|
 has had an effect, so is included in $complete(h')$; but the latter |dequeue|
 has not had an effect, so is omitted.
 
-We say that a concurrent object is linearisable if all of its histories are
-linearisable.
+We say that a concurrent object is \emph{linearizable} if all of its histories
+are linearizable.
 
 
