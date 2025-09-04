@@ -1,6 +1,12 @@
-DIR = ../tacp/datatypes
+ROOT = ../tacp
 
-EXERCISES = $(DIR)/TotalStack.class $(DIR)/Sudoku.class $(DIR)/PartialStack.class $(DIR)/ArrayMax.class
+DIR = $(ROOT)/datatypes
+
+DPDIR = $(ROOT)/dataParallel
+
+DP_SRC_DIR = ../08.DataParallel
+
+EXERCISES = $(DIR)/TotalStack.class $(DIR)/Sudoku.class $(DIR)/PartialStack.class
 
 all: $(DIR)/QueueTest.class $(DIR)/PartialQueueTest.class $(DIR)/WordPath.class $(EXERCISES)
 
@@ -15,7 +21,10 @@ $(DIR)/PartialQueueTest.class: $(DIR)/PartialQueue.class
 
 $(DIR)/ConcBFGraphSearch.class: $(DIR)/GraphSearch.class $(DIR)/TerminatingPartialQueue.class $(DIR)/ConcSet.class
 
-$(DIR)/WordPath.class:  $(DIR)/ConcBFGraphSearch.class
+$(DIR)/WordPath.class:  $(DIR)/ConcBFGraphSearch.class $(DPDIR)/BFSGraphSearch.class
+
+$(DPDIR)/BFSGraphSearch.class: $(DP_SRC_DIR)/BFSGraphSearch.scala
+	cd $(DP_SRC_DIR); make
 
 # Exercises
 

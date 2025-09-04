@@ -1,0 +1,158 @@
+\section{Example: prefix sums}
+
+% An interval, open on the left, closed on the right. 
+\def\revint#1#2{(#1 \upto #2]}
+
+We now consider a problem from linear algebra.  Suppose we have an array~|a|
+holding |n| integers.  We want to calculate the \emph{prefix sums}, i.e., the
+sums of the first $j$ elements, for $j = 1, \ldots, \sm n$, and store them in
+an array~|sum|, also of size~|n|.  
+\[\mstyle
+\forall k \in \set{0, \ldots, \sm n-1} \spot 
+  \sm{sum}(k) = \textstyle\sum \sm{a}[0 \upto k] 
+\]
+The following simple sequential program achieves this.
+\begin{scala}
+  val sum = new Array[Int](n); var s = 0
+  for(i <- 0 until n){ s += a(i); sum(i) = s }
+\end{scala}
+%
+This sequential program runs in time $\Theta(\sm n)$.  Our concurrent program
+will use|n| threads, and compete in $\Theta(\log \sm n)$ rounds. 
+
+The idea of the algorithm is that each thread is responsible for one entry in
+the result array.  Each thread~|me| sets $\sm{sum}(\sm{me})$ to $\sum \sm
+a\revint{0}{\sm{me}}$, for $me = 0,\ldots,\sm n-1$.
+
+The program proceeds in rounds, with a barrier synchronisation at the end of
+each round.  Each thread has a thread-local variable~|s|, which is the sum it
+has calculated so far.  At the end of round~$r$, thread~|me| will have
+\[\mstyle
+\sm s = \textstyle\sum \sm a(\sm{me}-\sm{gap} \upto \sm{me}]
+   \mbox{ where } \sm{gap} = 2^r
+\]
+i.e., the sum of a segment of size~|gap|, ending at position~|me|.  Here, we
+invent fictitious elements $\sm a(i) = 0$ for $i < 0$, so that the above
+segment sum is defined.  If $\sm{gap} > \sm{me}$ then $\sum \sm
+a\revint{\sm{me}-\sm{gap}}{\sm{me}} = \sum \sm a\revint{0}{\sm{me}}$, i.e.~the
+prefix sum that |me| is trying to calculate.
+
+On each round, thread~|me| obtains the value of thread $(\sm{me}-\sm{gap})$'s
+|s|, which is $\sum \sm a\revint{\sm{me}-2 \times
+  \sm{gap}}{\sm{me}-\sm{gap}}$, since thread $\sm{me}-\sm{gap}$ is running the
+same program, and is on the same round, because of the use of barrier
+synchronisations.  This allows thread~|me| to calculate $\sum \sm
+a\revint{\sm{me}-2 \times \sm{gap}}{\sm{me}}$, to maintain the above
+invariant.
+
+The program will terminate when $\sm{gap} \ge \sm n$.  At this point,
+$\sm{gap} > \sm{me}$ for each thread~|me|, so, as noted above, each thread has
+calculated the desired prefix sum. 
+
+
+The program is in Figure~\ref{fig:PrefixSums}.  This uses a barrier
+synchronisation |barrier| to synchronise the threads, so that they are all on
+the same round at each point.  It uses an array |toSummers| of channels for
+threads to send the partial sums to each other.  This array is indexed by the
+receiver's identity.  Each channel needs to be buffered to avoid deadlocks. 
+
+%%%%%
+
+\begin{figure}
+\begin{scala}[numbers = left]
+/** Calculate prefix sums of array £a£ of size £n£ in £$\Theta(\log \sm n)$£ (parallel)
+  *  steps.  */
+class PrefixSums(n: Int, a: Array[Int]){
+  require(n == a.size)
+
+  /** Shared array, in which sums are calculated. */
+  private val sum = new Array[Int](n) 
+
+  /** Barrier synchronisation object. */
+  private val barrier = new Barrier(n)
+
+  /** Channels on which values are sent, indexed by receiver's identity. */
+  private val toSummers = Array.fill(n)(new OnePlaceBuffChan[Int](1))
+
+  /** An individual thread.  £summer(me)£ sets £sum(me)£ to £$\sum \sm a\revint{0}{\sm{me}}$£. */
+  private def summer(me: Int) = thread(s"summer($me)"){
+    // Invariant: £$\sm{gap} = 2^{\ss r}$£ and £$\sm s = \sum \sm a\revint{\sm{me}-\sm{gap}}{\sm{me}}$£ (with fictious
+    // values £$\sm a(i) = 0$£ for £$i < 0$£).  £r£ is the round number.
+    var r = 0; var gap = 1; var s = a(me)
+
+    while(gap < n){
+      if(me+gap < n) toSummers(me+gap)!s // Pass my value up the line.
+      if(gap <= me){ £\hspace{23mm}£  // Receive from £$\sm{me}-\sm{gap}$£.
+	val inc = toSummers(me)?()  // £$\sm{inc} = \sum \sm a\revint{\sm{me}-2\times\sm{gap}}{\sm {me}-\sm{gap}}$£.
+	s = s + inc £\hspace{27mm}£ // £$\sm s = \sum \sm a\revint{\sm{me}-2\times\sm{gap}}{\sm{me}}$£.
+      } £\hspace{47.5mm}£ // £$\sm s = \sum \sm a\revint{\sm{me}-2\times\sm{gap}}{\sm{me}}$\label{line:skip-if}£.
+      r += 1; gap += gap £\hspace{15.2mm}£  // £$\sm s = \sum \sm a\revint{\sm{me}-\sm{gap}}{\sm{me}}$£.
+      barrier.sync(me)
+    }
+    sum(me) = s
+  }
+
+  /** Calculate the prefix sums. */
+  def apply(): Array[Int] = {
+    run(|| (for (i <- 0 until n) yield summer(i)))
+    sum
+  }
+}
+\end{scala}
+\caption{The prefix sum program.}
+\label{fig:PrefixSums}
+\end{figure}
+
+%%%%%
+
+Each thread then proceeds as described above.  The comments in the code
+justify that the invariant is maintained.  Note that a thread does not need to
+send its partial sum if $\sm{me}+\sm{gap} \ge \sm{n}$: there is no thread to
+send to in this case.  Likewise, a thread does not need to receive if
+$\sm{gap} > \sm{me}$: it already holds the relevant prefix sum, and the
+property claimed at line~\ref{line:skip-if} still holds, despite the thread
+skipping the body of the |if| statement.
+
+\begin{instruction}
+Study the details of the implementation.  In particular, make sure you
+understand why the claimed invariant is maintained.
+\end{instruction}
+
+It is not immediately obvious why we need the barrier synchronisation.  It
+might appear that the channel communications keep the threads synchronised, so
+the barrier synchronisation is superfluous; however, this turns out not to be
+true.  
+
+Suppose we didn't use a barrier synchronisation.  Consider a particular
+thread~|me| on round~|r|, and let $\sm{gap} = 2^{\ss r}$.  It expects to
+receive from thread~$\sm{me}-\sm{gap}$; but suppose that thread is slow.  And
+suppose thread~$\sm{me}-2 \times\sm{gap}$ is fast and has proceeded to
+round~|r+1|.  Then thread~|me| will instead receive from thread~$\sm{me}-2
+\times\sm{gap}$.  This doesn't actually affect the result thread~|me| ends up
+with, as it will receive from thread~$\sm{me}-\sm{gap}$ on a later round.
+However, it does mean that the value thread~|me| sends on the next round is
+incorrect; and that means that the correctness argument no longer holds.  
+
+The algorithm uses $\Theta(\log \sm n)$ rounds.  Each barrier synchronisation
+takes $\Theta(\log \sm n)$ time.  This makes $\Theta((\log \sm n)^2)$ in total
+(ignoring the initialisation time), assuming we have |n| machine threads.
+This latter assumption is rather unrealistic; nevertheless, the example
+illustrates some interesting ideas.
+
+We can test the concurrent implementation against a sequential implementation,
+in the normal way. 
+
+Exercise~\ref{ex:prefix-sums-shared} asks you to adapt the program so that the
+threads communicate via shared variables rather than channels.
+
+%%%%%
+
+%% \begin{selfnote}
+%% Without the barrier synchronisation, a summer could receive values out of
+%% order.  For example, \SCALA{Summer(3)} could first receive \SCALA{a(0)+a(1)}
+%% from \SCALA{Summer(1)}, and then receive \SCALA{a(2)} from \SCALA{Summer(2)},
+%% if Summer(1) happens to be faster than Summer(2).  Despite this
+%% \SCALA{Summer(3)} ends up with the right answer; but it will pass
+%% \SCALA{a(0)+a(1)+a(3)} to \SCALA{Summer(5)} in the second step (instead of
+%% \SCALA{a(2)+a(3)}), so \SCALA{Summer(5)} ends up with the wrong value.
+%% \end{selfnote}

@@ -10,6 +10,7 @@ all:
 	cd 05.ClientServer; make
 	cd 06.InteractingPeers; make
 	cd 07.ConcurrentDatatypes; make
+	cd 08.DataParallel; make
 
 clean:
 	rm $(ROOT)/*/*.class; fsc -shutdown

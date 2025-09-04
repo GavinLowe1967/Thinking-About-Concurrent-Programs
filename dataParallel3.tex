@@ -1,0 +1,396 @@
+\section{Jacobi iteration}
+
+In this section, we study a problem from linear algebra, namely to find an
+approximate solution to a large system of simultaneous linear equations.  We
+will assume some familiarity with the topic. 
+
+Given an $n$-by-$n$ matrix~$A$ with entries $a_{ij}$ for $i,j \in
+\interval{0}{n}$, and a vector~$b$ of size~$n$, we want to find a vector~$x$
+of size~$n$ such that $Ax \approx b$.
+%
+The standard technique to solve this problem is Gaussian elimination.
+However, this algorithm runs in time $O(n^3)$, which can be prohibitive for
+large~$n$.  Jacobi iteration provides an alternative technique, which can be
+more efficient.  We start by describing this technique.
+
+Let $D$ be a matrix containing the diagonal entries of~$A$, and let $R$ be a
+matrix containing the rest of the entries, so $A = D+R$.  We require that each
+diagonal entry is non-zero; this means that $D\inverse$ exists: it is also
+diagonal, with entries $1/a_{ii}$.
+
+Then we have
+\[
+\begin{array}{cl}
+& Ax = b \\
+\iff & Dx + Rx = b \\
+\iff & x = D\inverse (b - Rx).
+\end{array}
+\]
+This suggests calculating a sequence of approximations $x^{0}, x^{(1)},
+x^{(2)}, \ldots$, where $x^{(0)}$ is arbitrary (say all $0$s), and
+\begin{eqnarray}
+x^{(k+1)} & = & D\inverse \left( b-R x^{(k)} \right), \label{eqn:Jacobi}
+\end{eqnarray}
+for $k = 0,1,\ldots$.
+If this iteration converges to a solution $x$, then $D\inverse (b - Rx)$, so
+$Ax = b$, as required.  In fact, it can be shown that the iteration does
+indeed converge if
+\[\mstyle
+ \left \| a_{ii} \right \| > \sum_{j \ne i} \left \| a_{ij} \right \| 
+  \qquad \mbox{for all $i$}, 
+\]
+i.e., each row is dominated by its entry on the diagonal. 
+
+It is convenient to rewrite equation~(\ref{eqn:Jacobi}) in component form:
+\begin{eqnarray}
+x^{(k+1)}_i & = & \frac{1}{a_{ii}} \left(b_i -\sum_{j\ne i} a_{ij} x^{(k)}_j\right),
+\label{eqn:Jacobi-component}
+\end{eqnarray}
+for each~$k$, and for $i = 0,\ldots,n-1$.  This follows from the fact that
+$D\inverse$ is diagonal with entries  $1/a_{ii}$.
+
+We will produce two concurrent implementations of Jacobi iteration, using
+shared variables and message passing, respectively.  We start by considering a
+sequential implementation, given in Figure~\ref{fig:seq-Jacobi}.
+
+%%%%%
+
+\begin{figure}
+\begin{scala}
+object Jacobi{
+  type Vector = Array[Double]
+  type Matrix = Array[Array[Double]]
+  val Epsilon = 0.000001 // Tolerance for convergence.
+}
+
+import Jacobi._
+
+trait Jacobi{
+  /** Find £x£ such that £a x£ is approximately £b£, performing Jacobi iteration until
+    * successive iterations vary by at most £Epsilon£.
+    * Precondition: £a£ is of size £n£ by £n£, and £b£ is of size £n£, for some £n£. */
+  def solve(a: Matrix, b: Vector): Vector
+
+  /** Calculate new value for £x(i)£ based on the old value. */ 
+  protected def update(a: Matrix, b: Vector, x: Vector, i: Int, n: Int): Double = {
+    var sum = 0.0
+    for(j <- 0 until n; if j != i) sum += a(i)(j)*x(j)
+    (b(i)-sum) / a(i)(i)
+  }
+}
+
+/** A sequential implementation of Jacob iteration. */
+object SeqJacobi extends Jacobi{
+  def solve(a: Matrix, b: Vector): Vector = {
+    val n = a.length; require(a.forall(_.length == n) && b.length == n)
+    var oldX, newX = new Vector(n); var done = false
+
+    while(!done){
+      done = true
+      for(i <- 0 until n){
+        newX(i) = update(a, b, oldX, i, n)
+	done &&= Math.abs(oldX(i)-newX(i)) < Epsilon
+      }
+      if(!done){ val t = oldX; oldX = newX; newX = t } // Swap arrays.
+    }
+    newX
+  }
+}
+\end{scala}
+\caption{A sequential implementation of Jacobi iteration.}
+\label{fig:seq-Jacobi}
+\end{figure}
+
+%%%%%
+
+The companion object |Jacobi| defines type synonyms for vectors and matrices:
+one- and two-dimensional arrays, respectively.  Our implementations will
+iterate until all entries in the new approximation are within |Epsilon| of the
+previous approximation.
+
+Our various implementations will extend the trait |Jacobi|, in particular
+implementing a function |solve| to perform the iteration.  To avoid repeated
+code, we include here a  function |update| that calculates the new value for a
+component of the approximation, based on
+equation~(\ref{eqn:Jacobi-component}). 
+
+The sequential solution, in |SeqJacobi| keeps track of two approximations, the
+previous one and the new one, in variables |oldX| and |newX|.  At each
+iteration, it updates |newX|, following equation~(\ref{eqn:Jacobi}).  It swaps
+|oldX| and |newX| at the end of each iteration.  It also maintains a variable
+|done| that records whether each component of the new approximation is within
+|Epsilon| of the previous.  The main loop terminates when this is true of all
+components, corresponding to our convergence criterion mentioned earlier. 
+
+\begin{instruction}
+Make sure you understand the sequential implementation.
+\end{instruction}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection{A concurrent implementation using shared variables}
+
+We now consider the concurrent implementation.  We will use |p| workers, and
+split the calculation of |newX| between the workers.  The implementation
+proceeds in rounds, each round corresponding to one iteration of the
+sequential solution.  In each round, all workers can read all of \SCALA{oldX}
+and each worker can write its own segment of \SCALA{newX}.  The roles of the
+arrays swaps between rounds.  We use a barrier synchronisation at the end of
+each round, to keep the workers synchronised, and to avoid races. 
+
+On each iteration, each thread can test whether its segment of \SCALA{x} has
+converged, say using a thread-local variable \SCALA{myDone}.  The iteration
+should terminate when \emph{all} the threads have $\sm{myDone} = \sm{true}$.
+We can test this as part of the barrier synchronisation at the end of each
+round; however, this requires a slightly different form of barrier object.  
+
+A \emph{combining barrier} is associated with a function \SCALA{f: (A,A) =>
+  A}, which is assumed to be associative.  Each thread contributes some piece
+of data~$x_i: \sm{A}$ to each synchronisation.  All the threads then receive
+back the result of combining all the $x_i$ values together using~|f|, i.e.,
+\[\mstyle
+\sm f(x_0, \sm f(x_1, \sm f(x_2, \ldots, \sm f(x_{p-2}, x_{p-1})\ldots),
+\]
+where $x_0, \ldots, x_{p-1}$ are the data provided, in some order.  In most
+applications, |f| is commutative, and so the order doesn't matter.
+
+In SCL, the expression |new CombiningBarrier(p, f)| creates a combining
+barrier for |p| threads, associated with function~|f|.  In the Jacobi
+iteration example, we want the combining barrier to calculate the conjunction
+of the workers' |myDone| variables, so we can define the combining barrier
+by\footnote{The notation {\scalashape \_ \&\& \_} uses placeholder notation;
+  see Scala box~\ref{sb:anon-function}.  It represents a function that takes
+  two arguments, \SCALA{x} and~{\scalashape y}, and returns {\scalashape x
+    \&\& y}.}:
+%
+\begin{scala}
+  val combBarrier = new CombiningBarrier[Boolean](p, _ && _)
+\end{scala}
+%
+Each thread can then execute
+\begin{scala}
+  done = combBarrier.sync(me, myDone)
+\end{scala}
+%
+Each thread receives back |true| if  all threads pass in |true|.
+
+This particular form of combining barrier---returning the conjunction of the
+inputs--is very common, so SCL contains a built-in equivalent version, created
+by |new AndBarrier(p)|.  Likewise, an |OrBarrier| returns the disjunction of
+the inputs.
+
+%%%%%
+
+\begin{figure}
+\begin{scala}
+/** A concurrent implementation of Jacobi iteration, using shared variables. */
+class ConcJacobi(p: Int) extends Jacobi{
+  private val combBarrier = new AndBarrier(p)
+
+  def solve(a: Matrix, b: Vector): Vector = {
+    val n = a.length
+    require(a.forall(_.length == n) && b.length == n)
+    /* The start of the segment calculated by thread £id£. */
+    @inline def startFor(id: Int) = id*n/p
+    val x0, x1 = new Vector(n)
+    var result: Vector = null // Ends up storing the final result.
+
+    // Worker to handle rows £[startFor(me) .. startFor(me+1))£.
+    def worker(me: Int) = thread(s"worker($me)"){
+      val start = startFor(me); val end = startFor(me+1)
+      var oldX = x0; var newX = x1; var done = false
+      while(!done){
+        var myDone = true
+        for(i <- start until end){
+          newX(i) = update(a, b, oldX, i, n)
+	  myDone &&= Math.abs(oldX(i)-newX(i)) < Epsilon
+        }
+        done = combBarrier.sync(me, myDone)
+        if(!done){ val t = oldX; oldX = newX; newX = t } // Swap arrays.
+      }
+      // Worker £0£ sets £result£ to the final result.
+      if(start == 0) result = newX
+    }
+
+    // Run system.
+    run(|| (for (i <- 0 until p) yield worker(i)))
+    result
+  }
+}
+\end{scala}
+\caption{A concurrent implementation of Jacobi iteration.}
+\label{fig:ConcJacobi} 
+\end{figure}
+
+%%%%%
+
+The concurrent implementation is in Figure~\ref{fig:ConcJacobi}.  The worker
+with identity~|me| is responsible for calculating the entries $\sm x
+\interval{\sm{me} \times \sm n / \sm p}{(\sm{me}+1) \times \sm n / \sm p}$.
+
+The implementation uses two vectors, |x0| and |x1| to represent two successive
+approximations.  Each worker has thread-local variables, |oldX| and |newX|,
+which reference these vectors, representing the previous and new
+approximations, respectively.  The worker swaps these variables at the end of
+each round.  On each iteration, all threads have the same values for their
+|oldX| and |newX|.
+
+Termination is decided as described above.  At the end, worker~|0| sets the
+variable |result| to hold the final result.
+
+We can test the concurrent version by comparing its results against those for
+the sequential version, in the normal way.  For small values of |n|, the
+sequential version is faster: the benefits of parallelisation are outweighed
+by the overheads of the synchronisation and keeping threads' caches
+consistent.  But for larger values of |n|, the concurrent version is faster.
+
+%%%%%
+
+%% \begin{selfnote}
+%% The computation time for each round is $\Theta(n^2)$ for the sequential
+%% version, or $\Theta(n^2/p)$ for the concurrent version.  But there is a
+%% communication time of $\Theta(n)$ for the concurrent version, to keep the
+%% values in the caches up to date, and this is overwhelming for small values
+%% of~$n$.
+%% \end{selfnote}
+
+%%%%%
+
+An alternative approach is to use a \emph{single} vector, and to split each
+round into two sub-rounds.  In the first sub-round, all threads read from the
+shared array into thread-local variables (but write no shared variables).  In
+the second sub-round, all threads write to their part of the shared array.
+This requires an extra barrier synchronisation, between the two sub-rounds.
+This approach is somewhat similar to our implementation of the simulation of
+astronomical bodies. 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\subsection{A concurrent implementation using message-passing}
+
+We can convert the shared-memory program into a message-passing program, with
+no shared variables.  Each thread has its own copy of~\SCALA{x}: all threads
+should have the same value for this.  
+
+On each iteration, each worker calculates the next value of its share
+of~\SCALA{x}, and then distributes it to all other workers.  More precisely,
+each thread sends a triple consisting of its own identity, the part of the
+next value of~\SCALA{x} that it has just calculated, and a boolean that
+indicates whether it is willing to terminate.  
+
+Figure~\ref{fig:JacobiMP} gives the outline of the implementation.  The type
+|Msg| represents messages sent between workers, as just described.  These are
+sent on buffered channels, indexed by the recipient's identity.  We use a
+|Barrier| object to provide synchronisation.
+
+%%%%%
+
+\begin{figure}
+\begin{scala}
+/** A concurrent implementation of Jacobi iteration, using message
+  * passing. */
+class JacobiMP0(p: Int) extends Jacobi{
+  private val barrier = new Barrier(p)
+  private type Msg = (Int, Vector, Boolean)
+  // Channels to send messages to workers: indexed by receiver's identity.
+  private val toWorker = Array.fill(p)(new BuffChan[Msg](p-1))
+
+  def solve(a: Matrix, b: Vector): Vector = {
+    val n = a.length; require(a.forall(_.length == n) && b.length == n)
+    /* The start of the segment calculated by thread id. */
+    @inline def startFor(id: Int) = id*n/p
+    var result: Vector = null // will hold final result
+
+    /* Worker to handle rows £[startFor(me) .. startFor(me+1))£. */
+    def worker(me: Int) = // See Figure £\ref{fig:JacobiMP-worker}£.
+
+    // Run system
+    run(|| (for(i <- 0 until p) yield worker(i)))
+    result
+  }
+}
+\end{scala}
+\caption{Jacobi iteration using message passing.}
+\label{fig:JacobiMP}
+\end{figure}
+
+%%%%%
+
+A worker is defined in Figure~\ref{fig:JacobiMP-worker}.  On each iteration,
+the worker calculates its share of the next iteration.  This is similar to
+previously, except it uses a thread-local variable~|newX| to store its
+results, with a suitable offset.
+
+%%%%%
+
+\begin{figure}
+\begin{scala}
+    /* Worker to handle rows £[startFor(me) .. startFor(me+1))£. */
+    def worker(me: Int) = thread(s"worker($me)"){
+      val start = startFor(me); val end = startFor(me+1); val height = end-start
+      var done = false; val x = new Vector(n)
+
+      while(!done){
+        done = true
+        // £newX(i)£ holds the new value of £x(i+start)£.
+        val newX = new Array[Double](height)
+        // Update this section of £x£, storing results in £newX£.
+        for(i <- start until end){
+          newX(i-start) = update(a, b, x, i, n)
+          done &&= Math.abs(x(i)-newX(i-start)) < Epsilon
+        }
+        // Send this section to all other workers.
+        for(w <- 1 until p) toWorker((me+w)%p)!(me, newX, done)
+        // Copy newX into x.
+        for(i <- 0 until height) x(start+i) = newX(i)
+        // Receive from others.
+        for(k <- 0 until p-1){
+          val (him, hisX, hisDone) = toWorker(me)?(); val offset = startFor(him)
+          for(i <- 0 until hisX.length) x(offset+i) = hisX(i)
+          done &&= hisDone
+        }
+        // Synchronise for end of round.
+        barrier.sync(me)
+      }
+      if(me == 0) result = x // Copy final result.
+    } // end of worker
+\end{scala}
+\caption{A worker for Jacobi iteration using message passing.}
+\label{fig:JacobiMP-worker}
+\end{figure}
+
+The worker then sends its share to each of the other workers, together with
+its identity, and a boolean indicating whether its share has converged; this
+sending starts with the thread with identity one larger than its own, using
+the technique from Section~\ref{sec:fully-connected} to avoid congestion on
+the channels.  
+
+Each worker then receives from the other workers, copying the data into its
+own copy of~|x|, using an offset based on the sender's identity.  It performs
+a barrier synchronisation at the end of each round.  It terminates if all
+workers' shares have converged.
+
+The barrier synchronisation is necessary for the following reason.  Suppose
+one thread is very fast.  It could complete one round, and---if we didn't
+use a barrier synchronisation---do its calculations for the next round, and
+send its value of \SCALA{newX} while some slow thread is still doing some
+sends from the previous round.  Hence a third thread could receive the fast
+thread's value for the next round before it receives the slow thread's value
+for the current round.  Thus this third thread will not have a complete or
+consistent version of the current approximation. 
+
+The previous version is a bit inefficient, because it involves copying the
+data that is received into~\SCALA{x}; this copying takes time $O(\sm n)$ per iteration.  We
+can replace \SCALA{x}, in each worker, by a two-dimensional array \SCALA{xs}.
+Each row of~|xs| corresponds to the segment operated on by a particular
+worker.  The array~|xs| represents the vector |x| formed by concatenating the
+rows of |xs|. 
+%%  That is, we have the abstraction:
+%% \[
+%% \sm{x} = \sm{xs.flatten}.
+%% \]
+Each worker then receives a block of data from another worker, and inserts it
+into its~|xs| with a single update.  This copying takes time $O(\sm{p})$ per
+round.  The code is available on the book website.  This change makes the
+program about 45\% faster.

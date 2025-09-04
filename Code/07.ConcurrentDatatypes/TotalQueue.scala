@@ -23,11 +23,14 @@ class ServerTotalQueue[T] extends TotalQueue[T]{
 
   private val dequeueChan = new SyncChan[Option[T]]
 
-  private def server = thread("server"){
+  private val isEmptyChan = new SyncChan[Boolean]
+
+  private def server = thread("TotalQueue server"){
     val queue = new Queue[T]
     serve(
       enqueueChan =?=> { x => queue.enqueue(x) }
       | dequeueChan =!=> { if(queue.nonEmpty) Some(queue.dequeue()) else None }
+      | isEmptyChan =!=> { queue.isEmpty }
     )
   }
 
@@ -37,7 +40,11 @@ class ServerTotalQueue[T] extends TotalQueue[T]{
 
   def dequeue(): Option[T] = dequeueChan?()
 
-  def shutdown() = { enqueueChan.close(); dequeueChan.close() }
+  def isEmpty: Boolean = isEmptyChan?()
+
+  def shutdown() = { 
+    enqueueChan.close(); dequeueChan.close(); isEmptyChan.close() 
+  }
 }
 
 // ==================================================================

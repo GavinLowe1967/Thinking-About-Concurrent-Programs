@@ -1,0 +1,104 @@
+\chapter{Synchronous Data Parallel Programming}
+\label{chap:dataParallel}
+
+%%%%%
+
+\input{dataParallel1} % intro; astronomical bodies simulation
+\input{dataParallel2} % prefix sums
+\input{dataParallel3} % Jacobi iteration
+
+\framebox{BFS example here}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%
+
+\begin{slide}
+\heading{Communication with neighbours}
+
+Several applications work on a rectangular grid, where the state of a cell on
+one round depends only on the state of its neighbouring cells at the previous
+round.  Examples:
+%
+\begin{itemize}
+\item
+Cellular automata;
+
+\item
+Solutions to differential equations, e.g.~in weather forecasting or fluid
+dynamics;
+
+\item Image processing, e.g.~smoothing.
+\end{itemize}
+
+In such cases, it is natural to allocate a horizontal strip of cells to each
+thread.  At the end of each round, each thread communicates the state of its
+top row to the thread above it, and communicates the state of its bottom row
+to the thread below it.  
+
+%% These rows can be passed by reference, but it might be necessary to make a
+%% copy to avoid sharing references, e.g. \SCALA{up ! myA(start).toArray}.
+\end{slide}
+
+%%%%%
+
+\begin{slide}
+\heading{Passing arrays in Scala}
+
+Arrays in Scala are reference objects, and so passed by reference.  
+
+Suppose a particular thread has a two-dimensional array \SCALA{myA}, and it
+is responsible for rows \SCALA{[start..end)}, then it can send its top row to
+the thread above it (say on channel \SCALA{up}) by
+%
+\begin{scala}
+up ! myA(start);
+\end{scala}
+%
+The thread above it can receive it (say on channel \SCALA{receiveUp}) as:
+%
+\begin{scala}
+myA(end) = receiveUp?()
+\end{scala}
+%
+However, the two threads now share references to this array, so updates made
+by one thread will have an effect on the other thread --- a race!
+
+The solution is either for the first thread to re-initialise
+\SCALA{myA(start)}, e.g., by \SCALA{myA(start) = new Array[Int](N)}, or to
+make a \emph{copy} of the array, e.g., by \SCALA{up ! (myA(start).clone)}.
+\end{slide}
+
+
+%%%%%
+
+\begin{slide}
+\heading{Summary}
+
+\begin{itemize}
+\item 
+Synchronous data parallel programming;
+% Heart-beat algorithms;
+
+\item
+Barrier synchronisation; combining barrier synchronisation;
+
+\item
+Examples, using shared memory or message-passing.
+\end{itemize}
+\end{slide}
+
+%%%%%%%%%%
+
+\exercises
+
+Log time barrier.  % \label{ex:log-barrier} 
+
+
+Prefix sums with shared variables. % \label{ex:prefix-sums-shared}
+
+Example of combining barrier with non-commutative function --- index of
+largest item in array
+
+ countDups.tex, using shared hashSet; maybe add contains operation to
+ concurrent set first.

@@ -15,3 +15,4 @@ abstract class GraphSearch[N](g: Graph[N]){
   /** Try to find a path in g from start to a node that satisfies isTarget. */
   def apply(start: N, isTarget: N => Boolean): Option[Path]
 }
+

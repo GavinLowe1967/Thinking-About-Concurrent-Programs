@@ -1,0 +1,15 @@
+ServerBarrier.scala: a simple implementation of a barrier using a server.
+
+BarrierTest.scala: a test for a Barrier.
+
+PrefixSums.scala: the prefix sums example.
+
+Jacobi.scala: Jacobian iteration.
+
+Jacobitest.scala: test of Jacobi.scala.
+
+JacobiExperiment.scala: experiment comparing the different implementations of
+Jacobian iteration.
+
+BFSGraphSearch.scala: strict breadth-first search, using a barrier
+synchronisation at the end of each round.
