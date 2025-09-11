@@ -6,8 +6,8 @@
 \input{dataParallel1} % intro; astronomical bodies simulation
 \input{dataParallel2} % prefix sums
 \input{dataParallel3} % Jacobi iteration
+\input{dataParallelBFS} % breadth-first search
 
-\framebox{BFS example here}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -92,13 +92,18 @@ Examples, using shared memory or message-passing.
 
 \exercises
 
-Log time barrier.  % \label{ex:log-barrier} 
+\input{Exercises/combiningBarrier} % Combining barrier using server
+
+\input{Exercises/barrierLog} % Log time barrier.
+
+\input{Exercises/arrayMax} % Max in array and index.  
+
+\input{Exercises/prefixSumShared} % Prefix sums with shared variables.
+
+\input{Exercises/smoothing} % Image smoothing.
+
+\input{Exercises/largestComponent} % largest component -- old exam question.
 
 
-Prefix sums with shared variables. % \label{ex:prefix-sums-shared}
-
-Example of combining barrier with non-commutative function --- index of
-largest item in array
-
- countDups.tex, using shared hashSet; maybe add contains operation to
- concurrent set first.
+ %% countDups.tex, using shared hashSet; maybe add contains operation to
+ %% concurrent set first.

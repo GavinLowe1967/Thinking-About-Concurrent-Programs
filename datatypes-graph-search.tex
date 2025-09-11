@@ -1,4 +1,5 @@
 \section{Example: graph search}
+\label{sec:BFS}
 
 Many Computer Science applications involve searching in a graph (whether
 explicitly or implicitly).  Examples include:
@@ -267,12 +268,15 @@ termination comes from the fact that there are two different ways
 in which the search can terminate, corresponding to successful and
 unsuccessful searches. 
 
-The implementation doesn't quite achieve breadth-first search.  If a thread is
-delayed, deeper nodes might be explored while a node from an earlier ply is
-being expanded.  This might mean that the path that is found isn't the
-shortest.  In many cases, this won't matter much.  If true breadth-first
-behaviour is needed, the threads can performs a global synchronisation at the
-end of each ply.
+The implementation doesn't quite achieve breadth-first search.  The set of
+nodes at a particular distance from the start node is known as a \emph{ply}.
+A true breadth-first search would expand nodes in ply order.  However, with
+our implementation, if a thread is delayed, deeper nodes might be expanded
+before a node from an earlier ply.  This might mean that the path that is
+found isn't the shortest.  In many cases, this won't matter much.  If true
+breadth-first behaviour is needed, the threads can performs a global
+synchronisation at the end of each ply; we will explore this approach in
+Section~\ref{sec:sync-BFS}.
 
 The implementation can be seen as a case of the bag-of-tasks with replacement
 pattern.  Each node in the bag (the queue) represents the task of expanding

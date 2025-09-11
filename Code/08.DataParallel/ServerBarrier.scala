@@ -26,3 +26,6 @@ class ServerBarrier(p: Int) extends BarrierT{
 
   def shutdown() = { arrive.close(); leave.close() }
 }
+
+
+

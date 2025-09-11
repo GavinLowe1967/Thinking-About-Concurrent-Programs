@@ -1,0 +1,82 @@
+\begin{question}
+Suppose we represent a graphical image by a value of type \SCALA{Image} where 
+\begin{scala}
+  type Row = Array[Boolean]
+  type Image = Array[Row]
+\end{scala}
+Each \SCALA{Boolean}-valued entry indicates whether the corresponding pixel is
+set.
+
+\emph{Smoothing} is an operation that is sometimes applied as part of image
+processing, to remove small irregularities.  The operation proceeds in rounds.
+In each round, each pixel becomes set if at least half of it and its
+neighbours are set (where each pixel has up to eight neighbours); otherwise it
+becomes unset.  This is repeated until no more changes occur, or some limit on
+the number of rounds is reached (the latter condition is necessary, because
+there are some images that never converge).  Within each round, each pixel is
+treated independently.
+
+Give a concurrent implementation of smoothing that uses shared variables.
+Give your implementation the signature
+\begin{scala}
+/** Smooth image £a£, using £p£ workers, with at most £maxIters£ iterations. */
+class SmoothShared(a: Array[Array[Boolean]], p: Int, maxIters: Int){
+  private val n = a.length; private val w = a(0).length
+  require(a.forall(_.length == w))
+
+  def apply() = ...
+}
+\end{scala}
+%
+Test your code using the test harness on the book website.
+\end{question}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{answerI}
+My code is below.  Each worker deals with a strip of about \SCALA{n/p} rows.
+This version uses two arrays: on each round, the workers cooperate to do a
+round of smoothing on one array, writing the results into the second array;
+the roles of the arrays swap between rounds.  A barrier synchronisation is
+used at the end of each round to coordinate, and also to decide whether they
+can terminate, i.e.~if no changes happened on this round.  The code below uses
+the function |Smooth.majority|, which was provided in the testing code.
+%
+\begin{scala}
+/** This version uses two arrays. */
+class SmoothShared(a: Smooth.Image, p: Int, maxIters: Int){
+  private val n = a.length; private val w = a(0).length
+  require(a.forall(_.length == w))
+
+  // The two arrays.  We set £a1£ to be the original £a£. 
+  private val a1 = a; private val a2 = Array.ofDim[Boolean](n,w)
+
+  /** Barrier used at the end of each round, and also to decide termination. */
+  private val combBarrier = new AndBarrier(p)
+
+  /** Worker thread. */
+  private def worker(me: Int) = thread("worker"+me){
+    val start = me*n/p; val end = (me+1)*n/p
+    // This worker is responsible for rows £[start..height)£.
+    var oldA = a1; var newA = a2  // Old and new versions of the image.
+    var done = false; var iters = 0
+
+    while(!done && iters < maxIters){
+      var myDone = true // Have no values changed yet?
+      for(i <- start until end; j <- 0 until w){
+        newA(i)(j) = Smooth.majority(oldA, i, j)
+        myDone &&= (newA(i)(j) == oldA(i)(j))
+      }
+      iters += 1; done = combBarrier.sync(me, myDone) 
+      if(!done && iters < maxIters){ val t = oldA; oldA = newA; newA = t }
+    }
+
+    // Copy £newA£ into £a£, if not already equal. 
+    if(newA != a) for(i <- start until end) a(i) = newA(i)
+  }
+
+  /** Smooth the image. */
+  def apply() = run( || (for (i <- 0 until p) yield worker(i)) )
+}
+\end{scala}
+\end{answerI}

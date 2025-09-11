@@ -4,7 +4,6 @@ import ox.scl._
 import tacp.datatypes.{Graph,GraphSearch,ServerConcSet,ServerTotalQueue}
 
 class BFSGraphSearch[N](g: Graph[N], numWorkers: Int) extends GraphSearch[N](g){
-
   /** Try to find a path in g from start to a node that satisfies isTarget. */
   def apply(start: N, isTarget: N => Boolean): Option[List[N]] = {
     if(isTarget(start)) Some(List(start))
@@ -13,13 +12,11 @@ class BFSGraphSearch[N](g: Graph[N], numWorkers: Int) extends GraphSearch[N](g){
       val seen = new ServerConcSet[N]; seen.add(start)
       val q1, q2 = new ServerTotalQueue[(N, Path)]
       q1.enqueue((start, List(start)))
-      // val barrier = new Barrier(numWorkers)  
       // Combining function for the barrier.  Each argument is a pair
       // (done,added), where done is true if a worker has found a solution,
       // and added is true if a worker added to the next ply.
-      def f(pair1: (Boolean,Boolean), pair2: (Boolean,Boolean)) = {
+      def f(pair1: (Boolean,Boolean), pair2: (Boolean,Boolean)) = 
         (pair1._1 || pair2._1, pair1._2 || pair2._2)
-      }
       val barrier = new CombiningBarrier(numWorkers, f)
       // Channel on which a worker tells the coordinator that it has found a
       // solution.
@@ -65,6 +62,4 @@ class BFSGraphSearch[N](g: Graph[N], numWorkers: Int) extends GraphSearch[N](g){
       result
     }
   }
-
-
 }

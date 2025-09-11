@@ -88,7 +88,7 @@ telling them they can continue.
 The above implementation means that each synchronisation takes time $O(\sm p)$,
 assuming all the threads call |sync| at the same time.  In fact, the
 implementation in SCL is more sophisticated, and allows each synchronisation
-to take time $O(\log \sm p)$.  Exercise~\ref{ex:log-barrier} asks you to
+to take time $O(\log \sm p)$.  Exercise~\ref{ex:barrierLog} asks you to
 implement a barrier with this property.
 
 One important feature of a barrier synchronisation is that it also ensures

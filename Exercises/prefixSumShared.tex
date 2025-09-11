@@ -1,0 +1,108 @@
+\begin{question}
+\label{ex:prefix-sums-shared}
+Re-implement the prefix sum example, so as to use shared variables, rather
+than message-passing.  You need to think carefully how to avoid race
+conditions.  
+%
+Test your code by adapting the test harness from the book's website.
+\end{question}
+
+%%%%%
+
+\begin{answerI}
+We use a single array, with two barrier synchronisations in each round.  This
+has an invariant similar to that in the body of the chapter:
+\[\mstyle
+\forall i \in \interval{0}{\sm n} \spot
+  \sm{sum}(i) = \textstyle\sum \sm a(i-\sm{gap} \upto i]
+   \mbox{ where } \sm{gap} = 2^{\ss r} .
+\]
+Each thread is responsible for updating the entry whose index matches its
+identity.  Between the two synchronisations in each round, the shared |sum|
+variables are treated as read-only; after the second synchronisation, each
+thread may write its own entry in |sum|.  Note that an initial barrier
+synchronisation is necessary, so no thread starts its first round before every
+thread has done its first write.  Also, if a thread has |gap > me|, it still
+needs to participate in the barrier synchronisations.
+%
+\begin{scala}
+class PrefixSumsShared(n: Int, a: Array[Int]){
+  require(n == a.size)
+
+  private val sum = new Array[Int](n) 
+
+  private val barrier = new Barrier(n)
+
+  def summer(me : Int) = thread("Summer "+me){    
+    var r = 0; var gap = 1; sum(me) = a(me)
+
+    while(gap<n){ 
+      barrier.sync(me)
+      if(gap <= me){                
+        val inc = sum(me-gap)    // £inc = $\sum$ a(me-2*gap .. me-gap]£.
+        barrier.sync(me)
+        sum(me) = sum(me) + inc  // £s = $\sum$ a(me-2*gap .. me]£.
+      }
+      else barrier.sync(me)
+      r += 1; gap += gap;        // £s = $\sum$ a(me-gap .. me]£.
+    }
+  }
+
+  def apply(): Array[Int] = {
+    run (|| (for (i <- 0 until n) yield summer(i)))
+    sum
+  }
+}
+\end{scala}
+
+%%%%%
+
+Here's another version, which uses two arrays holding sums, and a single
+barrier synchronisation on its round.  Each thread has references |prevSum|
+and |currentSum| to the sums calculated on the previous and current round; all
+threads have the same values for these references.  The program has the
+invariant: 
+\[\mstyle
+\forall i \in \interval{0}{\sm n} \spot
+  \sm{prevSum}(i) = \textstyle\sum \sm a(\sm{i}-\sm{gap} \upto \sm{i}]
+   \mbox{ where } \sm{gap} = 2^{\ss r} .
+\]
+On each round, the entries in |prevSum| are read-only, and each thread writes
+its own value in |currentSum|.
+%
+\begin{scala}
+class PrefixSumsShared2(n: Int, a: Array[Int]) extends PrefixSumsT{
+  require(n == a.size)
+
+  private val sum1, sum2 = new Array[Int](n) 
+
+  private var result: Array[Int] = null
+
+  private val barrier = new Barrier(n)
+
+  private def summer(me : Int) = thread("Summer "+me){
+    var currentSum = sum1; var prevSum = sum2
+    var r = 0; var gap = 1; prevSum(me) = a(me)
+    barrier.sync(me)
+
+    while(gap < n){ 
+      val inc = if(gap <= me) prevSum(me-gap) else 0  
+      // £inc = $\sum$ a(me-2*gap .. me-gap]£.
+      currentSum(me) = prevSum(me) + inc 
+      // £currentSum(me) = $\sum$ a(me-2*gap .. me]£.
+      barrier.sync(me)
+      r += 1; gap += gap;        // £currentSum(me) = $\sum$ a(me-2*gap .. me]£.
+      val t = prevSum; prevSum = currentSum; currentSum = t 
+      // £prevSum(me) = $\sum$ a(me-gap .. me]£.
+    }
+    if(me == 0) result = prevSum
+  }
+
+  // Put system together
+  def apply(): Array[Int] = {
+    run (|| (for (i <- 0 until n) yield summer(i)))
+    result
+  }
+}
+\end{scala}
+\end{answerI}

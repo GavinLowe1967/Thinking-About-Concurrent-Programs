@@ -1,0 +1,127 @@
+\section{Breadth-First Search, Revisited}
+\label{sec:sync-BFS}
+
+We now revisit the problem of a concurrent breadth-first search.  The program
+we saw in Section~\ref{sec:BFS} does not perform a strict breadth-first
+search: if threads run at different speeds, then nodes deeper in the search
+graph might be expanded before those from an earlier ply.  To achieve strict
+breadth-first search, we need a barrier synchronisation at the end of each
+ply.  This is the approach we consider in this section.
+
+In each round of the program, worker threads will be dealing with two sets of
+nodes: the nodes of the current ply; and the nodes of the following ply, which
+will be expanded on the following round.  Each of these sets will be stored in
+a concurrent object.  We chose to use |ServerTotalQueue|s, for convenience.
+However, the fact that these are queues is incidental: each stores nodes from
+the same ply, so we could expand those nodes in an arbitrary order.  We could
+equally have used the total stack from Exercise~\ref{ex:serverStack}, or
+indeed any concurrent object with a similar interface that allows us to add to
+or obtain values from a set.
+
+%%%%%
+
+\begin{figure}
+\begin{scala}
+class BFSGraphSearch[N](g: Graph[N], numWorkers: Int) 
+    extends GraphSearch[N](g){
+  /** Try to find a path in g from start to a node that satisfies isTarget. */
+  def apply(start: N, isTarget: N => Boolean): Option[List[N]] = {
+    if(isTarget(start)) Some(List(start))
+    else{
+      val q1, q2 = new ServerTotalQueue[(N, Path)]
+      q1.enqueue((start, List(start)))
+      val seen = new ServerConcSet[N]; seen.add(start) // All nodes seen so far.
+      def f(pair1: (Boolean,Boolean), pair2: (Boolean,Boolean)) = 
+        (pair1._1 || pair2._1, pair1._2 || pair2._2)
+      val barrier = new CombiningBarrier(numWorkers, f)
+      // Channel from workers to the coordinator.
+      val pathFound = new SyncChan[Path]
+      var result: Option[Path] = None
+
+      def worker(me: Int) = thread(s"worker($me)") ... // See Figure £\ref{fig:sync-BFS-worker}£.
+
+      def coordinator = thread("coordinator"){
+        attempt{ result = Some(pathFound?()) }{ }
+        q1.shutdown(); q2.shutdown(); seen.shutdown(); pathFound.close()
+      }
+
+      val workers = || (for(i <- 0 until numWorkers) yield worker(i))
+      run(workers || coordinator)
+      result
+    }
+  }
+}
+\end{scala}
+\caption{Outline of the breadth-first search program.}
+\label{fig:sync-BFS}
+\end{figure}
+
+%%%%%
+
+The outline for the program is in Figure~\ref{fig:sync-BFS}, with the
+definition of a worker in Figure~\ref{fig:sync-BFS-worker}.  As in
+Section~\ref{sec:BFS}, we store a |Path| (a list of nodes) together with each
+node.  We also maintain a concurrent set |seen| of nodes that have been seen
+so far.  We use a coordinator thread to help with termination. 
+
+Each worker maintains references |thisPly| and |nextPly| to the queues holding
+the nodes of the current and next ply; it swaps these variables at the end of
+each round. 
+
+%%%%%
+
+\begin{figure}
+\begin{scala}
+      def worker(me: Int) = thread(s"worker($me)"){
+        var done = false; var thisPly = q1; var nextPly = q2
+        while(!done){
+          var plyDone = false; var added = false
+          repeat(!plyDone){
+            thisPly.dequeue() match{
+              case Some((n, path)) =>
+                for(n1 <- g.succs(n)){
+                  if(isTarget(n1)){
+                    pathFound!(path :+ n1); plyDone = true; done = true
+                  } // Done.
+                  else if(seen.add(n1)){
+                    nextPly.enqueue((n1, path :+ n1)); added = true
+                  }
+                }
+              case None => plyDone = true
+            }
+          } // End of inner £repeat£ loop.
+          val (d,a) = barrier.sync(me, (done,added)); done = d || !a
+          if(!done){ // Swap £thisPly£ and £nextPly£ for the next round. 
+            val t = thisPly; thisPly = nextPly; nextPly = t
+          }
+        }
+        pathFound.close()
+      } 
+\end{scala}
+\caption{A worker for the breadth-first search program.}
+\label{fig:sync-BFS-worker}
+\end{figure}
+
+In each round, each worker repeatedly removes a node from the current ply and
+expands it.  If the node is a target, it informs the coordinator.  Otherwise,
+it expands it and adds each node that hasn't been seen previously to the next
+ply.  This will continue until there are no more nodes in the current ply,
+corresponding to the dequeue returning |None|.
+
+In the worker's inner loop, the variable |done| indicates whether this worker
+has found a target node.  The variable |added| is true if the worker has added
+a node to the next ply.  The search should terminate if any worker has
+$\sm{done} = \sm{true}$, or no worker has $\sm{added} = \sm{true}$.  This is
+decided via a combining barrier: each worker passes in the values of their
+|done| and |added| variables, and receives back the disjunction of all the
+|done| values, and the disjunction of all the |added| values; the worker exits
+the loop if the former is true or the latter is false.
+
+The coordinator waits to receive a message from a worker, indicating that it
+has found a path to a target node, in which case that path will be the result
+of the search.  It then shuts down the queues and the seen set; the former
+will mean that a worker attempting a dequeue will exit its |repeat| loop. 
+
+\begin{instruction}
+Study the details of the implementation.
+\end{instruction}

@@ -2,9 +2,13 @@ package tacp.dataParallel
 
 import ox.scl._
 
+trait PrefixSumsT{
+  def apply(): Array[Int]
+}
+
 /** Calculate prefix sums of an array a of size n in poly-log n (parallel)
   *  steps.  */
-class PrefixSums(n: Int, a: Array[Int]){
+class PrefixSums(n: Int, a: Array[Int]) extends PrefixSumsT{
   require(n == a.size)
 
   /** Shared array, in which sums are calculated. */

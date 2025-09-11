@@ -1,0 +1,71 @@
+\begin{questionS}
+\label{ex:barrierLog}
+Provide an implementation of barrier synchronisation that operates in
+$\Theta(\log n)$ time, for $n$ threads.  Hint: base your implementation on one
+of the patterns from Chapter~\ref{chap:interacting-peers}.  Test your code by
+adapting the test framework on the book website.
+\end{questionS}
+
+%%%%%
+
+\begin{answerS}
+This implementation is based on the tree pattern from
+Chapter~\ref{chap:interacting-peers}.
+%
+The threads are arranged in a binary heap.  Each waits until its children
+are ready, signals to its parent that all of its subtree is ready, waits for a
+``go'' signal from its parent, and passes that signal on to its children.
+%
+\begin{scala}
+class BarrierLog(n: Int) extends BarrierT{
+  /** Channels by which a thread signals to its parent that it is ready.
+    * Indexed by the child's identity. */ 
+  private val ready = Array.fill(n)(new SyncChan[Unit])
+
+  /** Channels by which a thread signals to its children that it can
+    * continue.  Indexed by the child's (receiver's) identity. */ 
+  private val go = Array.fill(n)(new SyncChan[Unit])
+
+  /** Barrier protocol for node with identity £me£, in a system of £n£ nodes. */
+  def sync(me: Int) = {
+    val child1 = 2*me+1; val child2 = 2*me+2
+    // Wait for £ready£ signals from both children
+    if(child1 < n) ready(child1)?()
+    if(child2 < n) ready(child2)?()
+    // Send £ready£ signal to parent, and wait for £go£ reply, unless this is the root.
+    if(me != 0){ ready(me)!(); go(me)?() }
+    // Send £go£ signals to children.
+    if(child1 < n) go(child1)!()
+    if(child2 < n) go(child2)!()
+  }
+}
+\end{scala}
+
+It is easy to adapt this to a combining barrier, by changing the channels to
+pass data of type~|A|, and by having each thread combine together the values
+from its subtree.
+%
+\begin{scala}
+class CombiningBarrierLog[A](n: Int, f: (A,A) => A) 
+    extends CombiningBarrierT[A](n,f){
+  private val ready = Array.fill(n)(new SyncChan[A])
+  private val go = Array.fill(n)(new SyncChan[A])
+
+  def sync(me: Int, x: A): A = {
+    val child1 = 2*me+1; val child2 = 2*me+2; var y = x
+    if(child1 < n){ val x1 = ready(child1)?(); y = f(x1,y) }
+    if(child2 < n){ val x2 = ready(child2)?(); y = f(x2,y) }
+    if(me != 0){ ready(me)!y; y = go(me)?() }
+    if(child1 < n) go(child1)!y
+    if(child2 < n) go(child2)!y
+    y
+  }
+}
+\end{scala}
+%
+This combines together values following the shape of the heap.
+
+By the way, the implementations within SCL also arrange threads into a heap,
+but use a special-purpose synchronisation object between each parent and
+child, in the interests of efficiency.
+\end{answerS}

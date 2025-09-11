@@ -1,0 +1,78 @@
+\begin{questionS}
+Write a concurrent program to find a maximum element in an array of |Int|s,
+and its index, using |numWorkers| worker threads.  
+%
+\begin{scala}
+object ArrayMax{
+  def apply(a: Array[Int], numWorkers: Int): (Int, Int) = ... 
+}
+\end{scala}
+%
+Each worker should search in a segment of the array, and then the workers
+should use a combining barrier to find the overall result.  
+
+Is the function that parameterises the combining barrier associative?  Is it
+commutative?  If not, does this matter?
+\end{questionS}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{answerS}
+My answer is below.
+%
+\begin{scala}
+/** Object to find a maximum value in an array and its index. */
+object ArrayMax{
+  /** A candiate maximum value and its index. */
+  type Pair = (Int,Int)
+
+  /** Function used in combining barriers. */
+  private def f(pair1: Pair, pair2: Pair): Pair = {
+    val (max1,ix1) = pair1; val(max2,ix2) = pair2
+    if(max1 >= max2) (max1,ix1) else (max2,ix2)
+  }
+
+  /** Find a maximum element in £a£ and its index, using £numWorkers£ workers. */
+  def apply(a: Array[Int], numWorkers: Int): (Int, Int) = {
+    val n = a.length; require(n >= numWorkers)
+    var result: Pair = null
+    val barrier = new CombiningBarrier[Pair](numWorkers, f)
+
+    def worker(me: Int) = thread(s"worker($me)"){
+      val start = me*n/numWorkers; val end = (me+1)*n/numWorkers
+      assert(start < end)
+      var maxIx = start; var max = a(start)
+      for(i <- start+1 until end) if(a(i) > max){ maxIx = i; max = a(i) }
+      val res = barrier.sync(me, (max,maxIx))
+      if(me == 0) result = res 
+    }
+
+    run(|| (for(i <- 0 until numWorkers) yield worker(i)))
+    result
+  }
+}
+\end{scala}
+
+When the parameter~|f| of the combining barrier receives two equal maximum
+values, it uses the index of the first.  Thus it is not commutative (but it is
+associative).  This doesn't matter, because we only require an index for a
+maximum value.  It does mean that the program is potentially nondeterministic;
+for example, the implementation of a barrier in Figure~\ref{fig:serverBarrier}
+would give different results depending on the order in which it receives
+values (although the SCL barrier implementation would make the program
+deterministic); however, that is fine, since the informal specification is
+also nondeterministic.
+
+An alternative definition of~|f|, which is commutative, is
+%
+\begin{scala}
+  private def f(pair1: Pair, pair2: Pair): Pair = {
+    val (max1,ix1) = pair1; val(max2,ix2) = pair2
+    if(max1 > max2) (max1,ix1) 
+    else if(max1 == max2) (max1,ix1 min ix2) 
+    else (max2,ix2)
+  }
+\end{scala}
+%
+However, this performs more work with no advantage.
+\end{answerS}

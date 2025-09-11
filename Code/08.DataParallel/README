@@ -4,6 +4,9 @@ BarrierTest.scala: a test for a Barrier.
 
 PrefixSums.scala: the prefix sums example.
 
+PrefixSumsTest.scala: tester for the prefix sums examlpe (and also the
+corresponding exercise).
+
 Jacobi.scala: Jacobian iteration.
 
 Jacobitest.scala: test of Jacobi.scala.
@@ -13,3 +16,23 @@ Jacobian iteration.
 
 BFSGraphSearch.scala: strict breadth-first search, using a barrier
 synchronisation at the end of each round.
+
+Exercises
+=========
+
+ServerCombiningBarrier.scala: a combining barrier.
+
+BarrierLog.scala: barrier synchronisation in O(log n) time.
+
+PrefixSumsShared.scala: prefix sums using shared variables.
+
+ArrayMax.scala: finding the maximum in an array.
+
+Smooth.scala: base for the image smoothing problem, and a sequential program
+(distribution).
+
+SmoothShared.scala: concurrent image smoothing program.
+
+SmoothSharedTest.scala: test program for the previous (distribution).
+
+LargestComponent.scala: code for the largest component problem.

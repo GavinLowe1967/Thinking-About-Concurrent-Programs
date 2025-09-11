@@ -42,7 +42,7 @@ object SeqJacobi extends Jacobi{
         newX(i) = update(a, b, oldX, i, n)
 	done &&= Math.abs(oldX(i)-newX(i)) < Epsilon
       }
-      if(!done){ val t = oldX; oldX = newX; newX = t } // swap arrays
+      if(!done){ val t = oldX; oldX = newX; newX = t } // Swap arrays.
     }
     newX
   }
