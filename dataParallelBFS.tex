@@ -11,7 +11,7 @@ ply.  This is the approach we consider in this section.
 In each round of the program, worker threads will be dealing with two sets of
 nodes: the nodes of the current ply; and the nodes of the following ply, which
 will be expanded on the following round.  Each of these sets will be stored in
-a concurrent object.  We chose to use |ServerTotalQueue|s, for convenience.
+a concurrent object.  We choose to use |ServerTotalQueue|s, for convenience.
 However, the fact that these are queues is incidental: each stores nodes from
 the same ply, so we could expand those nodes in an arbitrary order.  We could
 equally have used the total stack from Exercise~\ref{ex:serverStack}, or
@@ -24,7 +24,7 @@ or obtain values from a set.
 \begin{scala}
 class BFSGraphSearch[N](g: Graph[N], numWorkers: Int) 
     extends GraphSearch[N](g){
-  /** Try to find a path in g from start to a node that satisfies isTarget. */
+  /** Try to find a path in £g£ from £start£ to a node that satisfies £isTarget£. */
   def apply(start: N, isTarget: N => Boolean): Option[List[N]] = {
     if(isTarget(start)) Some(List(start))
     else{

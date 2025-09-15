@@ -3,10 +3,11 @@
 % An interval, open on the left, closed on the right. 
 \def\revint#1#2{(#1 \upto #2]}
 
-We now consider a problem from linear algebra.  Suppose we have an array~|a|
-holding |n| integers.  We want to calculate the \emph{prefix sums}, i.e., the
-sums of the first $j$ elements, for $j = 1, \ldots, \sm n$, and store them in
-an array~|sum|, also of size~|n|.  
+We now consider a different synchronous parallel computing problem.  Suppose
+we have an array~|a| holding |n| integers.  We want to calculate the
+\emph{prefix sums}, i.e., the sums of the first $j$ elements, for $j = 1,
+\ldots, \sm n$, and store them in an array~|sum|, also of size~|n|.  Thus our
+desired postcondition is:
 \[\mstyle
 \forall k \in \set{0, \ldots, \sm n-1} \spot 
   \sm{sum}(k) = \textstyle\sum \sm{a}[0 \upto k] 
@@ -18,11 +19,11 @@ The following simple sequential program achieves this.
 \end{scala}
 %
 This sequential program runs in time $\Theta(\sm n)$.  Our concurrent program
-will use|n| threads, and compete in $\Theta(\log \sm n)$ rounds. 
+will use |n| threads, and compete in $\Theta(\log \sm n)$ rounds. 
 
 The idea of the algorithm is that each thread is responsible for one entry in
-the result array.  Each thread~|me| sets $\sm{sum}(\sm{me})$ to $\sum \sm
-a\revint{0}{\sm{me}}$, for $me = 0,\ldots,\sm n-1$.
+the result array.  The thread with identity~|me| sets $\sm{sum}(\sm{me})$ to
+$\sum \sm a[0 \upto \sm{me}]$, for $\sm{me} = 0,\ldots,\sm n-1$.
 
 The program proceeds in rounds, with a barrier synchronisation at the end of
 each round.  Each thread has a thread-local variable~|s|, which is the sum it
@@ -34,16 +35,16 @@ has calculated so far.  At the end of round~$r$, thread~|me| will have
 i.e., the sum of a segment of size~|gap|, ending at position~|me|.  Here, we
 invent fictitious elements $\sm a(i) = 0$ for $i < 0$, so that the above
 segment sum is defined.  If $\sm{gap} > \sm{me}$ then $\sum \sm
-a\revint{\sm{me}-\sm{gap}}{\sm{me}} = \sum \sm a\revint{0}{\sm{me}}$, i.e.~the
+a\revint{\sm{me}-\sm{gap}}{\sm{me}} = \sum \sm a[0 \upto \sm{me}]$, i.e.~the
 prefix sum that |me| is trying to calculate.
 
-On each round, thread~|me| obtains the value of thread $(\sm{me}-\sm{gap})$'s
-|s|, which is $\sum \sm a\revint{\sm{me}-2 \times
-  \sm{gap}}{\sm{me}-\sm{gap}}$, since thread $\sm{me}-\sm{gap}$ is running the
-same program, and is on the same round, because of the use of barrier
-synchronisations.  This allows thread~|me| to calculate $\sum \sm
-a\revint{\sm{me}-2 \times \sm{gap}}{\sm{me}}$, to maintain the above
-invariant.
+On each round, thread~|me| obtains the value of thread
+$(\sm{me}-\sm{gap})$'s~|s| (if $\sm{me} \ge \sm{gap}$), which is $\sum \sm
+a\revint{\sm{me}-2 \times \sm{gap}}{\sm{me}-\sm{gap}}$, since thread
+$\sm{me}-\sm{gap}$ is running the same program, and is on the same round
+because of the use of barrier synchronisations.  This allows thread~|me| to
+calculate $\sum \sm a\revint{\sm{me}-2 \times \sm{gap}}{\sm{me}}$, to maintain
+the above invariant.
 
 The program will terminate when $\sm{gap} \ge \sm n$.  At this point,
 $\sm{gap} > \sm{me}$ for each thread~|me|, so, as noted above, each thread has
@@ -76,8 +77,8 @@ class PrefixSums(n: Int, a: Array[Int]){
 
   /** An individual thread.  £summer(me)£ sets £sum(me)£ to £$\sum \sm a\revint{0}{\sm{me}}$£. */
   private def summer(me: Int) = thread(s"summer($me)"){
-    // Invariant: £$\sm{gap} = 2^{\ss r}$£ and £$\sm s = \sum \sm a\revint{\sm{me}-\sm{gap}}{\sm{me}}$£ (with fictious
-    // values £$\sm a(i) = 0$£ for £$i < 0$£).  £r£ is the round number.
+    // Invariant: £$\sm{gap} = 2^{\ss r}$£ and £$\sm s = \sum \sm a\revint{\sm{me}-\sm{gap}}{\sm{me}}$£ (with fictious values
+    // £$\sm a(i) = 0$£ for £$i < 0$£).  £r£ is the round number.
     var r = 0; var gap = 1; var s = a(me)
 
     while(gap < n){

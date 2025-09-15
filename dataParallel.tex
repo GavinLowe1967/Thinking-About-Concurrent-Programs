@@ -13,80 +13,106 @@
 
 %%%%%
 
-\begin{slide}
-\heading{Communication with neighbours}
+%% \begin{slide}
+%% \heading{Communication with neighbours}
 
-Several applications work on a rectangular grid, where the state of a cell on
-one round depends only on the state of its neighbouring cells at the previous
-round.  Examples:
-%
-\begin{itemize}
-\item
-Cellular automata;
+%% Several applications work on a rectangular grid, where the state of a cell on
+%% one round depends only on the state of its neighbouring cells at the previous
+%% round.  Examples:
+%% %
+%% \begin{itemize}
+%% \item
+%% Cellular automata;
 
-\item
-Solutions to differential equations, e.g.~in weather forecasting or fluid
-dynamics;
+%% \item
+%% Solutions to differential equations, e.g.~in weather forecasting or fluid
+%% dynamics;
 
-\item Image processing, e.g.~smoothing.
-\end{itemize}
+%% \item Image processing, e.g.~smoothing.
+%% \end{itemize}
 
-In such cases, it is natural to allocate a horizontal strip of cells to each
-thread.  At the end of each round, each thread communicates the state of its
-top row to the thread above it, and communicates the state of its bottom row
-to the thread below it.  
+%% In such cases, it is natural to allocate a horizontal strip of cells to each
+%% thread.  At the end of each round, each thread communicates the state of its
+%% top row to the thread above it, and communicates the state of its bottom row
+%% to the thread below it.  
+%% \end{slide}
 
-%% These rows can be passed by reference, but it might be necessary to make a
-%% copy to avoid sharing references, e.g. \SCALA{up ! myA(start).toArray}.
-\end{slide}
+%% %%%%%
 
-%%%%%
+%% \begin{slide}
+%% \heading{Passing arrays in Scala}
 
-\begin{slide}
-\heading{Passing arrays in Scala}
+%% Arrays in Scala are reference objects, and so passed by reference.  
 
-Arrays in Scala are reference objects, and so passed by reference.  
+%% Suppose a particular thread has a two-dimensional array \SCALA{myA}, and it
+%% is responsible for rows \SCALA{[start..end)}, then it can send its top row to
+%% the thread above it (say on channel \SCALA{up}) by
+%% %
+%% \begin{scala}
+%% up ! myA(start);
+%% \end{scala}
+%% %
+%% The thread above it can receive it (say on channel \SCALA{receiveUp}) as:
+%% %
+%% \begin{scala}
+%% myA(end) = receiveUp?()
+%% \end{scala}
+%% %
+%% However, the two threads now share references to this array, so updates made
+%% by one thread will have an effect on the other thread --- a race!
 
-Suppose a particular thread has a two-dimensional array \SCALA{myA}, and it
-is responsible for rows \SCALA{[start..end)}, then it can send its top row to
-the thread above it (say on channel \SCALA{up}) by
-%
-\begin{scala}
-up ! myA(start);
-\end{scala}
-%
-The thread above it can receive it (say on channel \SCALA{receiveUp}) as:
-%
-\begin{scala}
-myA(end) = receiveUp?()
-\end{scala}
-%
-However, the two threads now share references to this array, so updates made
-by one thread will have an effect on the other thread --- a race!
-
-The solution is either for the first thread to re-initialise
-\SCALA{myA(start)}, e.g., by \SCALA{myA(start) = new Array[Int](N)}, or to
-make a \emph{copy} of the array, e.g., by \SCALA{up ! (myA(start).clone)}.
-\end{slide}
+%% The solution is either for the first thread to re-initialise
+%% \SCALA{myA(start)}, e.g., by \SCALA{myA(start) = new Array[Int](N)}, or to
+%% make a \emph{copy} of the array, e.g., by \SCALA{up ! (myA(start).clone)}.
+%% \end{slide}
 
 
 %%%%%
 
-\begin{slide}
-\heading{Summary}
+\section{Summary}
 
-\begin{itemize}
-\item 
-Synchronous data parallel programming;
-% Heart-beat algorithms;
+In this chapter we have studied synchronous data parallel programs.  Such
+programs proceed in rounds, typically with each thread working on some of the
+data.  At the end of each round, the threads perform a barrier
+synchronisation, to ensure that every thread finishes the current round before
+any starts on the next round.  The barrier synchronisation can also be used to
+combine together input data from the threads; this can be useful to decide
+termination. 
 
-\item
-Barrier synchronisation; combining barrier synchronisation;
+Threads can communicate either by message passing or by using shared
+variables.  In the latter case, it is important to avoid data races: you
+should be clear about which threads can read or write which variables at which
+points, relative to the synchronisations; this is also necessary to ensure
+memory consistency.  There are two main strategies for this.  One approach is
+to split each round into two subrounds, so using two barrier synchronisations
+per round, with threads only reading shared variables in the first subround,
+and then writing only to their part of the shared variables in the second
+subround.  The other approach is to use two copies of the data, where, on each
+round, threads only read one copy, and write only to their share of the second
+copy; the role of the two copies switches at the end of each round.
 
-\item
-Examples, using shared memory or message-passing.
-\end{itemize}
-\end{slide}
+Our main focus has been on programs with multiple rounds, where the
+threads perform a loop, with one or two barrier synchronisations per
+iteration.  However, using barrier synchronisations can also be useful in
+programs that have a fixed number of stages, say two stages: threads can
+perform a synchronisation between stages to ensure all threads have completed
+one stage before starting the next. 
+
+
+
+%% \begin{itemize}
+%% \item 
+%% Synchronous data parallel programming;
+%% % Heart-beat algorithms;
+
+%% \item
+%% Barrier synchronisation; combining barrier synchronisation;
+
+%% \item
+%% Examples, using shared memory or message-passing.
+%% \end{itemize}
+
+
 
 %%%%%%%%%%
 

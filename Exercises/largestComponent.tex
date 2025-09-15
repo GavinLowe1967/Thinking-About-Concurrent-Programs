@@ -1,6 +1,6 @@
 \begin{question}
-This question considers a problem in image processing.  We can represent an
-image by a two-dimensional array of |Int|s, where each entry represents the
+This question considers another problem in image processing.  We can represent
+an image by a two-dimensional array of |Int|s, where each entry represents the
 colour of a single pixel.  For the purposes of this question, we consider two
 pixels to be neighbours if they are horizontally or vertically (but not
 diagonally) adjacent.  A set of pixels forms a \emph{connected component} if
@@ -14,7 +14,7 @@ the pixel in the top-left corner.
 
 %%%%%
 
-\begin{figure}[h]
+\begin{figure}
 \[
 \begin{array}{cccccc}
 0 & 1 & 0 & 2 & 2 & 3 \\
@@ -37,10 +37,6 @@ the pixel in the top-left corner.
 \end{figure}
 
 %%%%%
-
-
-%%%%%
-
 
 Here is an outline of an algorithm to find  the largest connected
 component.  
@@ -73,8 +69,8 @@ component.
 \end{description}
 
 Your task is to implement a concurrent version of this algorithm using |p|
-worker threads, following the outline in
-Figure~\ref{fig:largestComponentCode}.
+worker threads, following the above outline.
+Figure~\ref{fig:largestComponentCode} gives some supporting code.
 
 %%%%%
 
@@ -113,7 +109,7 @@ class LargestComponent(image: Array[Array[Int]], p: Int){
 
 %%%%%
 
-Give concurrent code corresponding to this outline.  In stage~1, the worker
+In stage~1, the worker
 threads should cooperate together to calculate the index array, with each
 worker responsible for some of the entries.  In stage~2, threads should
 cooperate together to find the most common index.  Each thread should be
@@ -125,7 +121,7 @@ $O(K \times \log \sm p)$, where $K$ is the number of distinct indexes.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\begin{answer}
+\begin{answerI}
 My code is below.  
 
 Stage 1 proceeds in rounds.  Each thread is responsible for some of the rows.
@@ -141,11 +137,11 @@ ordered by |Index| (type |IndexCount|).
 
 Then the workers use a combining barrier to merge the workers' counts
 together, making use of the helper function |merge| that merges two such
-lists.  Worker~0 then finds the index with the largest count, and write it
+lists.  Finally, worker~0 finds the index with the largest count, and write it
 into the |result| variable, which is subsequently returned.  Arguably, we
 don't need the full functionality of a combining barrier here: since only
 worker~0 needs the final result, we could just use a heap to merge the counts
-upwards. 
+upwards.
 
 It is also possible to perform the second sub-stage using the pattern of
 prefix sums from the body of the chapter.  But this requires a barrier
@@ -167,11 +163,11 @@ class LargestComponent(image: Array[Array[Int]], p: Int){
   /** Arrays that hold the indexes on alternate rounds. */
   private val indexes0, indexes1 = Array.ofDim[Index](Height,Width)
 
-  /** A List representing a count of Indexes.  Each entry gives an Index and a
-    * count for it.  The list is ordered by Indexes. */
+  /** A £List£ representing a count of £Index£es.  Each entry gives an £Index£ and a
+    * count for it.  The list is ordered by £Index£es. */
   private type IndexCount = List[(Index,Int)]
 
-  /** Merge two IndexCount lists. */
+  /** Merge two £IndexCount£ lists. */
   private def merge(counts1: IndexCount, counts2: IndexCount): IndexCount = {
     var cs1 = counts1; var cs2 = counts2
     val result = new scala.collection.mutable.ArrayBuffer[(Index,Int)]()
@@ -192,24 +188,24 @@ class LargestComponent(image: Array[Array[Int]], p: Int){
 
   /** A worker. */
   private def worker(id: Int) = thread("worker"+id){
-    // STAGE 1: calculate the index of each location.
     // This worker is responsible for rows £[start..end)£.
     val start = id*Height/p; val end = (id+1)*Height/p
-    // Initialise my share of the indexes in £indexes0£.
+    // STAGE 1: calculate the index of each location.
+    // Initialise share of the indexes in £indexes0£.
     for(r <- start until end; c <- 0 until Width) indexes0(r)(c) = (r,c)
     barrier1.sync(id, false) // Dummy argument.
     var lastIndexes = indexes0; var theseIndexes = indexes1; var done = false
 
     while(!done){
       var change = false // Have we seen a change on this round?
-      // Update my share of theseIndexes based on lastIndexes
+      // Update my share of £theseIndexes£ based on £lastIndexes£
       for(r <- start until end; c <- 0 until Width){
         // Find minimum index between £(r,c)£ and its neighbours
         val minIx = smallestNeighbourIndex(lastIndexes, r, c)
         theseIndexes(r)(c) = minIx
         if(minIx != lastIndexes(r)(c)) change = true
       }
-      // Sync with others; set £done = true£ if no thread saw any change.
+      // Synchronise with others; set £done = true£ if no thread saw any change.
       done = ! barrier.sync(id, change)
       // Swap £theseIndexes£ and £lastIndexes£ for the next round.
       if(!done){ val t = theseIndexes; theseIndexes = lastIndexes; lastIndexes = t }
@@ -240,6 +236,4 @@ class LargestComponent(image: Array[Array[Int]], p: Int){
   }
 }
 \end{scala}
-
-
-\end{answer}
+\end{answerI}

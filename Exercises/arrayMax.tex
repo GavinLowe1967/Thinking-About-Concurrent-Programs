@@ -32,7 +32,8 @@ object ArrayMax{
     if(max1 >= max2) (max1,ix1) else (max2,ix2)
   }
 
-  /** Find a maximum element in £a£ and its index, using £numWorkers£ workers. */
+  /** Find a maximum element in £a£ and its index, using £numWorkers£ 
+    * workers. */
   def apply(a: Array[Int], numWorkers: Int): (Int, Int) = {
     val n = a.length; require(n >= numWorkers)
     var result: Pair = null
@@ -55,13 +56,14 @@ object ArrayMax{
 
 When the parameter~|f| of the combining barrier receives two equal maximum
 values, it uses the index of the first.  Thus it is not commutative (but it is
-associative).  This doesn't matter, because we only require an index for a
-maximum value.  It does mean that the program is potentially nondeterministic;
-for example, the implementation of a barrier in Figure~\ref{fig:serverBarrier}
-would give different results depending on the order in which it receives
-values (although the SCL barrier implementation would make the program
-deterministic); however, that is fine, since the informal specification is
-also nondeterministic.
+associative).  This doesn't matter, because we only require \emph{an} index
+for a maximum value: it doesn't matter which index we return when the maximum
+appears multiple times.  It does mean that the program is potentially
+nondeterministic; for example, the implementation of a barrier in
+Figure~\ref{fig:serverBarrier} would give different results depending on the
+order in which it receives values (although the SCL barrier implementation
+would make the program deterministic); however, that is fine, since the
+informal specification is also nondeterministic.
 
 An alternative definition of~|f|, which is commutative, is
 %

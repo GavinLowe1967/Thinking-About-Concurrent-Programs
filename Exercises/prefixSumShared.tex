@@ -30,12 +30,10 @@ class PrefixSumsShared(n: Int, a: Array[Int]){
   require(n == a.size)
 
   private val sum = new Array[Int](n) 
-
   private val barrier = new Barrier(n)
 
   def summer(me : Int) = thread("Summer "+me){    
     var r = 0; var gap = 1; sum(me) = a(me)
-
     while(gap<n){ 
       barrier.sync(me)
       if(gap <= me){                
@@ -58,7 +56,7 @@ class PrefixSumsShared(n: Int, a: Array[Int]){
 %%%%%
 
 Here's another version, which uses two arrays holding sums, and a single
-barrier synchronisation on its round.  Each thread has references |prevSum|
+barrier synchronisation on each round.  Each thread has references |prevSum|
 and |currentSum| to the sums calculated on the previous and current round; all
 threads have the same values for these references.  The program has the
 invariant: 
@@ -75,16 +73,13 @@ class PrefixSumsShared2(n: Int, a: Array[Int]) extends PrefixSumsT{
   require(n == a.size)
 
   private val sum1, sum2 = new Array[Int](n) 
-
   private var result: Array[Int] = null
-
   private val barrier = new Barrier(n)
 
   private def summer(me : Int) = thread("Summer "+me){
     var currentSum = sum1; var prevSum = sum2
     var r = 0; var gap = 1; prevSum(me) = a(me)
     barrier.sync(me)
-
     while(gap < n){ 
       val inc = if(gap <= me) prevSum(me-gap) else 0  
       // £inc = $\sum$ a(me-2*gap .. me-gap]£.
@@ -98,7 +93,6 @@ class PrefixSumsShared2(n: Int, a: Array[Int]) extends PrefixSumsT{
     if(me == 0) result = prevSum
   }
 
-  // Put system together
   def apply(): Array[Int] = {
     run (|| (for (i <- 0 until n) yield summer(i)))
     result

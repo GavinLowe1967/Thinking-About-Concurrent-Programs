@@ -1,17 +1,18 @@
 \section{Jacobi iteration}
 
-In this section, we study a problem from linear algebra, namely to find an
+In this section we study a problem from linear algebra, namely to find an
 approximate solution to a large system of simultaneous linear equations.  We
-will assume some familiarity with the topic. 
+will assume some familiarity with the problem. 
 
 Given an $n$-by-$n$ matrix~$A$ with entries $a_{ij}$ for $i,j \in
 \interval{0}{n}$, and a vector~$b$ of size~$n$, we want to find a vector~$x$
 of size~$n$ such that $Ax \approx b$.
 %
-The standard technique to solve this problem is Gaussian elimination.
-However, this algorithm runs in time $O(n^3)$, which can be prohibitive for
-large~$n$.  Jacobi iteration provides an alternative technique, which can be
-more efficient.  We start by describing this technique.
+The standard technique to find an exact solution to this problem is Gaussian
+elimination.  However, this algorithm runs in time $O(n^3)$, which can be
+prohibitive for large~$n$.  Jacobi iteration provides an alternative
+technique, which can be more efficient.  We start by describing this
+technique.
 
 Let $D$ be a matrix containing the diagonal entries of~$A$, and let $R$ be a
 matrix containing the rest of the entries, so $A = D+R$.  We require that each
@@ -26,17 +27,16 @@ Then we have
 \iff & x = D\inverse (b - Rx).
 \end{array}
 \]
-This suggests calculating a sequence of approximations $x^{0}, x^{(1)},
+This suggests calculating a sequence of approximations $x^{(0)}, x^{(1)},
 x^{(2)}, \ldots$, where $x^{(0)}$ is arbitrary (say all $0$s), and
 \begin{eqnarray}
 x^{(k+1)} & = & D\inverse \left( b-R x^{(k)} \right), \label{eqn:Jacobi}
 \end{eqnarray}
-for $k = 0,1,\ldots$.
-If this iteration converges to a solution $x$, then $D\inverse (b - Rx)$, so
-$Ax = b$, as required.  In fact, it can be shown that the iteration does
-indeed converge if
+for $k = 0,1,\ldots$.  If this iteration converges to a solution $x$, then
+necessarily $x = D\inverse (b - Rx)$, so $Ax = b$, as required.  In fact, it
+can be shown that the iteration does indeed converge if
 \[\mstyle
- \left \| a_{ii} \right \| > \sum_{j \ne i} \left \| a_{ij} \right \| 
+ \left \| a_{ii} \right \| > \sum_{j \ne i} \left \| a_{ij} \right \| ,
   \qquad \mbox{for all $i$}, 
 \]
 i.e., each row is dominated by its entry on the diagonal. 
@@ -130,13 +130,13 @@ Make sure you understand the sequential implementation.
 
 \subsection{A concurrent implementation using shared variables}
 
-We now consider the concurrent implementation.  We will use |p| workers, and
-split the calculation of |newX| between the workers.  The implementation
-proceeds in rounds, each round corresponding to one iteration of the
-sequential solution.  In each round, all workers can read all of \SCALA{oldX}
-and each worker can write its own segment of \SCALA{newX}.  The roles of the
-arrays swaps between rounds.  We use a barrier synchronisation at the end of
-each round, to keep the workers synchronised, and to avoid races. 
+We now consider a concurrent implementation using shared variables.  We 
+use |p| workers, and split the calculation of |newX| between the workers.  The
+implementation proceeds in rounds, each round corresponding to one iteration
+of the sequential solution.  In each round, all workers can read all of
+\SCALA{oldX} and each worker can write its own segment of \SCALA{newX}.  The
+roles of the arrays swap between rounds.  We use a barrier synchronisation at
+the end of each round, to keep the workers synchronised, and to avoid races.
 
 On each iteration, each thread can test whether its segment of \SCALA{x} has
 converged, say using a thread-local variable \SCALA{myDone}.  The iteration
@@ -238,6 +238,10 @@ each round.  On each iteration, all threads have the same values for their
 Termination is decided as described above.  At the end, worker~|0| sets the
 variable |result| to hold the final result.
 
+\begin{instruction}
+Study the details of the implementation.
+\end{instruction}
+
 We can test the concurrent version by comparing its results against those for
 the sequential version, in the normal way.  For small values of |n|, the
 sequential version is faster: the benefits of parallelisation are outweighed
@@ -265,7 +269,6 @@ This approach is somewhat similar to our implementation of the simulation of
 astronomical bodies. 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 
 \subsection{A concurrent implementation using message-passing}
 
@@ -361,10 +364,9 @@ results, with a suitable offset.
 \end{figure}
 
 The worker then sends its share to each of the other workers, together with
-its identity, and a boolean indicating whether its share has converged; this
-sending starts with the thread with identity one larger than its own, using
-the technique from Section~\ref{sec:fully-connected} to avoid congestion on
-the channels.  
+its identity, and a boolean indicating whether its share has converged.  This
+sending starts with the thread with identity one larger than its own ($\bmod~ \sm p$), using the technique from Section~\ref{sec:fully-connected} to
+avoid congestion on the channels.
 
 Each worker then receives from the other workers, copying the data into its
 own copy of~|x|, using an offset based on the sender's identity.  It performs
@@ -380,12 +382,16 @@ thread's value for the next round before it receives the slow thread's value
 for the current round.  Thus this third thread will not have a complete or
 consistent version of the current approximation. 
 
-The previous version is a bit inefficient, because it involves copying the
-data that is received into~\SCALA{x}; this copying takes time $O(\sm n)$ per iteration.  We
-can replace \SCALA{x}, in each worker, by a two-dimensional array \SCALA{xs}.
-Each row of~|xs| corresponds to the segment operated on by a particular
-worker.  The array~|xs| represents the vector |x| formed by concatenating the
-rows of |xs|. 
+\begin{instruction}
+Make sure you understand the implementation.
+\end{instruction}
+
+The above version is a bit inefficient, because it involves copying the data
+that is received into~\SCALA{x}; this copying takes time $O(\sm n)$ per
+iteration.  We can replace \SCALA{x}, in each worker, by a two-dimensional
+array \SCALA{xs}.  Each row of~|xs| corresponds to the segment operated on by
+a particular worker.  Thus, the array~|xs| represents the vector |x| formed by
+concatenating the rows of |xs|.
 %%  That is, we have the abstraction:
 %% \[
 %% \sm{x} = \sm{xs.flatten}.

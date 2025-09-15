@@ -1,9 +1,9 @@
 In this chapter we will study a particular style of data parallel programming
 where the threads proceed \emph{synchronously}.  The program proceeds in
-\emph{rounds}.  In each round, each thread performs some computation.
-However, at the end of each round, each thread needs to wait for the other
-threads to finish the round before they all proceed to the next round: this
-requires a global synchronisation.
+\emph{rounds}; in each round, each thread performs some computation.  However,
+at the end of each round, each thread needs to wait for the other threads to
+finish that round before they all proceed to the next: this requires a global
+synchronisation.
 
 %%%%%
 
@@ -30,11 +30,11 @@ By writing to shared variables.
 Applications include: image processing, where different threads operate on
 different parts of the image; solving differential equations, for example in
 weather forecasting or fluid dynamics, where different threads operate on
-different areas; matrix calculations, where different threads operate on
-different parts of the matrix.
+different areas; or matrix calculations, where different threads operate on
+different parts of the matrix.  Most of this chapter will be devoted to giving
+examples of this style of programming. 
 
 %%%%%
-
 
 The global synchronisation at the end of each round is sometimes known as a
 \emph{barrier synchronisation}, since it represents a barrier than no thread
@@ -58,7 +58,13 @@ it.
 
 %%%%%
 
-\begin{figure}
+
+Figure~\ref{fig:serverBarrier} gives a possible implementation of a barrier
+using a server.  The server waits to receive a message on channel |arrive|
+from each of the |p|~threads before sending then a message on channel~|leave|,
+telling them they can continue.
+
+\begin{figure}[htb]
 \begin{scala}
 class ServerBarrier(p: Int){
   private val arrive = new SyncChan[Unit]
@@ -80,11 +86,6 @@ class ServerBarrier(p: Int){
 \label{fig:serverBarrier}
 \end{figure}
 
-Figure~\ref{fig:serverBarrier} gives a possible implementation of a barrier
-using a server.  The server waits to receive a message on channel |arrive|
-from each of the |p|~threads before sending then a message on channel~|leave|,
-telling them they can continue.
-
 The above implementation means that each synchronisation takes time $O(\sm p)$,
 assuming all the threads call |sync| at the same time.  In fact, the
 implementation in SCL is more sophisticated, and allows each synchronisation
@@ -102,12 +103,14 @@ property.
 
 \section{Example: simulating astronomical bodies}
 
-In this section, we will implement a concurrent simulation of astronomical
-bodies, such as stars, planets and moons, moving relative to one another under
-gravity.  Each concurrent worker will be responsible for updating the state of
-some of the bodies in each step of the simulation.  However, each worker will
-need to read the states of all of the bodies.  We will use barrier
-synchronisations to coordinate the threads and to avoid races.
+
+In this section we illustrate this style of synchronous programming by
+implementing a concurrent simulation of astronomical bodies, such as stars,
+planets and moons, moving relative to one another under gravity.  Each
+concurrent worker will be responsible for updating the state of some of the
+bodies in each step of the simulation.  However, each worker will need to read
+the states of all of the bodies.  We will use barrier synchronisations to
+coordinate the threads and to avoid races.
 
 We will need to record the position and velocity of each astronomical body.
 Each of these is a vector in three-dimensional space.  The support class
@@ -117,7 +120,7 @@ Each of these is a vector in three-dimensional space.  The support class
 
 \begin{figure}
 \begin{scala}
-/** A vector in three-dimensional space. */
+/** A vector in three£-£dimensional space. */
 case class Vector(x: Double, y: Double, z: Double){
   /** The length of this vector. */
   def length = Math.sqrt(x*x + y*y + z*z)
@@ -209,14 +212,14 @@ timestep.
 
 \begin{figure}
 \begin{scala}
-/** A sequential simulation for bodies. */
+/** A sequential simulation for £bodies£. */
 class SequentialSimulation(bodies: Array[AstronomicalBody]){
   private val n = bodies.length
 
-  /** Simulate for steps steps, returning an array of the bodies' positions at
+  /** Simulate for £steps£ steps, returning an array of the bodies' positions at
     * each timestep. */
   def apply(steps: Int): Array[Array[Vector]] = {
-    val result = Array.ofDim[Vector](steps,bodies.length)
+    val result = Array.ofDim[Vector](steps, bodies.length)
     for(step <- 0 until steps){
       for(i <- 0 until n; j <- 0 until n; if i != j) 
         bodies(i).updateVel(bodies(j))
@@ -245,10 +248,10 @@ workers are on the same step at the same time.
 Further, we need to avoid race conditions.  The worker for a particular
 body~|b| updates |b|'s position within the |move| operation.  However, a
 different worker will read that position when it executes |b1.updateVel(b)| on
-one of its own bodies~|b1|.  This is a race.  In particular, if our
-implementation allows these operations to happen in either order, the results
-will be nondeterministic: the update to |b1| might depend on either the
-previous or the new position of~|b|.
+one of its own bodies~|b1|.  This is potentially a race.  In particular, if
+our implementation allows these operations to happen in either order, the
+results will be nondeterministic: the update to |b1| might depend on either
+the previous or the new position of~|b|.
 
 To avoid such a race, we arrange for a barrier synchronisation after all the
 threads have finished the calls to |updateVel|, but before any call to
@@ -310,192 +313,11 @@ We can test the concurrent simulation using the standard technique of
 comparing it to the sequential simulation.  We generate some input data at
 random, run both simulations, and compare the results. 
 
-In previous chapters, we avoided shared variables, other than read-only
+In previous chapters, we avoided shared variables other than read-only
 variables.  We have relaxed this restriction here, but avoided races by
 imposing rules on when different threads can read or write shared variables,
 enforced via barrier synchronisations.  It is important to be clear about the
 rules for accessing shared variables in such cases.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Commented out section
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-%% \begin{slide}
-%% \heading{Particle computations}
-
-%% We now consider the problem of simulating the evolution of a large collection
-%% of $N$ particles (e.g. stars or planets) that evolve under gravity.  
-
-%% We can do a discrete time simulation, with time quantum \SCALA{deltaT}.
-
-%% In particular, we'll consider how to construct a concurrent program for this
-%% task.
-
-%% For each particle, we need to record its mass, position and velocity:
-%% %
-%% \begin{scala}
-%% val mass = new Array[Double](N)
-%% type Vector = (Double, Double, Double)
-%% val position = new Array[Vector](N)
-%% val velocity = new Array[Vector](N)
-%% \end{scala}
-%% \end{slide}
-
-%% %%%%%
-
-%% \begin{slide}
-%% \heading{Some physics}
-
-%% Particle~$i$ will exert a force on particle~$j$ of magnitude
-%% $G.mass(i).mass(j)/distance^2$, where $G \approx 6.67 \times 10^{-11}$ is the
-%% gravitational constant, and $distance$ is the distance between them.  This is
-%% an attractive force, with direction along the vector from $position(j)$ to
-%% $position(i)$.  
-
-%% We could calculate the total force exerted on each particle by all other
-%% particles, and store the results in 
-%% %
-%% \begin{scala}
-%% val force = new Array[Vector](N)
-%% \end{scala}
-
-%% We could then update the velocity of each particle~\SCALA{i}
-%% by:\footnote{assuming we have defined \SCALA{+}, \SCALA{*} and \SCALA{/} to
-%%   operate over \SCALA{Vector}}
-%% %
-%% \begin{scala}
-%% velocity(i) += deltaT*force(i)/mass(i)
-%% \end{scala}
-
-%% And we could update the position of particle~\SCALA{i} by
-%% %
-%% \begin{scala}
-%% position(i) += deltaT*velocity(i)
-%% \end{scala}
-%% \end{slide}
-
-%% %%%%%
-
-%% \begin{slide}
-%% \heading{Calculating the forces}
-
-%% Note that the force exerted by particle $i$ on particle $j$ is the same as the
-%% force exerted by particle $j$ on particle~$i$ (except in the opposite
-%% direction).  For reasons of efficiency, we do not want to calculate this
-%% quantity twice.  
-
-%% What we will do is allocate each thread some set~$S$ of particles.  For each
-%% particle~$i \in S$, the thread will calculate the forces between $i$ and all
-%% particles~$j$ with $j>i$.  These will be added to the total forces on both $i$
-%% and $j$.  Something like:
-%% %
-%% \begin{scala}
-%% for(i <- S; j <- i+1 until N){
-%%   val thisForce = ... // force exerted on i by j
-%%   force(i) += thisForce
-%%   force(j) -= thisForce
-%% }
-%% \end{scala}
-%% \end{slide}
-
-%% %%%%%
-
-%% \begin{slide}
-%% \heading{Avoiding race conditions}
-
-%% The code on the previous slide has an obvious race condition: several
-%% threads might be trying to write to the same \SCALA{force(i)}
-%% simultaneously. 
-
-%% Instead we arrange for each thread~$me$ to write to its own vector of forces.
-%% %
-%% \begin{scala}
-%% val force1 = new Array[Array[Vector]](p,N)
-%% \end{scala}
-%% %
-%% Something like:
-%% %
-%% \begin{scala}
-%% for(i <- S; j <- i+1 until N){
-%%   val thisForce = ... // force exerted on i by j
-%%   force1(me)(i) += thisForce
-%%   force1(me)(j) -= thisForce
-%% }
-%% \end{scala}
-%% \end{slide}
-
-%% %%%%%
-
-%% \begin{slide}
-%% \heading{Calculating the total forces}
-
-%% Once all the \SCALA{force1} values have been calculated, the threads can
-%% perform a barrier synchronisation.  
-
-%% Then the thread with set of particles~$S$ can, for each particle~$i \in S$,
-%% calculate the total force and update the velocity and position:
-%% %
-%% \begin{scala}
-%% for(i <- S){
-%%   var force: Vector = (0.0, 0.0, 0.0)
-%%   for(k <- 0 until p) force += force1(k)(i)
-%%   velocity(i) += deltaT*force/mass(i)
-%%   position(i) += deltaT*velocity(i)
-%% }
-%% \end{scala}
-%% %
-%% We expect to have $p \ll N$, so the cost of this extra summation is
-%% comparatively small. 
-
-%% The threads can then perform another barrier synchronisation before the next
-%% round. 
-%% \end{slide}
-
-%% %%%%%
-
-%% \begin{slide}
-%% \heading{The pattern of synchronisation}
-
-%% This pattern of synchronisation is very common:
-%% %
-%% \begin{scala}
-%% <initialisation>
-%% barrier.sync
-%% while(true){
-%%   <read all variables>
-%%   barrier.sync
-%%   <write own variables>
-%%   barrier.sync
-%% }
-%% \end{scala}
-%% %
-%% The final synchronisation on each iteration could be replaced by a
-%% synchronisation using a combining barrier, to decide whether to continue.
-%% \end{slide}
-
-%%%%%
-
-%% \begin{slide}
-%% \heading{Load balancing}
-
-%% We want to choose the sets $S$ allocated to different threads so as to
-%% balance the total load.
-
-%% Note that the cost of calculating all the forces for particle~$i$ is
-%% $\Theta(N-i)$: not all particles are equal in this regard.
-
-%% One way to balance the load is to split the $N$ particles into $2p$
-%% segments, each of size $segSize = N/2p$.  Then we can allocate process~$me$
-%% the segments~$me$ and $2p-me-1$, i.e.\ particles $[me.segSize \upto
-%%   (me+1).segSize)$ and $[(2p-me-1).segSize \upto (2p-me).segSize)$.
-%% \end{slide}
-
-
-
 

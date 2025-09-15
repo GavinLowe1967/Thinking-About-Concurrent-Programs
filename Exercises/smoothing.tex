@@ -1,5 +1,6 @@
 \begin{question}
-Suppose we represent a graphical image by a value of type \SCALA{Image} where 
+Suppose we represent a black-and-white graphical image by a value of type
+\SCALA{Image} where
 \begin{scala}
   type Row = Array[Boolean]
   type Image = Array[Row]
@@ -38,9 +39,10 @@ My code is below.  Each worker deals with a strip of about \SCALA{n/p} rows.
 This version uses two arrays: on each round, the workers cooperate to do a
 round of smoothing on one array, writing the results into the second array;
 the roles of the arrays swap between rounds.  A barrier synchronisation is
-used at the end of each round to coordinate, and also to decide whether they
-can terminate, i.e.~if no changes happened on this round.  The code below uses
-the function |Smooth.majority|, which was provided in the testing code.
+used at the end of each round to coordinate, and also to decide whether the
+threads can terminate, i.e.~if no changes happened on this round.  The code
+below uses the function |Smooth.majority|, which was provided in the testing
+code.
 %
 \begin{scala}
 /** This version uses two arrays. */
