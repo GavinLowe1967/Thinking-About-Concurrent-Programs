@@ -103,7 +103,7 @@ class ConcLargestComponent(image: Array[Array[Int]], p: Int)
         if(minIx != lastIndexes(r)(c)) change = true
       }
       // Sync with others; set done = true if no thread saw any change.
-      done = ! barrier.sync(id, change)
+      done = ! barrier1.sync(id, change)
       // Swap theseIndexes and lastIndexes for the next round.
       if(!done){
         val t = theseIndexes; theseIndexes = lastIndexes; lastIndexes = t

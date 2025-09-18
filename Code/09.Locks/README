@@ -1,0 +1,22 @@
+Counter.scala: a simple counter, protected using a lock. 
+
+LockTotalQueue.scala: a total queue, protected using a lock. 
+
+BagOfTasksLock.scala: the concurrent objects for the trapezium example.
+
+CounterArray.scala: an array of counters, using coarse, fine-grained, or
+striped locking.
+
+ShardedSet.scala: a set implemented using sharding.
+
+LinkedListSet.scala: a set implemented using a linked list.
+
+SetTest.scala: test for ShardedSet and LinkedListSet. 
+
+ShardedMap.scala: a map implemented using sharding (exercise?)
+
+
+
+TODO
+
+

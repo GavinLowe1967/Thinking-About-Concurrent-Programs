@@ -12,7 +12,8 @@ import Trapezium.{Task, mkChan}
   * buffered channels. */ 
 class TrapeziumBagObjects(
   f: Double => Double, a: Double, b: Double, n: Long, 
-  nWorkers: Int, nTasks: Int, buffering: Int = 0, useMonitor: Boolean = false)
+  nWorkers: Int, nTasks: Int, buffering: Int = 0, 
+  useMonitor: Boolean = false, useLock: Boolean = false)
     extends TrapeziumT(f, a, b){
   require(0 < nTasks && nTasks <= n && n/nTasks < (1<<31)-1 )
 
@@ -33,9 +34,11 @@ class TrapeziumBagObjects(
   def apply(): Double = {
     val bag: BagOfTasks = 
       if(useMonitor) new BagOfTasksMonitor(a, b, n, nTasks) 
+      else if(useLock) new BagOfTasksLock(a, b, n, nTasks)
       else new BagOfTasksChannels(a, b, n, nTasks, nWorkers, buffering)
     val collector: Collector = 
       if(useMonitor) new CollectorMonitor
+      else if(useLock) new CollectorLock
       else new CollectorChannels(nWorkers, buffering)
     val workers = || (for (i <- 0 until nWorkers) yield worker(bag, collector))
     run(workers)

@@ -69,20 +69,27 @@ object TrapeziumTest{
 
   var buffering = -1
   var doBagOfTasks = false; var doBagOfTasksObjects = false;
-  var doBagOfTasksObjectsMonitor = false
+  var doBagOfTasksMonitor = false; var doBagOfTasksLock = false
 
   def doTest = {
     val (f, p, a, b, nWorkers, n) = pickParams
     val seqResult = new SeqTrapezium(f, a, b, n)()
     val concResult =
-      if(doBagOfTasks || doBagOfTasksObjects || doBagOfTasksObjectsMonitor){
+      if(doBagOfTasks || doBagOfTasksObjects || doBagOfTasksMonitor ||
+           doBagOfTasksLock){
         val nTasks = 1+random.nextInt(n)
         assert(0 < nTasks && nTasks <= n)
-        if(doBagOfTasksObjects)
-          new TrapeziumBagObjects(f, a, b, n, nWorkers, nTasks, buffering, false)()
-        else if(doBagOfTasksObjectsMonitor)
-          new TrapeziumBagObjects(f, a, b, n, nWorkers, nTasks, buffering, true)()
-        else new TrapeziumBag(f, a, b, n, nWorkers, nTasks, buffering)()
+        val trapezium: TrapeziumT = 
+          if(doBagOfTasksObjects)
+            new TrapeziumBagObjects(f, a, b, n, nWorkers, nTasks, buffering)
+          else if(doBagOfTasksMonitor)
+            new TrapeziumBagObjects(f, a, b, n, nWorkers, nTasks, buffering,
+              useMonitor = true)
+          else if(doBagOfTasksLock)
+            new TrapeziumBagObjects(f, a, b, n, nWorkers, nTasks, buffering,
+              useLock = true)
+          else new TrapeziumBag(f, a, b, n, nWorkers, nTasks, buffering)
+        trapezium()
       }
       else new Trapezium(f, a, b, n, nWorkers, buffering)()
     // println(seqResult+"; "+concResult)
@@ -102,8 +109,8 @@ object TrapeziumTest{
       case "--compareExact" => doCompareExact = true; i += 1
       case "--bagOfTasks" => doBagOfTasks = true; i += 1
       case "--bagOfTasksObjects" => doBagOfTasksObjects = true; i += 1
-      case "--bagOfTasksObjectsMonitor" => 
-        doBagOfTasksObjectsMonitor = true; i += 1
+      case "--bagOfTasksMonitor" => doBagOfTasksMonitor = true; i += 1
+      case "--bagOfTasksLock" => doBagOfTasksLock = true; i += 1
       // case "--buffChan" => buffChan = true; i += 1
       case "--buffer" => buffering = args(i+1).toInt; i += 2
       case "--reps" => reps = args(i+1).toLong; i += 2

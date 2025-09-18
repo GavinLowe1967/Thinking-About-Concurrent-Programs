@@ -11,6 +11,7 @@ all:
 	cd 06.InteractingPeers; make
 	cd 07.ConcurrentDatatypes; make
 	cd 08.DataParallel; make
+	cd 09.Locks; make
 
 clean:
 	rm $(ROOT)/*/*.class; fsc -shutdown

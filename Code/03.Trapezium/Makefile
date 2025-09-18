@@ -1,4 +1,8 @@
-DIR = ../tacp/trapezium
+ROOT = ../tacp
+
+DIR = $(ROOT)/trapezium
+
+LOCK_SRC_DIR = ../09.Locks
 
 EXERCISES =  $(DIR)/Pi.class $(DIR)/Matrix.class
 
@@ -15,6 +19,11 @@ FSC = fsc -deprecation -d .. -cp .:..
 $(DIR)/Trapezium.class: $(DIR)/TrapeziumT.class
 
 $(DIR)/TrapeziumBag.class: $(DIR)/Trapezium.class
+
+$(DIR)/TrapeziumBagObjects.class: $(DIR)/TrapeziumT.class $(DIR)/BagOfTasksLock.class
+
+$(DIR)/BagOfTasksLock.class: $(LOCK_SRC_DIR)/BagOfTasksLock.scala
+	cd $(LOCK_SRC_DIR); make
 
 $(DIR)/TrapeziumTest.class $(DIR)/TrapeziumRun.class: $(DIR)/Trapezium.class $(DIR)/TrapeziumBag.class $(DIR)/TrapeziumBagObjects.class
 

@@ -6,6 +6,8 @@ DPDIR = $(ROOT)/dataParallel
 
 DP_SRC_DIR = ../08.DataParallel
 
+LOCK_SRC_DIR = ../09.Locks
+
 EXERCISES = $(DIR)/TotalStack.class $(DIR)/Sudoku.class $(DIR)/PartialStack.class
 
 all: $(DIR)/QueueTest.class $(DIR)/PartialQueueTest.class $(DIR)/WordPath.class $(EXERCISES)
@@ -13,9 +15,12 @@ all: $(DIR)/QueueTest.class $(DIR)/PartialQueueTest.class $(DIR)/WordPath.class 
 clean:
 	rm $(DIR)/*.class; fsc -shutdown
 
-$(DIR)/QueueTest.class: $(DIR)/TotalQueue.class
+$(DIR)/QueueTest.class: $(DIR)/TotalQueue.class $(DIR)/LockTotalQueue.class
 
 $(DIR)/PartialQueueTest.class: $(DIR)/PartialQueue.class
+
+$(DIR)/LockTotalQueue.class: $(LOCK_SRC_DIR)/LockTotalQueue.scala
+	cd $(LOCK_SRC_DIR); make
 
 # BF search
 

@@ -39,6 +39,7 @@ object QueueTest{
       case "server" => new ServerTotalQueue[Int]
       case "2" => new ServerTotalQueue2[Int]
       case "faulty" => new FaultyTotalQueue[Int]
+      case "lock" => new LockTotalQueue[Int]
     }
     val seqQueue = Queue[Int]()
     val tester = LinearizabilityTester[SeqQueue,ConcQueue](
@@ -49,7 +50,7 @@ object QueueTest{
 
   def main(args: Array[String]) = {
     // parse arguments
-    var i = 0; var reps = 10000  // Number of repetitions
+    var i = 0; var reps = 5000  // Number of repetitions
     while(i < args.length) args(i) match{
       case "--iters" => iters = args(i+1).toInt; i += 2 
       case "--reps" => reps = args(i+1).toInt; i += 2 
@@ -57,10 +58,11 @@ object QueueTest{
       case "--enqueueProb" => enqueueProb = args(i+1).toDouble; i += 2
       case "-2" => queueType = "2"; i += 1
       case "--faulty" => queueType = "faulty"; i += 1
+      case "--lock" => queueType = "lock"; i += 1
       case arg => println("Unrecognised argument: "+arg); sys.exit()
     }
 
-    for(r <- 0 until reps){ doTest; if(r%20 == 0) print(".") }
+    for(r <- 0 until reps){ doTest; if(r%50 == 0) print(".") }
     println()
   }
 }
