@@ -1,0 +1,105 @@
+\begin{questionS}
+\label{ex:sharded-map}
+Implement a sharded map.  (You might use code from Figure~\ref{fig:Sharding}
+in your code.)  Your implementation should extend the trait |Map| in
+Figure~\ref{fig:Map-trait}.  The |get(k)| operation should return a result of
+type |Option[V]|: either |Some(v)| if |k| is associated with~|v|, or |None| if
+|k| is not associated with any value.  Likewise, the |put| and |remove|
+operations should return a result of type |Option[V]| corresponding to the
+previous association of the key.  (These operations correspond to operations
+from the API trait |scala.collection.mutable.Map|.)
+
+%%%%%
+
+\begin{figure}
+\begin{scala}
+trait Map[K,V]{
+  /** Optionally get the value associated with £k£. */
+  def get(k: K): Option[V] 
+
+  /** Add the association £k $\rightarrow$ v£.  Optionally return the value previously
+    * associated with £k£. */
+  def put(k: K, v: V): Option[V] 
+
+  /** Remove any association for £k£.  Optionally return the value previously
+    * associated with £k£. */
+  def remove(k: K): Option[V] 
+}
+\end{scala}
+\caption{A trait representing mappings from {\scalashape K} to {\scalashape
+    V}.}
+\label{fig:Map-trait}
+\end{figure}
+
+%%%%%
+
+Test your implementation using the linearizability testing framework.
+\end{questionS}
+
+%%%%%%%%%%
+
+\begin{answerS}
+My code is below.  This is a straightforward adaptation of the
+implementation of a shared set from the body of the chapter. 
+
+%%%%%
+ 
+\begin{scala}
+/** A sharded map from £K£ to £V£, using £shards£ shards. */
+class ShardedMap[K,V](shards: Int) extends Map[K,V]{
+  require(shards > 1)
+
+  /** The amount to shift hash codes to obtain the index of the relevant
+    * shard. */
+  private val shift = 32-logShards(shards)
+
+  /** The shard in which £k£ is stored. */ 
+  private def shardFor(k: K) = improve(k.hashCode) >>> shift
+
+  /** The shards.  This £ShardedMap£ object represents the union of maps. */ 
+  private val maps = 
+    Array.fill(shards)(new scala.collection.mutable.HashMap[K, V])
+
+  /** Locks to protect sets: £locks(i)£ protects £sets(i)£. */
+  private val locks = Array.fill(shards)(new Lock)
+
+  /** Add the association £k $\rightarrow$ v£.  Optionally return the value previously
+    * associated with £k£. */
+  def put(k: K, v: V): Option[V] = {
+    val s = shardFor(k); locks(s).mutex{ maps(s).put(k, v) }
+  }
+
+  /** Optionally get the value associated with £k£. */
+  def get(k: K): Option[V] = {
+    val s = shardFor(k); locks(s).mutex{ maps(s).get(k) }
+  }
+
+  /** Remove any association for £k£.  Optionally return the value previously
+    * associated with £k£. */
+  def remove(k: K): Option[V] = {
+    val s = shardFor(k); locks(s).mutex{ maps(s).remove(k) }
+  }
+}
+\end{scala}
+
+Testing using the linearizability framework is also straightforward.  We can
+use an immutable |HashMap| as the sequential specification object, with
+sequential operations as follows:
+%
+\begin{scala}
+  type SeqMap = scala.collection.immutable.HashMap[Int,Int]
+
+  def seqPut(k: Int, v: Int)(s: SeqMap): (Option[Int], SeqMap) = 
+    (s.get(k), s + (k -> v))
+
+  def seqGet(k: Int)(s: SeqMap): (Option[Int], SeqMap) = 
+    (s.get(k), s)
+
+  def seqRemove(k: Int)(s: SeqMap): (Option[Int], SeqMap) = 
+    (s.get(k), s - k)
+\end{scala}
+
+Each worker should repeatedly perform random operations, using keys from a
+fairly small range, say $\interval{0}{200}$.  Other aspects of the testing are
+standard. 
+\end{answerS}

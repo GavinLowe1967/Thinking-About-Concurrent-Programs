@@ -1,0 +1,232 @@
+\begin{question}
+An \emph{iterator} is an object that supports iteration over a sequence of
+values, for example the values in a collection.  In a sequential setting, an
+iterator has signature as follows.
+%
+\begin{scala}
+trait Iterator[A]{
+  /** Does the sequence have a next value, i.e. is it non-empty? */
+  def hasNext: Boolean
+
+  /** Remove and return the next element from the sequence.
+    * Precondition: the sequence is non-empty. */
+  def next(): A
+}
+\end{scala}
+%
+The normal way in which an iterator |iter| is used in a sequential setting is
+as follows:
+%
+\begin{scala}
+while(iter.hasNext){
+  val x = iter.next(); ... // Do something with £x£.
+}
+\end{scala}
+%
+This question explores how we can iterate over a sequence in a concurrent
+setting.
+
+%%%%%
+
+\begin{enumerate}
+\item
+Why would the above signature and usage be inappropriate in a concurrent
+setting, where several threads are using the same iterator?
+%
+Suggest a different signature for an iterator that is used concurrently, by
+defining a trait:
+%
+\begin{scala}
+trait ConcurrentIterator[A]{ ... }
+\end{scala}
+Make clear the intended meaning of any operation of this trait.
+%
+Give code showing how each thread would use a concurrent iterator with your
+suggested signature, corresponding to the above code fragment for a sequential
+iterator.  Note that the precise order in which the elements of the sequence
+are handled does not matter, providing each is dealt with precisely once.
+
+%%%%%
+
+\item
+Give a definition of a class
+%
+\begin{scala}
+class ArrayIterator[A](a: Array[A]) extends ConcurrentIterator[A]{ ... }
+\end{scala}
+%
+that allows iteration over the elements of the array~|a|.  The implementation
+should use a |Lock| internally.
+
+You may assume that no other thread performs and update to the underlying
+array~|a| while the iteration is proceeding.  You may make similar assumptions
+in the following parts. 
+
+%%%%%
+
+\item
+The  |ArrayIterator| object is likely to act as a bottleneck.  Give an
+implementation of a class
+%
+\begin{scala}
+class ArrayBlockIterator[A](a: Array[A], blockSize: Int)
+    extends ConcurrentIterator[Iterator[A]]{ ... }
+\end{scala}
+%
+that allows each thread to obtain a sequential iterator over a block of entries
+from the array of size |blockSize| (or the remainder of the array, if
+fewer than |blockSize| entries are left).  Give code showing how each thread
+would use such an object.  Why might this approach be better than that in the
+previous part? 
+
+%%%%%
+
+\item
+Suppose a program requires threads to collectively iterate over all values in
+a sharded set.  Augment the |ShardedSet|  definition from
+Section~\ref{sec:sharding} with a function
+%
+\begin{scala}
+  def iteratorIterator: ConcurrentIterator[Iterator[A]] = ...
+\end{scala}
+%
+Each |Iterator| produced by the |ConcurrentIterator| should be a sequential
+iterator over one shard of the sharded set.  (The class
+|scala.collection.mutable.HashSet| used internally in |ShardedSet| has an
+operation |iterator| that produces an iterator over the |HashSet|.)
+
+Briefly describe how threads would operate in this case.  (Full code is not
+required.)  
+
+You many assume that no other threads to attempt concurrent updates to the
+sharded set while this iteration is proceeding.
+\end{enumerate}
+\end{question}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{answerI}
+\begin{enumerate}
+\item
+Suppose the iterator contains precisely one element, and two threads call
+|hasNext|, both getting result |true|.  Then both will call |next()|.  But
+they cannot both obtain the one element, so in one case the precondition will
+fail.  This is a time-of-check to time-of-use error.
+
+A possible interface is
+\begin{scala}
+trait ConcurrentIterator[A]{
+  /** Optionally get the next element from the sequence.  
+    * Return £None£ if the sequence is empty. */
+  def getNext(): Option[A]
+}
+\end{scala}
+
+Then each thread would do something like
+\begin{scala}
+var done = false
+while(!done) iter.getNext() match{
+  case Some(x) => ... // Do something with £x£.
+  case None => done = true
+}
+\end{scala}
+
+%%%%%
+
+\item % (b)
+My code is below.  The implementation uses a lock internally.
+%
+\begin{scala}
+class ArrayIterator[A](a: Array[A]) extends ConcurrentIterator[A]{
+  private val n = a.length
+
+  /** The index of the next value to return, or £n£ if the iteration is
+    * complete. */
+  private var i = 0
+
+  /** Lock to protect £i£. */
+  private val lock = new Lock
+
+  def getNext(): Option[A] = lock.mutex{
+    if(i < n){ i += 1; Some(a(i-1)) } else None
+  }
+}
+\end{scala}
+
+%%%%%
+
+\item
+My code is below.  The concurrent iterator again uses a lock internally.
+However, each |BlockIterator| that it produces will be used sequentially, so
+does not need to use locking.  
+%
+\begin{scala}
+class ArrayBlockIterator[A](a: Array[A], blockSize: Int)
+    extends ConcurrentIterator[Iterator[A]]{
+
+  /** A sequential iterator over £a[start..end)£. */
+  class BlockIterator[A](a: Array[A], start: Int, end: Int) extends Iterator[A]{
+    /** Index of the next element. */
+    private var index = start
+
+    def hasNext = index < end
+
+    def next() = { require(index < end); val x = a(index); index += 1; x }
+  }
+
+  /** Index of the start of the next block. */
+  private var index = 0
+
+  /** Lock to protect £index£. */
+  private val lock = new Lock
+
+  def getNext() = lock.mutex{
+    if(index < a.length){
+      val start = index; index = (index+blockSize) min a.length
+      Some(new BlockIterator(a, start, index))
+    }
+    else None
+  }
+}
+\end{scala}
+%
+Given an |ArrayBlockIterator| |bIter|, a thread can do something like the
+following.
+%
+\begin{scala}
+  var done = false
+  while(!done) bIter.getNext() match{
+    case Some(iter) => 
+      while(iter.hasNext){ 
+        val x = iter.next(); ... // Do something with £x£. 
+      }
+    case None => done = true
+  }
+\end{scala}
+
+The point is that that most of the time, each thread is operating on a
+sequential object, so avoiding bottlenecks.  Also, each call to |getNext| runs
+in $O(1)$ time: an approach that copies data here would be inefficient.
+
+%%%%%
+
+\item
+My code is below.
+\begin{scala}
+  def iteratorIterator = new ConcurrentIterator[Iterator[A]]{
+    /** The index of the next shard over which to provide an Iterator. */
+    private var index = 0
+
+    /** Lock to protect £index£. */
+    private val lock = new Lock
+
+    /** Try to get the next £Iterator£. */
+    def getNext(): Option[Iterator[A]] = lock.mutex{
+      if(index < shards){ index += 1; Some(sets(index-1).iterator) } else None
+    }
+  }
+\end{scala}
+%
+Threads would use such an object much as in the previous part.
+\end{enumerate}
+\end{answerI}

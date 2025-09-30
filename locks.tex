@@ -1,0 +1,57 @@
+\chapter{Using Explicit Locks} 
+\label{chap:locks}
+
+\input{locks1} % introduction, concurrent objects.
+\input{locks2} % array of counters; sharding.
+\input{locks3} % linked list example
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Summary}
+
+In this chapter we have studied locks.  The idea is simple: a thread may
+acquire a lock, and then release it: the acquiring blocks while another thread
+holds the lock, so at most one lock can be held at a time.  
+
+Locks provide a convenient way to provide mutual exclusion, so as to protect
+shared state.  Each thread may access the shared state only when holding the
+lock.  In particular, this provides an easy way to implement many concurrent
+objects, such as total concurrent datatypes.
+
+Locks in SCL are reentrant: a thread that holds a lock may acquire it again;
+it must release the lock as many times as it acquired ut before another thread
+can acquire it.  Locks provide suitable memory guarantees: if a thread writes
+a value to a variable when holding a lock, that value will be available to
+a subsequent thread that holds the lock.
+
+In many cases, it is enough to protect a concurrent object using a single
+thread.  However, if that object acts as a bottleneck, it can be appropriate
+to use a finer granularity of locking.  In particular, sharding provides a
+straightforward approach to implementing concurrent datatypes such as sets and
+mappings. 
+
+
+
+%% Other languages use similar mechanisms.  For example,
+%% C++ |mutex|s act in the same way.
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\exercises
+
+\input{Exercises/summer} % Summer for trapezium rule
+
+\input{Exercises/shardedMap} %  Sharded map.
+
+\input{Exercises/linkedListMap} % map based on linked list
+
+\input{Exercises/iterators} % concurrent iterators.
+
+% Optimistic locking?  I think not.
+
+
+
+

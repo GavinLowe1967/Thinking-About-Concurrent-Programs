@@ -1,0 +1,308 @@
+\section{Example: Using Locking to Protect an Array of Counters}
+
+We now consider another example, in order to consider how best to avoid a
+concurrent object acting as a bottleneck.  In particular, we consider an array
+of counters, with operations to increment, decrement, or get the value of a
+particular counter, as captured by the abstract class |CounterArray| in
+Figure~\ref{fig:CounterArray}. 
+
+%%%%%
+
+\begin{figure}[bhtp]
+\begin{scala}
+/** An array of £n£ thread£-£safe counters. */
+abstract class CounterArray(n: Int){
+  /** The counters. */
+  protected val a = new Array[Int](n)
+
+  /** Increment counter £i£. */
+  def inc(i: Int): Unit
+
+  /** Decrement counter £i£. */
+  def dec(i: Int): Unit
+
+  /** Get the value of counter £i£. */
+  def get(i: Int): Int
+}
+
+/** An implementation using coarse£-£grained locking. */
+class CoarseCounterArray(n: Int) extends CounterArray(n){
+  /** Lock that protects all the counters. */
+  private val lock = new Lock
+
+  def inc(i: Int) = lock.mutex{ a(i) += 1 }
+
+  def dec(i: Int) = lock.mutex{ a(i) -= 1 }
+
+  def get(i: Int) = lock.mutex{ a(i) }
+}
+\end{scala}
+\caption{Abstract class for an array of counters, and an implementation using
+  coarse-grained locking.}
+\label{fig:CounterArray}
+\end{figure}
+
+%%%%%
+
+Figure~\ref{fig:CounterArray} also includes a simple implementation using a
+single lock.  Each operation is done under mutual exclusion using that lock.
+This approach is known as \emph{coarse-grained locking}.  The disadvantage of
+this approach is that the class might act as a bottleneck.  A single thread
+can perform an operation at a time.
+
+%%%%%
+
+The class |FineGrainedCounterArray| in
+Figure~\ref{fig:FineGrainedCounterArray} gives better performance.  The
+crucial observation is that operations on \emph{different} counters can be
+executed concurrently, because they will not interfere.  To achieve this, we
+use an array of |n| |Lock|s, where each lock |locks(i)| protects the
+entry~|a(i)|.  Each operation uses the relevant lock to ensure that two
+executions do not act on the same counter concurrently, which would be a race.
+However, operations on different counters use different locks, so can proceed
+concurrently.  This approach is known as \emph{fine-grained locking}.
+
+%%%%%
+
+\begin{figure}
+\begin{scala}
+/** An implementation using fine-grained locking. */
+class FineGrainedCounterArray(n: Int) extends CounterArray(n){
+  /** Locks.  £locks(i)£ protects £a(i)£. */
+  private val locks = Array.fill(n)(new Lock)
+
+  def inc(i: Int) = locks(i).mutex{ a(i) += 1 }
+
+  def dec(i: Int) = locks(i).mutex{ a(i) -= 1 }
+
+  def get(i: Int) = locks(i).mutex{ a(i) }
+}
+\end{scala}
+\caption{Implementations of an array of counters using fine-grained locking.}
+\label{fig:FineGrainedCounterArray}
+\end{figure}
+
+%%%%%
+
+A potential disadvantage of fine-grained locking is that it might require many
+locks, and so consume a lot of memory.  Each SCL |Lock| uses 24 bytes, which
+on its own is fairly trivial; but with many locks, this can mount up.  
+
+The class |StripedCounterArray| in Figure~\ref{fig:StripedCounterArray} uses
+an in-between approach.  It uses some number |stripes| of locks, where
+typically |stripes| will be much smaller than~|n|.  Each lock protects
+multiple counters.  More precisely, |locks(j)| protects each |a(i)| such that
+$\sm i \% \sm{stripes} = \sm{j}$; equivalently, each |a(i)| is protected by
+\SCALA{locks(i\%stripes)}.
+
+%%%%%
+
+\begin{figure}
+\begin{scala}
+/** An implementation using striped locking. */
+class StripedCounterArray(n: Int, stripes: Int) extends CounterArray(n){
+  require(stripes > 0)
+
+  /** Locks.  £locks(j)£ protects all £a(i)£ such that £i\%stripes = j£. */
+  private val locks = Array.fill(stripes)(new Lock)
+
+  def inc(i: Int) = locks(i%stripes).mutex{ a(i) += 1 }
+
+  def dec(i: Int) = locks(i%stripes).mutex{ a(i) -= 1 }
+
+  def get(i: Int) = locks(i%stripes).mutex{ a(i) }
+}
+\end{scala}
+\caption{Implementations of an array of counters using striped-grained locking.}
+\label{fig:StripedCounterArray}
+\end{figure}
+
+%%%%%
+
+This style is known as \emph{striped locking}.  Imagine allocating a different
+colour to each lock, and then drawing a picture of the array where each entry
+is coloured according to its lock.  Then this picture would have a regular
+striped pattern. 
+
+Suppose we take |stripes| to be somewhat larger than the number of threads,
+say 10 or 100 times larger.  In most applications, it is reasonable to suppose
+that different threads access counters independently from one another.  In
+these circumstances, most times that a thread tries to obtain a lock, no other
+thread will be holding that lock, and so the thread will not be blocked.  Thus
+striped locking will be nearly as fast as fine-grained locking, but without
+such a large memory overhead.  
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Sharding}
+\label{sec:sharding}
+
+In this section we will consider how to implement a concurrent set, say
+containing elements of type~|A|.  We will give an implementation that extends
+the trait in Figure~\ref{fig:Set-trait}, which includes the three main
+operations provided by sets in the Scala API.  However, it would be
+straightforward to add other operations.
+
+%%%%%
+
+\begin{figure}
+\begin{scala}
+/** Trait for a set containing elements of type A. */
+trait Set[A]{
+  /** Does this contain x? */
+  def contains(x: A): Boolean
+
+  /** Add x to this.  Return true if x was not already in the set. */
+  def add(x: A): Boolean 
+
+  /** Remove x from this.  Return true if x was previously in the set. */
+  def remove(x: A): Boolean
+}
+\end{scala}
+\caption{The interface for a set.}
+\label{fig:Set-trait}
+\end{figure}
+
+%%%%%
+
+One approach is to encapsulate a sequential set, say a |HashSet[A]| from the
+Scala API (we will assume some familiarity with hashsets below).  We could
+then use coarse-grained locking, using a single lock, where every operation is
+performed under mutual exclusion using that lock.  This is a straightforward
+approach, and could be adequate in many applications.  However, in other
+applications it might prove to be a bottleneck.  A pragmatic approach might be
+to use this approach in a prototype, and to perform profiling to see how well
+it works in practice.  In this section, we study a different approach, using a
+finer granularity of locking, analagous in some ways to striped locking.
+
+Our approach is to split the set up into some number |shards| of disjoint
+sets, known as \emph{shards}.  The object represents the union of these sets.
+Each set can be protected using its own lock, so as to provide thread safety.
+We will use a function
+%
+\begin{scala}
+  /** The shard in which £x£ is stored. */ 
+  private def shardFor(x: A) = ...
+\end{scala}
+%
+that gives the index in $\interval{\sm 0}{\sm{shards}}$ of the shard in
+which~|x| is stored.  Thus all operations regarding a particular~|x| need only
+access this single shard.  
+
+%%%%%
+
+\begin{figure}
+\begin{scala}
+/** A sharded set containing elements of type A, using `shards` shards. */
+class ShardedSet[A](shards: Int) extends Set[A]{
+  require(shards > 1)
+
+  /** The amount to shift hash codes to obtain the index of the relevant
+    * shard. */
+  private val shift = 32-Sharding.logShards(shards)
+
+  /** The shard in which £x£ is stored. */ 
+  private def shardFor(x: A) = Sharding.improve(x.hashCode) >>> shift
+
+  /** The shards.  This £ShardedSet£ object represents the union of £sets£. */ 
+  private val sets = Array.fill(shards)(new scala.collection.mutable.HashSet[A])
+
+  /** Locks to protect £sets£: £locks(i)£ protects £sets(i)£. */
+  private val locks = Array.fill(shards)(new Lock)
+
+  /** Does this contain £x£? */
+  def contains(x: A): Boolean = {
+    val s = shardFor(x); locks(s).mutex{ sets(s).contains(x) }
+  }
+
+  /** Add £x£ to this.  Return £true£ if £x£ was not already in the set. */
+  def add(x: A): Boolean = {
+    val s = shardFor(x); locks(s).mutex{ sets(s).add(x) }
+  }
+
+  /** Remove £x£ from this.  Return £true£ if £x£ was previously in the set. */
+  def remove(x: A): Boolean = {
+    val s = shardFor(x); locks(s).mutex{ sets(s).remove(x) }
+  }
+}
+\end{scala}
+\caption{A sharded set.}
+\label{fig:ShardedSet}
+\end{figure}
+
+%%%%%
+
+Figure~\ref{fig:ShardedSet} gives an implementation using this idea, using a
+|HashSet| to for each shard.  Figure~\ref{fig:Sharding} gives some supporting
+code (Exercise~\ref{ex:sharded-map} asks you to implement a mapping using
+sharding; some of this supporting code will also be useful there).
+
+Each of the main operations on the sharded set acts in a similar way: it
+calculated the index for the shard; obtains the relevant lock; and then
+performs the corresponding operation on the relevant shard.  Note how our
+implementation has abstracted away from how operations are performed on the
+individual shards, for example issues such as resizing a hash table. 
+
+%%%%%
+
+\begin{figure}
+\begin{scala}
+/** Useful functions supporting sharding. */
+object Sharding{
+  /** Improve a hash code. */
+  def improve(hcode: Int): Int = {
+    var h = hcode + ~(hcode << 9)
+    h = h ^ (h >>> 14); h = h + (h << 4); h ^ (h >>> 10)
+  }
+
+  /** The log of shards.  Check this is a power of 2. */
+  def logShards(shards: Int) = {
+    var s = shards; var i = 0
+    while(s > 1){ s = s >> 1; i += 1 }
+    require(shards == 1 << i, 
+      s"The number of shards should be a power of 2, received $shards.")
+    i
+  }
+}
+\end{scala}
+\caption{Some functions supporting sharding.}
+\label{fig:Sharding}
+\end{figure}
+
+%%%%%
+
+The definition of |shardFor(x)| needs some explanation.  An obvious approach
+is to base the definition upon the hashcode for~|x|.  However, as we are using
+|HashSet|s to implement the shards, we want to try to ensure that the way we
+use hashcodes in |shardFor| is independent from the way the |HashSet|s use the
+hashcodes: otherwise the values in each |HashSet| might be unevenly
+distributed, giving poor behaviour.
+
+The Scala API |HashSet|s use the least significant bits of the hashcode.  We
+therefore choose to use the \emph{most} significant bits of the hashcode
+within the |shardFor| function.  We require that |shards| is equal to $2^n$
+for some~$n$: the function |Sharding.logShards| checks this, and finds $n$.
+The $n$ most-significant bits can be extracted by right-shifting $\sm{shift} =
+32-n$ places.  However, most standard recipes for constructing hashcodes tend
+to concentrate the entropy in the least-significant bits: this risks
+distributing values unevenly between different shards.  Instead, we use the
+function |Sharding.improve| to improve the hashcode, distributing the entropy
+between different bits (this uses a standard technique; there is no need to
+understand it).
+
+\begin{instruction}
+Study the details of the implementation.
+\end{instruction}
+
+As with striped locking, if we choose the number of shards to be somewhat
+larger than the number of threads, then under reasonable assumptions, we can
+expect threads to normally operate on different shards, and so rarely have to
+wait to obtain a lock. 
+
+We can test the implementation using linearizability testing, using an
+immutable set as the sequential specification object.  The values added to the
+set should be from a fairly small range so that the same value is used in
+multiple operation calls: I use the range $\interval{0}{200}$.  The code is on
+the book website.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

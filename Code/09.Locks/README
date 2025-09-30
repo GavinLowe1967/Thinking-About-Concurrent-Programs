@@ -13,10 +13,16 @@ LinkedListSet.scala: a set implemented using a linked list.
 
 SetTest.scala: test for ShardedSet and LinkedListSet. 
 
-ShardedMap.scala: a map implemented using sharding (exercise?)
+
+Exercises
+=========
+
+ShardedMap.scala: a map implemented using sharding.
+
+MapTest.scala: test for ShardedMap and LinkedListMap.
+
+LinkedListMap.scala: a map implemented using a linked list.
 
 
-
-TODO
 
 

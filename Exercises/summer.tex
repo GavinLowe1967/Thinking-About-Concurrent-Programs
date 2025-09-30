@@ -1,0 +1,28 @@
+\begin{questionS}
+\label{ex:summer-monitor}
+Give an implementation of the |Collector| trait from
+Figure~\ref{fig:BoT-interfaces} using a lock.
+\end{questionS}
+
+%%%%%
+
+\begin{answerS}
+This is straightforward: the implementation encapsulates a lock, and each
+operation uses the lock to provide mutual exclusion.
+% 
+\begin{scala}
+class CollectorLock extends Collector{
+  /** The sum so far. */
+  private var sum = 0.0
+
+  /** Lock protecting sum. */
+  private val lock = new Lock
+
+  /** Add x to the result. */
+  def add(x: Double) = lock.mutex{ sum += x }
+
+  /** Get the result. */
+  def get = lock.mutex{ sum }
+}
+\end{scala}
+\end{answerS}

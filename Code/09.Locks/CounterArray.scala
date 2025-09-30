@@ -2,8 +2,11 @@ package tacp.locks
 
 import ox.scl._
 
-/** Trait for an array of thread-safe counters. */
-trait CounterArray{
+/** Trait for an array of `n`thread-safe counters. */
+abstract class CounterArray(n: Int){
+  /** The counters. */
+  protected val a = new Array[Int](n)
+
   /** Increment counter i. */
   def inc(i: Int): Unit
 
@@ -15,9 +18,9 @@ trait CounterArray{
 }
 
 /** An implementation using coarse-grained locking. */
-class CoarseCounterArray(n: Int) extends CounterArray{
+class CoarseCounterArray(n: Int) extends CounterArray(n){
   /** The counters. */
-  private val a = new Array[Int](n)
+  //private val a = new Array[Int](n)
 
   /** Lock that protects all the counters. */
   private val lock = new Lock
@@ -31,9 +34,9 @@ class CoarseCounterArray(n: Int) extends CounterArray{
 
 
 /** An implementation using fine-grained locking. */
-class FineGrainedCounterArray(n: Int) extends CounterArray{
+class FineGrainedCounterArray(n: Int) extends CounterArray(n){
   /** The counters. */
-  private val a = new Array[Int](n)
+  //private val a = new Array[Int](n)
 
   /** Locks.  locks(i) protects a(i). */
   private val locks = Array.fill(n)(new Lock)
@@ -47,11 +50,11 @@ class FineGrainedCounterArray(n: Int) extends CounterArray{
 
 
 /** An implementation using striped locking. */
-class StripedCounterArray(n: Int, stripes: Int) extends CounterArray{
+class StripedCounterArray(n: Int, stripes: Int) extends CounterArray(n){
   require(stripes > 0)
 
   /** The counters. */
-  private val a = new Array[Int](n)
+  //private val a = new Array[Int](n)
 
   /** Locks.  locks(j) protects all a(i) such that i%stripes == j. */
   private val locks = Array.fill(stripes)(new Lock)

@@ -27,9 +27,8 @@ class BagOfTasksLock(a: Double, b: Double, n: Long, nTasks: Int)
     (left, right, taskSize.toInt, delta)
   }
 
-  /** Get a task.
-    * @throws Stopped exception if there are no more tasks. */
-  def getTask() = {
+  /** Get a task, or null if there are no more tasks. */
+  def getTask(): Task = {
     var myI = -1
     lock.mutex{ myI = i; i += 1} // Get and increment i.
     if(myI < nTasks) getTask(myI)
