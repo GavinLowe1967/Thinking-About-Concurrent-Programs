@@ -15,10 +15,10 @@ class CollectorLock extends Collector{
   /** The sum so far. */
   private var sum = 0.0
 
-  /** Lock protecting sum. */
+  /** Lock protecting £sum£. */
   private val lock = new Lock
 
-  /** Add x to the result. */
+  /** Add £x£ to the result. */
   def add(x: Double) = lock.mutex{ sum += x }
 
   /** Get the result. */

@@ -60,7 +60,8 @@ resource and there is none available?  In this section, we return a special
 value to indicate that no resource is available.  More precisely, we use an
 |Option[Resource]| value: the client receives a value |Some(r)| to indicate
 that resource |r| has been acquired, or the value |None| to indicate that no
-resource is available.
+resource is available.  (The word ``optionally'' is commonly used to describe a
+use like this of an |Option| type.)
 %
 In the latter case, it is up to the client to decide what to do: it might try
 again later, or might throw an exception.  

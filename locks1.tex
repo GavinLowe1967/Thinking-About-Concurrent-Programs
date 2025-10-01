@@ -24,7 +24,8 @@ A lock has two principle operations:
 \end{itemize}
 %
 At most one thread can hold the lock at a time.  Hence this gives us a way to
-enforce mutual exclusion, for example, to avoid races.
+enforce \emph{mutual exclusion}, where a \emph{single} thread at a time
+executes in a particular section of code.  This helps us to avoid races.
 
 We will see other uses of locks in the next chapter. 
 %
@@ -34,8 +35,10 @@ similar interface.
 Figure~\ref{fig:counter-lock0} gives a simple example, based on the counter
 example from Chapter~\ref{chap:intro}.  A lock is used to protect the counter
 variable~|c|.  Each operation accesses~|c| only when it is holding the lock.
-This means that it accesses~|c| under mutual exclusion, so two different
-operations cannot interfere.
+This means that it accesses~|c| under mutual exclusion: if one thread is
+operating on~|c|, another thread that calls an operation has to wait until the
+former thread releases the lock.  This means that two different operations
+cannot interfere.
 
 %%%%%
 
@@ -64,7 +67,7 @@ class Counter0{
 
 %%%%%
 
-Note that the |get| operation copies the value of~|c| into a local
+Note that the |get| operation copies the value of~|c| into a thread-local
 variable~|result| before releasing the lock and returning~|result|.  There are
 a number of variants that do \emph{not} work, including the following.
 \begin{itemize}
@@ -98,7 +101,7 @@ the computation~|comp| under mutual exclusion.
 operations on the relevant lock object.)
 
 The type ``\SCALA{=> A}'' means that the parameter |comp| is passed \emph{by
-  name}.  Most parameters are passed in Scala are passed by value, which means
+  name}.  Most parameters in Scala are passed by value, which means
 that they are evaluated \emph{before} the body of the function is executed.
 That isn't what we want here, because it would mean that |comp| would be
 evaluated before the lock is acquired, negating the intention!  Instead, the
@@ -118,11 +121,11 @@ lock.  This makes it very each to provide mutual exclusion.
 
 \begin{figure}
 \begin{scala}
-class Counter extends CounterT{
+class Counter{
   /** The value of the counter. */
   private var c = 0
 
-  /** Lock used to protect c. */
+  /** Lock used to protect £c£. */
   private val lock = new Lock
 
   /** Increment the counter. */
@@ -149,7 +152,10 @@ with explicit releasing, it is easy to miss a branch in such cases.
 
 %\subsection{Re-entry}
 
-Consider an object that contains the following code
+We will give more examples using locks in the following sections.  First,
+we briefly discuss another couple of aspects of locks.  
+
+Consider an object that contains the following code:
 %
 \begin{scala}
   private val lock = new Lock
@@ -158,16 +164,16 @@ Consider an object that contains the following code
 \end{scala}
 %
 Here the function~|f| calls the function~|g|, and both functions use a |mutex|
-block.  That means that if a thread in~|f| gets to the call of~|g|, it already
-holds the lock, but has to obtain it again.
+block.  That means that when a thread in~|f| reaches the call of~|g|, it
+already holds the lock, but has to obtain it again.
 
 The implementation of a |Lock| allows this: if a thread holds the lock, it can
 acquire it again.  We say that the lock is \emph{re-entrant}.  Internally, the
 implementation records how many times the thread holds the lock: it needs to
 release the lock a corresponding number of times before another thread can
 acquire it.  In the above example, if a thread in~|f| enters~|g|, it holds the
-lock twice; when |g| returns, it holds the lock once; only when |f| returns
-can another thread obtain the lock. 
+lock twice; when |g| returns, it still holds the lock once; only when |f|
+returns can another thread obtain the lock.
 
 %%%%%%%%%%  \heading{Java Memory Model}
 
@@ -192,12 +198,12 @@ about the memory consistency.
 
 \section{Implementing Concurrent Objects with Locks}
 
-A number of concurrent objects can be implemented using locks.  Remember, the
-idea here is that a concurrent object should provide thread-safe operations:
-executions of different executions should not interfere.  This can be achieved
+Many concurrent objects can be implemented using locks.  Remember, the idea
+here is that a concurrent object should provide thread-safe operations:
+different executions of operations should not interfere.  This can be achieved
 by each operation execution locking the object, so as to provide mutual
-exclusion.  This strategy is appropriate for \emph{total} operations, where
-the operation can return a result in an arbitrary state.  However, it is no
+exclusion.  This strategy is sufficient for \emph{total}  operations, where
+the operation can return a result in an arbitrary state.  However, it is not
 appropriate for partial operations or synchronisation objects, where a thread
 may have to wait: this will require an additional mechanism, which we will see
 in the next chapter.
@@ -244,13 +250,14 @@ Study the details of the implementation.
 
 %%%%%
 
-As another example, Figure~\ref{fig:BagOfTasksLock} gives an implementation of
-the bag-of-tasks object (see Figure~\ref{fig:BoT-interfaces}) from the
-trapezium rule example, using a lock.  (Exercise~\ref{ex:summer-monitor} asks
-you to implement the other concurrent object from that example.)  Recall that
-objects of the |BagOfTasks| trait provide an operation |getTask| that returns
-a |Task| (a four-tuple), or the value |null| if there are no further |Task|s
-to perform.
+Figure~\ref{fig:BagOfTasksLock} gives another example, namely an
+implementation of the bag-of-tasks object (see
+Figure~\ref{fig:BoT-interfaces}) from the trapezium rule example, using a
+lock.  (Exercise~\ref{ex:summer-monitor} asks you to implement the other
+concurrent object from that example.)  Recall that objects of the |BagOfTasks|
+trait provide an operation |getTask| that returns a |Task| (a four-tuple), or
+the value |null| if there are no further |Task|s to perform.  The object
+maintains a variable~|i| representing the number of tasks issued so far.
 
 %%%%%
 
@@ -294,22 +301,16 @@ class BagOfTasksLock(a: Double, b: Double, n: Long, nTasks: Int)
 
 It is tempting to use a |mutex| block for the whole of the |getTask|
 operation.  However, this operation creates a bottleneck for the application.
-It is more efficient to make the mutual exclusion operation as small as
-possible, to minimise the bottleneck.  To this end, the object maintains a
-variable~|i| representing the number of tasks issued so far.  A short |mutex|
-block copies the value of~|i| into a thread-local variable, and increments~|i|
-ready for the next thread.  Straightforward code then calculates the required
-|Task| from the thread-local copy.  This means that several threads can be
-performing this calculation concurrently: a thread needs to wait only for the,
+It is more efficient to make the part of the operation executed under mutual
+exclusion as small as possible.  To this end, a short |mutex| block copies the
+value of~|i| into a thread-local variable, and increments~|i| ready for the
+next thread.  Straightforward code then calculates the required |Task| from
+the thread-local copy.  This means that several threads can be performing this
+latter calculation concurrently: a thread needs to wait only for the,
 hopefully short, period when another thread holds the lock.
 
 %%%%%
 
-Figure~\ref{fig:bag-of-tasks-experiment-monitors}
-%and~\ref{fig:bag-of-tasks-experiment-monitors-2} 
-gives experimental results based on this implementation.  The two graphs are
-directly comparable with Figures~\ref{fig:bag-of-tasks-experiment}
-and~\ref{fig:bag-of-tasks-experiment-2}, respectively.
 
 \begin{figure}
 \begin{center}
@@ -333,10 +334,16 @@ and~\ref{fig:bag-of-tasks-experiment-2}, respectively.
 
 %%%%%
 
+Figure~\ref{fig:bag-of-tasks-experiment-monitors}
+%and~\ref{fig:bag-of-tasks-experiment-monitors-2} 
+gives experimental results based on this implementation.  The two graphs are
+directly comparable with Figures~\ref{fig:bag-of-tasks-experiment}
+and~\ref{fig:bag-of-tasks-experiment-2}, respectively.
+%
 This implementation gives faster performance, because the bag is less of a
 bottleneck.  The optimal points on each curve are somewhat faster than with
 the previous implementation.  Further, at suboptimal points, performance
-degrades less than with the earlier implementations.  The speedups are both
+degrades less than with the earlier implementation.  The speedups are 
 because each operation execution requires less computation, but also because 
 each is less likely to be blocked by another thread.  
 

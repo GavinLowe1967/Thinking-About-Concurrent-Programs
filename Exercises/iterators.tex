@@ -5,11 +5,11 @@ iterator has signature as follows.
 %
 \begin{scala}
 trait Iterator[A]{
-  /** Does the sequence have a next value, i.e. is it non-empty? */
+  /** Does the sequence have a next value, i.e. is it non£-£empty? */
   def hasNext: Boolean
 
   /** Remove and return the next element from the sequence.
-    * Precondition: the sequence is non-empty. */
+    * Precondition: the sequence is non£-£empty. */
   def next(): A
 }
 \end{scala}
@@ -58,7 +58,7 @@ class ArrayIterator[A](a: Array[A]) extends ConcurrentIterator[A]{ ... }
 that allows iteration over the elements of the array~|a|.  The implementation
 should use a |Lock| internally.
 
-You may assume that no other thread performs and update to the underlying
+You may assume that no other thread performs an update to the underlying
 array~|a| while the iteration is proceeding.  You may make similar assumptions
 in the following parts. 
 
@@ -91,14 +91,14 @@ Section~\ref{sec:sharding} with a function
 \end{scala}
 %
 Each |Iterator| produced by the |ConcurrentIterator| should be a sequential
-iterator over one shard of the sharded set.  (The class
-|scala.collection.mutable.HashSet| used internally in |ShardedSet| has an
-operation |iterator| that produces an iterator over the |HashSet|.)
+iterator over one shard of the sharded set.  (You might find it useful to know
+that the class |HashSet| used internally in |ShardedSet| has an operation
+|iterator| that produces an iterator over the |HashSet|.)
 
 Briefly describe how threads would operate in this case.  (Full code is not
 required.)  
 
-You many assume that no other threads to attempt concurrent updates to the
+You many assume that no other threads  attempt concurrent updates to the
 sharded set while this iteration is proceeding.
 \end{enumerate}
 \end{question}
@@ -222,7 +222,8 @@ My code is below.
 
     /** Try to get the next £Iterator£. */
     def getNext(): Option[Iterator[A]] = lock.mutex{
-      if(index < shards){ index += 1; Some(sets(index-1).iterator) } else None
+      if(index < shards){ index += 1; Some(sets(index-1).iterator) } 
+      else None
     }
   }
 \end{scala}

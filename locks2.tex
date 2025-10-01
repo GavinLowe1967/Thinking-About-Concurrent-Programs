@@ -1,10 +1,9 @@
-\section{Example: Using Locking to Protect an Array of Counters}
+\section{Using Locking to Protect an Array of Counters}
 
-We now consider another example, in order to consider how best to avoid a
-concurrent object acting as a bottleneck.  In particular, we consider an array
-of counters, with operations to increment, decrement, or get the value of a
-particular counter, as captured by the abstract class |CounterArray| in
-Figure~\ref{fig:CounterArray}. 
+We now consider another example, namely an array of counters, with operations
+to increment, decrement, or get the value of a particular counter, as captured
+by the abstract class |CounterArray| in Figure~\ref{fig:CounterArray}.  In
+particular, we consider how best to avoid this object acting as a bottleneck.
 
 %%%%%
 
@@ -24,9 +23,25 @@ abstract class CounterArray(n: Int){
   /** Get the value of counter £i£. */
   def get(i: Int): Int
 }
+\end{scala}
+\caption{Abstract class for an array of counters.}
+\label{fig:CounterArray}
+\end{figure}
 
+%%%%%
+
+The class |CoarseGrainedCounterArray| in
+Figure~\ref{fig:CoarseGrainedCounterArray} gives a simple implementation using
+a single lock.  Each operation is performed under mutual exclusion using that
+lock.  This approach is known as \emph{coarse-grained locking}.  The obvious
+disadvantage of this approach is that the class might act as a bottleneck: a
+single thread can perform an operation at a time, so other threads might be
+blocked.
+
+\begin{figure}
+\begin{scala}
 /** An implementation using coarse£-£grained locking. */
-class CoarseCounterArray(n: Int) extends CounterArray(n){
+class CoarseGrainedCounterArray(n: Int) extends CounterArray(n){
   /** Lock that protects all the counters. */
   private val lock = new Lock
 
@@ -36,19 +51,27 @@ class CoarseCounterArray(n: Int) extends CounterArray(n){
 
   def get(i: Int) = lock.mutex{ a(i) }
 }
+
+/** An implementation using fine£-£grained locking. */
+class FineGrainedCounterArray(n: Int) extends CounterArray(n){
+  /** Locks.  £locks(i)£ protects £a(i)£. */
+  private val locks = Array.fill(n)(new Lock)
+
+  def inc(i: Int) = locks(i).mutex{ a(i) += 1 }
+
+  def dec(i: Int) = locks(i).mutex{ a(i) -= 1 }
+
+  def get(i: Int) = locks(i).mutex{ a(i) }
+}
+
 \end{scala}
-\caption{Abstract class for an array of counters, and an implementation using
-  coarse-grained locking.}
-\label{fig:CounterArray}
+\caption{Implementations of an array of counters using coarse-grained and
+  fine-grained locking.}
+%% \caption{An implementation of an array of counters using coarse-grained
+%%   locking.}
+\label{fig:CoarseGrainedCounterArray}
+\label{fig:FineGrainedCounterArray}
 \end{figure}
-
-%%%%%
-
-Figure~\ref{fig:CounterArray} also includes a simple implementation using a
-single lock.  Each operation is done under mutual exclusion using that lock.
-This approach is known as \emph{coarse-grained locking}.  The disadvantage of
-this approach is that the class might act as a bottleneck.  A single thread
-can perform an operation at a time.
 
 %%%%%
 
@@ -61,39 +84,6 @@ entry~|a(i)|.  Each operation uses the relevant lock to ensure that two
 executions do not act on the same counter concurrently, which would be a race.
 However, operations on different counters use different locks, so can proceed
 concurrently.  This approach is known as \emph{fine-grained locking}.
-
-%%%%%
-
-\begin{figure}
-\begin{scala}
-/** An implementation using fine-grained locking. */
-class FineGrainedCounterArray(n: Int) extends CounterArray(n){
-  /** Locks.  £locks(i)£ protects £a(i)£. */
-  private val locks = Array.fill(n)(new Lock)
-
-  def inc(i: Int) = locks(i).mutex{ a(i) += 1 }
-
-  def dec(i: Int) = locks(i).mutex{ a(i) -= 1 }
-
-  def get(i: Int) = locks(i).mutex{ a(i) }
-}
-\end{scala}
-\caption{Implementations of an array of counters using fine-grained locking.}
-\label{fig:FineGrainedCounterArray}
-\end{figure}
-
-%%%%%
-
-A potential disadvantage of fine-grained locking is that it might require many
-locks, and so consume a lot of memory.  Each SCL |Lock| uses 24 bytes, which
-on its own is fairly trivial; but with many locks, this can mount up.  
-
-The class |StripedCounterArray| in Figure~\ref{fig:StripedCounterArray} uses
-an in-between approach.  It uses some number |stripes| of locks, where
-typically |stripes| will be much smaller than~|n|.  Each lock protects
-multiple counters.  More precisely, |locks(j)| protects each |a(i)| such that
-$\sm i \% \sm{stripes} = \sm{j}$; equivalently, each |a(i)| is protected by
-\SCALA{locks(i\%stripes)}.
 
 %%%%%
 
@@ -113,9 +103,46 @@ class StripedCounterArray(n: Int, stripes: Int) extends CounterArray(n){
   def get(i: Int) = locks(i%stripes).mutex{ a(i) }
 }
 \end{scala}
-\caption{Implementations of an array of counters using striped-grained locking.}
+\caption{Implementation of an array of counters using  striped locking.}
+%% \caption{Implementations of an array of counters using fine-grained locking
+%%   and striped locking.}
 \label{fig:StripedCounterArray}
 \end{figure}
+
+%%%%%
+
+A potential disadvantage of fine-grained locking is that it might require many
+locks, and so consume a lot of memory.  Each SCL |Lock| uses 24 bytes, which
+on its own is fairly trivial; but with many locks, this can mount up.  
+
+The class |StripedCounterArray| in Figure~\ref{fig:StripedCounterArray} uses
+an in-between approach.  It uses some number |stripes| of locks, where
+typically |stripes| will be much smaller than~|n|.  Each lock protects
+multiple counters.  More precisely, |locks(j)| protects each |a(i)| such that
+$\sm i \% \sm{stripes} = \sm{j}$; equivalently, each |a(i)| is protected by
+\SCALA{locks(i\%stripes)}.
+
+%%%%%
+
+%% \begin{figure}
+%% \begin{scala}
+%% /** An implementation using striped locking. */
+%% class StripedCounterArray(n: Int, stripes: Int) extends CounterArray(n){
+%%   require(stripes > 0)
+
+%%   /** Locks.  £locks(j)£ protects all £a(i)£ such that £i\%stripes = j£. */
+%%   private val locks = Array.fill(stripes)(new Lock)
+
+%%   def inc(i: Int) = locks(i%stripes).mutex{ a(i) += 1 }
+
+%%   def dec(i: Int) = locks(i%stripes).mutex{ a(i) -= 1 }
+
+%%   def get(i: Int) = locks(i%stripes).mutex{ a(i) }
+%% }
+%% \end{scala}
+%% \caption{Implementations of an array of counters using striped locking.}
+%% \label{fig:StripedCounterArray}
+%% \end{figure}
 
 %%%%%
 
@@ -132,15 +159,19 @@ thread will be holding that lock, and so the thread will not be blocked.  Thus
 striped locking will be nearly as fast as fine-grained locking, but without
 such a large memory overhead.  
 
+\begin{instruction}
+Study the three implementations, and make sure you understand the differences.
+\end{instruction}
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{Sharding}
 \label{sec:sharding}
 
-In this section we will consider how to implement a concurrent set, say
+In this section we  consider how to implement a concurrent set, say
 containing elements of type~|A|.  We will give an implementation that extends
 the trait in Figure~\ref{fig:Set-trait}, which includes the three main
-operations provided by sets in the Scala API.  However, it would be
+operations provided by sets in the Scala API{}.  However, it would be
 straightforward to add other operations.
 
 %%%%%
@@ -165,24 +196,25 @@ trait Set[A]{
 
 %%%%%
 
-One approach is to encapsulate a sequential set, say a |HashSet[A]| from the
-Scala API (we will assume some familiarity with hashsets below).  We could
-then use coarse-grained locking, using a single lock, where every operation is
-performed under mutual exclusion using that lock.  This is a straightforward
-approach, and could be adequate in many applications.  However, in other
-applications it might prove to be a bottleneck.  A pragmatic approach might be
-to use this approach in a prototype, and to perform profiling to see how well
-it works in practice.  In this section, we study a different approach, using a
-finer granularity of locking, analagous in some ways to striped locking.
+One possible approach is to encapsulate a sequential set, say a |HashSet[A]|
+from the Scala API{}.  (We will assume some familiarity with hashsets below.)
+We could then use coarse-grained locking, with a single lock, where every
+operation is performed under mutual exclusion using that lock.  This is a
+straightforward approach, and would be adequate in many applications.
+However, in other applications it might prove to be a bottleneck.  A pragmatic
+approach might be to use this approach in a prototype, and to perform
+profiling to see how well it works in practice.  In this section, we study a
+different approach, using a finer granularity of locking, analagous in some
+ways to striped locking.
 
 Our approach is to split the set up into some number |shards| of disjoint
-sets, known as \emph{shards}.  The object represents the union of these sets.
-Each set can be protected using its own lock, so as to provide thread safety.
-We will use a function
+sets, known as \emph{shards}, held in an array.  The object represents the
+union of these sets.  Each set can be protected using its own lock, so as to
+provide thread safety.  We will use a function
 %
 \begin{scala}
   /** The shard in which £x£ is stored. */ 
-  private def shardFor(x: A) = ...
+  private def shardFor(x: A): Int = ...
 \end{scala}
 %
 that gives the index in $\interval{\sm 0}{\sm{shards}}$ of the shard in
@@ -233,15 +265,16 @@ class ShardedSet[A](shards: Int) extends Set[A]{
 %%%%%
 
 Figure~\ref{fig:ShardedSet} gives an implementation using this idea, using a
-|HashSet| to for each shard.  Figure~\ref{fig:Sharding} gives some supporting
-code (Exercise~\ref{ex:sharded-map} asks you to implement a mapping using
-sharding; some of this supporting code will also be useful there).
+|HashSet| for each shard.  Our implementation abstracts away from how
+operations are performed on the individual shards, for example issues such as
+resizing a hash table, delegating these to the |HashSet| objects.
+Figure~\ref{fig:Sharding} gives some supporting code
+(Exercise~\ref{ex:sharded-map} asks you to implement a mapping using sharding;
+some of this supporting code will also be useful there).
 
-Each of the main operations on the sharded set acts in a similar way: it
-calculated the index for the shard; obtains the relevant lock; and then
-performs the corresponding operation on the relevant shard.  Note how our
-implementation has abstracted away from how operations are performed on the
-individual shards, for example issues such as resizing a hash table. 
+Each of the three public operations acts in a similar way: it calculates the
+index for the shard, obtains the relevant lock, and then performs the
+corresponding operation on the relevant shard.  
 
 %%%%%
 
@@ -295,14 +328,12 @@ Study the details of the implementation.
 \end{instruction}
 
 As with striped locking, if we choose the number of shards to be somewhat
-larger than the number of threads, then under reasonable assumptions, we can
-expect threads to normally operate on different shards, and so rarely have to
-wait to obtain a lock. 
+larger than the number of threads, then under reasonable assumptions we can
+expect threads normally to operate on different shards, and so rarely have to
+wait to obtain a lock.
 
 We can test the implementation using linearizability testing, using an
 immutable set as the sequential specification object.  The values added to the
 set should be from a fairly small range so that the same value is used in
-multiple operation calls: I use the range $\interval{0}{200}$.  The code is on
-the book website.
+multiple operation calls.  The code is on the book website.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

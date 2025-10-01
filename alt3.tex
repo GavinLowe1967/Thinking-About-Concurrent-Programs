@@ -187,7 +187,10 @@ output~|x|, after which it is just holding~|y|.
 
 Here's an alternative definition.  The variable \SCALA{empty} records whether
 the buffer is empty.  When $\sm{empty} = \sm{false}$,\, \SCALA{x} stores the
-next value to be output.
+next value to be output.  (The expression |null.asInstanceOf[T]| gives the
+null value of type~|T|: zero for numeric types, or the null reference for
+reference types.  This is a convenient way to initialise a variable of a
+polymorphic type.)
 %
 %\begin{mysamepage}
 \begin{scala}

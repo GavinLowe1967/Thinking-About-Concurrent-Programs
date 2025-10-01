@@ -1,18 +1,19 @@
 \begin{questionS}
 \label{ex:sharded-map}
-Implement a sharded map.  (You might use code from Figure~\ref{fig:Sharding}
-in your code.)  Your implementation should extend the trait |Map| in
+Implement a sharded map to extend the trait |Map| in
 Figure~\ref{fig:Map-trait}.  The |get(k)| operation should return a result of
 type |Option[V]|: either |Some(v)| if |k| is associated with~|v|, or |None| if
 |k| is not associated with any value.  Likewise, the |put| and |remove|
 operations should return a result of type |Option[V]| corresponding to the
 previous association of the key.  (These operations correspond to operations
-from the API trait |scala.collection.mutable.Map|.)
+from the API trait |scala.collection.mutable.Map|.)  You might use code from
+Figure~\ref{fig:Sharding} in your implementation.
 
 %%%%%
 
 \begin{figure}
 \begin{scala}
+/** A trait representing mappings from £K£ to £V£. */
 trait Map[K,V]{
   /** Optionally get the value associated with £k£. */
   def get(k: K): Option[V] 
@@ -100,6 +101,6 @@ sequential operations as follows:
 \end{scala}
 
 Each worker should repeatedly perform random operations, using keys from a
-fairly small range, say $\interval{0}{200}$.  Other aspects of the testing are
-standard. 
+fairly small range, say $\interval{0}{200}$, to ensure the same key is
+accessed multiple times.  Other aspects of the testing are standard.
 \end{answerS}
