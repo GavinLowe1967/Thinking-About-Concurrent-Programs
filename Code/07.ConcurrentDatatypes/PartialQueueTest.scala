@@ -29,8 +29,11 @@ object PartialQueueTest{
     }
   }
 
-  def doTest = {
-    val concQueue = new ServerPartialQueue[Int]; val seqQueue = Queue[Int]()
+  def doTest(queueType: String) = {
+    val concQueue: PartialQueue[Int] = 
+      if(queueType == "server") new ServerPartialQueue[Int]
+      else{ assert(queueType == "monitor"); new MonitorPartialQueue[Int] }
+    val seqQueue = Queue[Int]()
     val tester =
       LinearizabilityTester[SeqQueue,ConcQueue](seqQueue, concQueue, p, worker)
     if(tester() <= 0) sys.exit()
@@ -45,13 +48,13 @@ object PartialQueueTest{
     while(i < args.length) args(i) match{
       case "--iters" => iters = args(i+1).toInt; i += 2 
       case "--reps" => reps = args(i+1).toInt; i += 2 
-      //case "--monitor" => queueType = "monitor"; i += 1
+      case "--monitor" => queueType = "monitor"; i += 1
       // case "--semaphore" => queueType = "semaphore"; i += 1
       // case "--countingSemaphore" => queueType = "counting semaphore"; i += 1
       case arg => println("Unrecognised argument: "+arg); sys.exit()
     }
 
-    for(r <- 0 until reps){ doTest; if(r%50 == 0) print(".") } 
+    for(r <- 0 until reps){ doTest(queueType); if(r%50 == 0) print(".") } 
     println()
   }
 }

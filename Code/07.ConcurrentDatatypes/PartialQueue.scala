@@ -14,6 +14,11 @@ trait PartialQueue[T]{
   def shutdown(): Unit
 }
 
+/** A partial queue with a no-op shutdown. */
+trait PartialQueue1[T] extends PartialQueue[T]{
+  def shutdown() = {}
+}
+
 // -------------------------------------------------------
 
 import scala.collection.mutable.Queue

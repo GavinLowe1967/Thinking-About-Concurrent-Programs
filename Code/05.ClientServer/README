@@ -7,6 +7,12 @@ Exchanger.scala: an exchanger, plus testing code.
 
 FilterChan.scala: A filter channel.
 
+Exercises
+---------
+
 MenWomen.scala: The men and women problem. (Exercise)
+
+MenWomenTest.scala: Test for the above and other implementations of the
+problem.
 
 AtomicBroadcast.scala: Atomic broadcast object (Exercise).

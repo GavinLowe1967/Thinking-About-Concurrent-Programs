@@ -12,6 +12,7 @@ all:
 	cd 07.ConcurrentDatatypes; make
 	cd 08.DataParallel; make
 	cd 09.Locks; make
+	cd 10.Conditions; make
 
 clean:
 	rm $(ROOT)/*/*.class; fsc -shutdown

@@ -1,0 +1,25 @@
+MonitorPartialQueue.scala: Implementation of a partial queue using a monitor. 
+
+BoundedMonitorPartialQueue.scala: Implementation of a bounded partial queue
+using a monitor.
+
+BoundedPartialQueueTest.scala: Linearizability tester for a partial queue.
+
+SharedSyncChan.scala: a shared synchronous channel. 
+
+SharedSyncChanTest.scala: test for the synchronous channel.
+
+BarberC.scala: sleeping barber example.
+
+
+EXERCISES
+
+MenWomenM.scala
+
+   
+OMIT
+
+MonitorSlot.scala: A slot for a producer/consumer.  Superceded by the bounded
+queue example.
+
+ProducerConsumer2.scala: a slot using a JVM monitor. 

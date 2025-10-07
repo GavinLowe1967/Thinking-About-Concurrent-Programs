@@ -1,0 +1,188 @@
+In the previous chapter, we saw how we could use a lock to provide mutual
+exclusion.  This technique allows us to implement many concurrent objects,
+including total concurrent datatypes.  However, it is not enough to implement
+a partial concurrent datatype, where a thread might have to wait until some
+condition becomes true, or a synchronisation object, where a thread might have
+to wait for another thread with which to synchronise. 
+
+For example, consider a partial queue.  Here, if a thread attempts to dequeue
+when the queue is empty, it should wait until the queue becomes nonempty.
+During this time, we would like the thread to \emph{suspend}, and so stop
+using computational resources.  When another thread does enqueue a value, it
+should signal to the suspended thread, so that it can resume.  
+
+In order to achieve this, we need a wait/signal mechanism.  In SCL, this is
+provided by \emph{conditions}.  If |lock| is a |Lock|, then
+\begin{scala}
+  lock.newCondition
+\end{scala}
+creates a new |Condition| object associated with |lock|.  
+Each condition has operations as follows:
+%
+\begin{itemize}
+\item |await()|: suspend, giving up the lock, wait for a signal on the
+  condition, and then re-acquire the lock;
+
+\item |signal()|: signal to a thread waiting on this condition;
+
+\item |signalAll()|: signal to all threads waiting on this condition.
+\end{itemize}
+%
+Each operation should be performed while holding the related |Lock|. 
+
+Figure~\ref{fig:MonitorPartialQueue} uses this technique to implement a
+partial queue.  (The helper trait |PartialQueue1| gives a default no-op
+implementation of the |shutdown| operation.)  Here, a |Lock| is used for
+mutual exclusion.  In addition, a |Condition| |notEmpty| is used to allow a
+|dequeue| that cannot proceed, because the queue is empty, to wait, which
+releases the lock.  A thread that performs an |enqueue| then signal on
+|notEmpty| to indicate that the queue is now not empty.  The waiting thread
+that receives the signal then has to wait to reacquire the lock, which is done
+as part of the |await| operation.  It then needs to re-check whether the queue
+is empty: it is possible that another thread performed a |dequeue|, after this
+thread received the signal but before it acquired the lock, and so re-emptied
+the queue.
+
+%%%%%
+
+\begin{figure}
+\begin{scala}
+trait PartialQueue1[T] extends PartialQueue[T]{
+  def shutdown() = {}
+}
+
+class MonitorPartialQueue[T] extends PartialQueue1[T]{
+  /** The queue itself. */
+  private val queue = new Queue[T]
+
+  /** A monitor object, to control the synchronisations. */
+  private val lock = new Lock
+
+  /** Condition for signalling that the queue is not empty. */
+  private val notEmpty = lock.newCondition
+
+  /** Enqueue £x£. */
+  def enqueue(x: T) = lock.mutex{
+    queue.enqueue(x)
+    notEmpty.signal() // Signal to a waiting dequeue.
+  } 
+
+  /** Dequeue a value.  Blocks until the queue is non£-£empty. */
+  def dequeue(): T = lock.mutex{
+    while(queue.isEmpty) notEmpty.await() // Wait for a signal.
+    queue.dequeue()
+  }
+}
+\end{scala}
+\caption{A partial queue implemented using a {\scalastyle Condition}.}
+\label{fig:MonitorPartialQueue}
+\end{figure}
+
+%%%%%
+
+\begin{instruction}
+Study the details of the implementation. 
+\end{instruction}
+
+The term \emph{monitor} is often used to describe a concurrent object,
+encapsulating data and operations on that data, providing mutually exclusive
+access to the data, together with a wait/signal mechanism.  We will see
+another implementation of monitors, provided by the Java Virtual Machine, in
+Chapter~\ref{chap:JVMMonitors}, and a further implementation, using
+semaphores, in Chapter~\ref{chap:semaphores}.   
+
+It is very common for a thread to have to wait until some property becomes
+true.  SCL |Conditions| include an operation |await(test)| that waits until
+|test| becomes true.  It is defined as follows (remember that the type
+signature means that |test| is passed by name, so evaluated only in the body
+of the operation, on each iteration of the loop):
+%
+\begin{scala}
+  def await(test: => Boolean): Unit = while(!test) await()
+\end{scala}
+%
+Thus the |dequeue| operation could be written more succinctly as:
+\begin{scala}
+  def dequeue(): T = lock.mutex{
+    notEmpty.await(queue.nonEmpty) // Wait for a signal.
+    queue.dequeue()
+  }
+\end{scala}
+
+Try to choose good names for |Condition|s.  I use the convention that the name
+of a |Condition| corresponds to the property that a signal on the condition
+indicates, or, equivalently, the property for which a thread waits.  Above, a
+signal on |notEmpty| indicates that the queue is not empty; and a |dequeue|
+waits on |notEmpty| until the queue is not empty.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+The above partial queue implementation uses a single |Condition|.  However, a
+monitor may use multiple |Condition|s.
+
+%%%%%
+
+\begin{figure}
+\begin{scala}
+class BoundedMonitorPartialQueue[T](bound: Int) extends PartialQueue1[T]{
+  /** The queue itself. */
+  private val queue = new Queue[T]
+
+  /** A monitor object, to control the synchronisations. */
+  private val lock = new Lock
+
+  /** Condition for signalling that the queue is not full. */
+  private val notFull = lock.newCondition
+
+  /** Condition for signalling that the queue is not empty. */
+  private val notEmpty = lock.newCondition
+
+  /** Enqueue £x£.  Blocks while the queue is full. */
+  def enqueue(x: T) = lock.mutex{
+    notFull.await(queue.length < bound) // Wait for a space (1).
+    queue.enqueue(x)
+    notEmpty.signal() // Signal to a waiting dequeue at (2).
+  }
+
+  /** Dequeue a value.  Blocks until the queue is non-empty. */
+  def dequeue(): T = lock.mutex{
+    notEmpty.await(queue.nonEmpty) // Wait for a signal (2).
+    val result = queue.dequeue()
+    notFull.signal() // Signal to a waiting enqueue at (1).
+    result
+  }
+}
+\end{scala}
+\caption{A bounded partial queue implemented using {\scalastyle Condition}s.}
+\label{fig:BoundedMonitorPartialQueue}
+\end{figure}
+
+%%%%%
+
+Figure~\ref{fig:BoundedMonitorPartialQueue} gives an implementation of a
+\emph{bounded} partial queue, that can hold at most |bound| values.  Thus an
+|enqueue| might have to wait for there to be a space for its value.  This is
+implemented using a second |Condition|, |notFull|.  A |dequeue| signals on
+this condition when it removes a value, to signal that the queue is not full. 
+
+\begin{instruction}
+Study the details of the implementation.
+\end{instruction}
+
+We could have written the |dequeue| operation as
+%
+\begin{scala}
+  def dequeue(): T = lock.mutex{
+    notEmpty.await(queue.nonEmpty); notFull.signal(); queue.dequeue()
+  }
+\end{scala}
+%
+The thread continues to hold the lock after signalling, so it is fine to
+signal before dequeueing.  However, the order in
+Figure~\ref{fig:BoundedMonitorPartialQueue} seems more logical.
+
+When there are multiple signals in a monitor, it is helpful to make clear
+where a particular signal will be received.  In
+Figure~\ref{fig:BoundedMonitorPartialQueue}, I have labelled the two |await|s
+and |signal|s~``(1)'' and~``(2)'', to help the reader tie them together. 
