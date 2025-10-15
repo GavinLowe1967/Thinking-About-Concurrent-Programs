@@ -4,15 +4,31 @@
 In this section, we consider how to use a client-server mechanism to solve a
 synchronisation problem.  
 
-An \emph{exchanger} is a concurrent object that
-allows pairs of threads to exchange values: each thread should pass in a
-value, and receive the other thread's value back, via an operation
+An \emph{exchanger} is a concurrent object that extends the trait in
+Figure~\ref{fig:ExchangerT}.  Its main operation allows a pair of threads to
+exchange values: each thread should pass in a value, and receive the other
+thread's value back.
+This exchange represents a \emph{synchronisation}: the two executions of
+|exchange| must necessarily overlap in time.   (The trait includes an
+operation to shut down the server.)
+
+%%%%%
+
+\begin{figure}
 \begin{scala}
-  def exchange(x: A): A 
+trait ExchangerT[A]{
+  /** Exchange £x£ with another thread. */
+  def exchange(x: A): A
+
+  /** Shut down the object. */
+  def shutdown(): Unit
+}
 \end{scala}
-(where |A| is a polymorphic type parameter of the object).  This exchange
-represents a \emph{synchronisation}: the two executions of |exchange| must
-necessarily overlap in time.
+\caption{A trait for an exchanger.}
+\label{fig:ExchangerT}
+\end{figure}
+
+%%%%%
 
 A straightforward implementation of an exchanger using a server is in
 Figure~\ref{fig:exchanger}.  The client creates a reply channel, sends its
@@ -24,7 +40,7 @@ requests, and passes each value to the other thread.
 
 \begin{figure}
 \begin{scala}
-class Exchanger[A]{
+class Exchanger[A] extends ExchangerT{
   /** Reply channels, for the server to return results to clients. */
   private type ReplyChan = OnePlaceBuffChan[A]
 

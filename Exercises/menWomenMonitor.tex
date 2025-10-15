@@ -1,0 +1,70 @@
+\begin{question}
+Recall the following synchronisation problem from
+Exercise~\ref{ex:menWomenServer}.  There are two types of client thread, which
+we shall call \emph{men} and \emph{women}.  These threads need to pair off for
+some purpose, with each pair containing one thread of each type.  Design a
+monitor to support this, with operations
+%
+\begin{scala}
+  def manSync(me: String): String = ...
+  def womanSync(me: String): String = ...
+\end{scala}
+Each thread should pass its name to the monitor, and receive back the name of
+its partner.
+
+Test your code.
+\end{question}
+
+%%%%%
+
+\begin{answerI}
+My code is below.  The variable |name| is used to store the name of the
+current man or woman.  The synchronisation goes through three stages:
+\begin{enumerate}
+\item[1.] The man writes his name;
+\item[2.] The woman reads the man's name and writes her own name;
+\item[3.] The man reads the woman's name.
+\end{enumerate}
+%
+The variable |stage| records which stage has been reached.  There are three
+|Condition|s, each for signalling to the relevant next thread at a particular
+stage.  After receiving a signal at stage~1 or~2, the thread needs to recheck
+the value of |stage|, in case it has been preempted; but there is no need for
+the man to recheck |stage| at stage~3, because it can be the only thread ready
+to receive the relevant signal.    
+%
+\begin{scala}
+class MenWomenM extends tacp.clientServer.MenWomenT{
+  private val Empty = 0; private val ManStored = 1; private val WomanStored = 2
+
+  /** The stage of the current exchange. */
+  private var stage = Empty
+
+  /** The name of the current man when £stage = ManStored£; the name of the
+    * current woman when £stage = WomanStored£. */
+  private var name = ""
+
+  private val lock = new Lock
+
+  private val nameCleared, manWritten, womanWritten = lock.newCondition
+
+  def manSync(me: String): String = lock.mutex{
+    nameCleared.await(stage == Empty) // Wait for previous round to finish. (1)
+    name = me; stage = ManStored // Store my name.
+    manWritten.signal() // Signal to woman at (2).
+    womanWritten.await() // Wait for woman. (3)
+    stage = Empty; nameCleared.signal() // Signal to next man at (1).
+    name
+  }
+
+  def womanSync(me: String): String = lock.mutex{
+    manWritten.await(stage == ManStored) // Wait for man. (2)
+    val him = name; name = me; stage = WomanStored // Swap names.
+    womanWritten.signal() // Signal to man at (3).
+    him
+  }
+}
+\end{scala}
+
+This can be tested as for Exercise~\ref{ex:menWomenServer}.
+\end{answerI}

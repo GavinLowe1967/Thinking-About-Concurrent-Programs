@@ -1,0 +1,130 @@
+\begin{question}
+This question concerns a system with three sorts of threads, with identities
+of types~|A|, |B| and~|C|.  A mechanism is required to allow three threads,
+one of each sort, to synchronise and to obtain one another's identities. 
+To support this, we require objects that implement the following trait.
+%
+\begin{scala}
+trait ABCSync[A,B,C]{
+  def ASync(me: A): (B, C)
+  def BSync(me: B): (A, C)
+  def CSync(me: C): (A, B)
+}
+\end{scala}
+%
+Each |A|-thread calls |ASync|, passing in its identity; it receives back the
+identities of the |B|- and |C|-threads with which it synchronises.  Likewise,
+the |B|- and |C|-threads call |BSync| and |CSync|, respectively.  Each
+operation will block until other threads call the other two operations.
+Implement a class that extends this trait, using |Condition|s.
+\end{question}
+
+%%%%%
+
+\begin{answer}
+In problems like this, it is easiest to pick a particular order for events to
+happen.  My solution follows the sequence diagram below.  Signals on |aStart|,
+|bStart| and |cStart| indicate that the relevant thread can start and should
+write its identity.  Signals on |bSignal| and |cSignal| indicate that the
+relevant thread can read the other threads' identities. 
+%
+\begin{center}
+% A node at #1, "write #2"
+\def\nodestyle{\small\scalacolour}
+\def\labelstyle{\footnotesize\scalacolour}
+\def\write#1#2{
+  \draw[fill] #1 ellipse (0.6pt and 2.4pt); % Note: scaling makes this a circle.
+  \draw #1 node[right]{\nodestyle write \scalashape #2};
+}
+\def\height{10.7}
+\begin{tikzpicture}[xscale = 2.8, yscale = 0.7]
+\draw (0,0) node[draw] (a) {\scalastyle ASync(a)};
+\draw (a) -- ++ (0,-\height);
+\draw (1,0) node[draw] (b) {\scalastyle BSync(b)}; 
+\draw (b) -- ++ (0,-\height);
+\draw (2,0) node[draw] (c) {\scalastyle CSync(c)};
+\draw (c) -- ++ (0,-\height);
+\draw (3,0) node[draw] (a2) {\scalacolour next \scalastyle ASync}; 
+\draw (a2) -- ++ (0,-\height);
+%
+\draw[<-] (a) ++ (0,-2) node[right]{\labelstyle (A1)} -- 
+  node[above]{\scalashape\footnotesize aStart} ++ (-1,0); 
+\write{(a) ++ (0,-2.8)}{a}
+\draw[->] (a) ++ (0,-4) -- 
+  node[above]{\scalashape\footnotesize bStart} ++ (1,0) 
+  node[right]{\labelstyle (B1)};
+\write{(b) ++ (0,-4.8)}{b};
+\draw[->] (b) ++ (0,-6) --
+  node[above]{\scalashape\footnotesize cStart} ++ (1,0) 
+  node[right]{\labelstyle (C1)};
+\write{(c) ++ (0,-6.8)}{c};
+\draw[->] (c) ++ (0,-8) --
+  node[above,near start]{\scalashape\footnotesize aSignal} ++ (-2,0) 
+  node[left]{\labelstyle (A2)} ;
+\draw[->] (a) ++ (0,-9) --
+  node[above]{\scalashape\footnotesize bSignal} ++ (1,0) 
+  node[right]{\labelstyle (B2)} ;
+\draw[->] (b) ++ (0,-10) --
+  node[above,near start]{\scalashape\footnotesize aStart} ++ (2,0);
+\end{tikzpicture}
+\end{center}
+%
+However, there are lots of other orders one could choose. 
+
+My code is below.  The points in the code labelled (A1), (B1), (C1), (A2) and
+(B2) correspond to the points with the same labels in the sequence diagram.
+The corresponding signals will happen in that order, and the next
+synchronisation won't start until this sequence is completed.  The
+|Condition|s |aStart|, |bStart| and |cStart| need to be augmented with boolean
+variables, both to block a thread until it is its turn to proceed, and, when
+the thread receives a signal, to test whether it has been preempted and so has
+to wait again.
+%
+\begin{scala}
+class ABCSyncMonitor[A,B,C] extends ABCSync[A,B,C]{
+  private val lock = new Lock
+
+  /** The identities of the current (or previous) threads. */
+  private var a: A = _; private var b: B = _; private var c: C = _
+
+  /** Are the values in £a£, £b£, £c£ valid? */
+  private var aFull, bFull, cFull = false
+
+  /** Conditions on which threads wait for permission to write their values. */
+  private val aStart, bStart, cStart = lock.newCondition
+
+  /** Conditions on which threads wait to be able to read their results. */
+  private val aSignal, bSignal = lock.newCondition
+
+  def ASync(me: A) = lock.mutex{
+    aStart.await(!aFull)          // (A1)
+    assert(!bFull && !cFull); a = me; aFull = true
+    bStart.signal()                // signal to B£-£thread at (B1)
+    aSignal.await()                // (A2)
+    assert(aFull && bFull && cFull)
+    bSignal.signal()                 // signal to B£-£thread at (B2)
+    (b,c)
+  }
+
+  def BSync(me: B) = lock.mutex{
+    bStart.await(aFull && !bFull)         // (B1)
+    assert(!cFull); b = me; bFull = true
+    cStart.signal()                 // signal to C£-£thread at (C1)
+    bSignal.await()                // (B2)
+    assert(aFull && bFull && cFull)
+    aFull = false; bFull = false; cFull = false
+    aStart.signal()               // signal to next A£-£thread at (A1)
+    (a,c)
+  }
+
+  def CSync(me: C) = lock.mutex{
+    cStart.await(bFull && !cFull)         // (C1)
+    assert(aFull); c = me; cFull = true
+    aSignal.signal() // Signal to A£-£thread at (A2)
+    (a,b)
+  }
+}
+\end{scala}
+
+\end{answer}
+

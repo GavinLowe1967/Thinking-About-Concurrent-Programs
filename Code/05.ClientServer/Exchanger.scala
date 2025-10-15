@@ -2,7 +2,21 @@ package tacp.clientServer
 
 import ox.scl._
 
-class Exchanger[A]{
+/** The trait for an exchanger. */
+trait ExchangerT[A]{
+  /** Exchange x with another thread. */
+  def exchange(x: A): A
+
+  /** Shutdown the object. */
+  def shutdown(): Unit
+}
+
+trait Exchanger1T[A] extends ExchangerT[A]{
+  def shutdown() = {}
+}
+
+
+class Exchanger[A] extends ExchangerT[A]{
   /** Reply channels, for the server to return results to clients. */
   private type ReplyChan = OnePlaceBuffChan[A]
 
@@ -27,25 +41,4 @@ class Exchanger[A]{
   /** Shut down the server. */
   def shutdown() = toServer.endOfStream()
 }
-
-// =======================================================
-
-/** A tester for an exchanger. */
-object ExchangerTest{
-  /** Do a single test. */
-  def doTest = {
-    val n = 2*scala.util.Random.nextInt(10); val results = new Array[Int](n)
-    val exchanger = new Exchanger[Int]
-    def worker(me: Int) = thread(s"worker($me)"){ 
-      val x = exchanger.exchange(me); results(me) = x 
-    }
-    run(|| (for(i <- 0 until n) yield worker(i)))
-    for(i <- 0 until n){ val x = results(i);  assert(x != i && results(x) == i) }
-    exchanger.shutdown()
-  }
-
-  def main(args: Array[String]) = {
-    for(i <- 0 until 1000){ doTest; if(i%50 == 0) print(".") }
-    println()
-  }
-}
+ 

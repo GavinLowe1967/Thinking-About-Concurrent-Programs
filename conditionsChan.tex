@@ -1,4 +1,4 @@
-\section{Implementing a Synchronous Channel}
+\section{Implementing a Synchronous Channel using Conditions}
 
 Conditions can also be used to implement synchronisation objects.  A thread
 that needs to synchronise can wait for another thread; when another thread
@@ -132,6 +132,20 @@ needs to recheck |full| when it receives a signal, in case another receiver
 has run in the meantime and taken the value.  It then signals back to the
 sender on |continue|, clears the slot, and then signals to the next sender on
 |slotEmptied|. 
+
+Note that for each operation, the |full| variable is needed for two slightly
+different purposes:
+%
+\begin{itemize}
+\item When the operation starts, the value of |full| indicates whether the
+  operation can proceed immediately, without waiting;
+\item When the thread receives a signal, the value of |full| indicates whether
+  the thread can now proceed, or whether it has been preempted and so must
+  wait again.
+\end{itemize}
+%
+It is common to use a boolean variable in combination with a |Condition| in
+this way at the start of an operation.
 
 \begin{instruction}
 Study the details of the implementation.  Make sure you understand why each of

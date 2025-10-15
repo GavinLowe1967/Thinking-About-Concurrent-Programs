@@ -28,7 +28,10 @@ Each condition has operations as follows:
 \item |signalAll()|: signal to all threads waiting on this condition.
 \end{itemize}
 %
-Each operation should be performed while holding the related |Lock|. 
+Each operation should be performed while holding the related |Lock|.  When a
+thread signals, it keeps the lock: the thread that receives the signal must
+wait for the signaller to release the lock, and then needs to compete with
+other threads to obtain the lock. 
 
 Figure~\ref{fig:MonitorPartialQueue} uses this technique to implement a
 partial queue.  (The helper trait |PartialQueue1| gives a default no-op
