@@ -2,7 +2,7 @@ package tacp.monitors
 
 import ox.scl._
 
-trait ABCSync[A,B,C]{
+trait ABC[A,B,C]{
   def ASync(me: A): (B,C)
   def BSync(me: B): (A,C)
   def CSync(me: C): (A,B)
@@ -10,7 +10,7 @@ trait ABCSync[A,B,C]{
 
 // =======================================================
 
-class ABCSyncMonitor[A,B,C] extends ABCSync[A,B,C]{
+class ABCSyncMonitor[A,B,C] extends ABC[A,B,C]{
   private val lock = new Lock
 
   /** The identities of the current (or previous) threads. */
@@ -108,7 +108,7 @@ object ABCTest{
   }
 
   def doTest = {
-    val abc: ABCSync[Int,Int,Int] = new ABCSyncMonitor[Int,Int,Int]
+    val abc: ABC[Int,Int,Int] = new ABCSyncMonitor[Int,Int,Int]
     val log = new Log[LogEvent](3*n)
     def aThread(a: Int) = thread(s"A($a)"){
       log.add(a, AStart(a)); val (b,c) = abc.ASync(a); log.add(a, AEnd(a,b,c))

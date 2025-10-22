@@ -1,10 +1,11 @@
 ROOT = ../tacp
 
 DIR = $(ROOT)/dataParallel
-
 DTDIR = $(ROOT)/datatypes
+MONDIR = $(ROOT)/monitors
 
 DT_SRC_DIR = ../07.ConcurrentDatatypes
+MON_SRC_DIR = ../10.Conditions
 
 EXERCISES = $(DIR)/ServerCombiningBarrier.class $(DIR)/BarrierLog.class	\
   $(DIR)/PrefixSumsShared.class $(DIR)/ArrayMax.class			\
@@ -14,7 +15,7 @@ all: $(DIR)/BarrierTest.class $(DIR)/PrefixSumsTest.class	\
   $(DIR)/JacobiTest.class $(DIR)/JacobiExperiment.class		\
   $(DIR)/BFSGraphSearch.class $(DIR)/Gravity.class $(EXERCISES)
 
-$(DIR)/BarrierTest.class: $(DIR)/ServerBarrier.class $(DIR)/BarrierLog.class
+$(DIR)/BarrierTest.class: $(DIR)/ServerBarrier.class $(DIR)/BarrierLog.class $(MONDIR)/ConditionsBarrier.class
 
 $(DIR)/JacobiTest.class $(DIR)/JacobiExperiment.class: $(DIR)/Jacobi.class
 
@@ -42,3 +43,6 @@ $(DIR)/%.class:     %.scala
 
 $(DTDIR)/%.class: $(DT_SRC_DIR)/%.scala
 	cd $(DT_SRC_DIR); make
+
+$(MONDIR)/%.class: $(MON_SRC_DIR)/%.scala
+	cd $(MON_SRC_DIR); make

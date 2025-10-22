@@ -1,4 +1,4 @@
-\section{Example: The Sleeping Barber}
+\section{The Sleeping Barber}
 
 Different concurrent programs produce different synchronisation problems.
 Often these are presented in terms of colourful real-life scenarios.  One such
@@ -21,18 +21,18 @@ problem.  The synchronisation object will extend the trait in
 Figure~\ref{fig:BarberT}, with the following operations:
 %
 \begin{description}
-\item[\scalastyle getNextCustomer]
+\item[{\scalastyle getNextCustomer}:]
 The barber wakes up a customer and waits for him to sit in the chair, or
 sleeps until a customer arrives;
 
-\item[\scalastyle getHaircut]
+\item[{\scalastyle getHaircut}:]
 A customer arrives and waits until the barber is ready, then sits in the
 chair;
 
-\item[\scalastyle finishedCut]
+\item[{\scalastyle finishedCut}:]
 The barber wakes up the customer, and waits for him to leave;
 
-\item[\scalastyle waitForHaircut]
+\item[{\scalastyle waitForHaircut}:]
 The customer waits for the barber to finish, then leaves.
 \end{description}
 %
@@ -47,22 +47,11 @@ trait BarberT{
   def waitForHaircut(): Unit
   def finishedCut(): Unit
 }
-\end{scala}
-\caption{Trait for the sleeping barber synchronisation object.}
-\label{fig:BarberT}
-\end{figure}
 
+object BarberSimulation{
+  val barber: BarberT = ... // Some implementation of £BarberT£.
 
-Figure~\ref{fig:sleeping-barber-threads} gives  barber and customer threads
-that could be used in a simulation of the sleeping barber example.
-
-%%%%%%
-
-\begin{figure}
-\begin{scala}
-  val barber: BarberT = ...
-
-  def barber = thread("Barber"){
+  def barber = thread("barber"){
     while(true){
       sleep(Random.nextInt(500)); println("Barber ready")
       barber.getNextCustomer; println("Barber cutting hair")
@@ -70,18 +59,24 @@ that could be used in a simulation of the sleeping barber example.
       barber.finishedCut
   } }
 
-  def customer(me: Int) = thread("Customer"+me){
+  def customer(me: Int) = thread(s"customer($me)"){
     while(true){
-      sleep(Random.nextInt(6000)); println("Customer "+me+" arrived")
-      barber.getHaircut; println("Customer "+me+" getting haircut")
-      barber.waitForHaircut; println("Customer "+me+" finished haircut")
+      sleep(Random.nextInt(6000)); println(s"Customer $me arrived")
+      barber.getHaircut; println(s"Customer $me getting haircut")
+      barber.waitForHaircut; println(s"Customer $me finished haircut")
   } }
+}
 \end{scala}
-\caption{Threads for simulating the sleeping barber example.}
+\caption{Trait for the sleeping barber synchronisation object; and a
+  simulation of the sleeping barber example.}
+\label{fig:BarberT}
 \label{fig:sleeping-barber-threads}
 \end{figure}
 
 %%%%%
+
+Figure~\ref{fig:sleeping-barber-threads} also gives barber and customer
+threads that could be used in a simulation of the sleeping barber example.
 
 One way to approach the design of the |BarberT| object is to realise that each
 iteration involves two independent synchronisations.  We can treat these
@@ -93,17 +88,6 @@ synchronise with the $B$-thread.  In each synchronisation of the sleeping
 barber problem, we can take type~$A$ to be the customers, and type~$B$ to be
 the barber.
 
-Figure~\ref{fig:barber-Sync} gives such a synchronisation object.  This uses a
-pair of conditions for signalling in each direction.  Initially, the
-$A$-thread waits to receive a signal on |bReadyC|.  In addition, we use a
-boolean variable |bReady| to record whether the $B$-thread has signalled: this
-is necessary for the case that the $B$-thread signals before an $A$-thread is
-waiting.  The $A$-thread needs to recheck |bReady| when it receives a signal,
-in case another $A$-thread has run in the meantime.  Subsequently, the
-$B$-thread waits to receive a signal back from the $A$-thread on |aReadyC|.
-There is no need for an additional boolean variable at this point, because the
-$A$-thread cannot signal before the $B$-thread releases the lock, and only a
-single $A$-thread can progress past the first signal at a time.  
 
 %%%%%
 
@@ -143,14 +127,27 @@ class Sync{
 
 %%%%%
 
+Figure~\ref{fig:barber-Sync} gives such a synchronisation object.  This uses a
+pair of conditions for signalling.  Initially, the
+$A$-thread waits to receive a signal on |bReadyC|.  In addition, we use a
+boolean variable |bReady| to record whether the $B$-thread has signalled: this
+is necessary for the case that the $B$-thread signals before an $A$-thread is
+waiting.  The $A$-thread needs to recheck |bReady| when it receives a signal,
+in case another $A$-thread has run in the meantime.  Subsequently, the
+$B$-thread waits to receive a signal back from the $A$-thread on |aReadyC|.
+There is no need for an additional boolean variable at this point, because the
+$A$-thread cannot signal before the $B$-thread releases the lock, and only a
+single $A$-thread can progress past the first signal at a time.  
+
+
 \begin{instruction}
 Make sure you understand the implementation of the synchronisation object.
 \end{instruction}
 
 The class |Sync| can be tested by running suitable threads that call the
-operations and write into a log before and after each.  We can then traverse
-the log and check that the number of times |sync1| returns does not exceed the
-number of times that |sync2| is called, and vice versa.
+operations and write into a log before and after each operation execution.  We
+can then traverse the log and check that the number of times |sync1| returns
+does not exceed the number of times that |sync2| is called, and vice versa.
 
 Figure~\ref{fig:Barber2} then gives a straightforward implementation of the
 main synchronisation object that encapsulates two |Sync| objects.  Each
@@ -182,9 +179,9 @@ object Barber2 extends BarberT{
 %%%%%
 
 In fact, we could have used a slightly simpler synchronisation object for the
-second synchronisation, between |waitForHaircut| and |finishedCut|.  At most a
-single customer at a time can be at this point.  That means that we could
-replace 
+second synchronisation, between the |waitForHaircut| and |finishedCut|
+operations.  At most a single customer at a time can be at this point.  That
+means that we could replace
 \begin{scala}
   bReadyC.await(bReady)
 \end{scala}
@@ -199,15 +196,20 @@ is worth the bother.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+The modular approach we use, with a different synchronisation object for each
+synchronisation, makes for an easier, clearer design.  Previously, I
+implemented a single object that mediated both synchronisations: this resulted
+in nearly twice as much code.
 
 Synchronisation problems like this can be difficult.  In order to come up with
 a correct and understandable design, it is useful to use state variables that
 indicate which processes are in different states.  In the |Sync| objects, the
 variable |bReady| indicates that a $B$-thread is waiting for a signal.  In
 other synchronisation problems, it can be useful to keep track of how many
-processes are in particular states.  
-%
+processes are in particular states, as we did in the barrier synchronisation
+object.
+
 To track down bugs, it can be useful to write plenty of assertions: if nothing
 else, these act as good documentation; and they might reveal a mistake.  If
 all else fails, it can help to use logging, particularly of the sending and
-receiving of signals.
+receiving of signals, and then to analyse the log when something goes wrong.

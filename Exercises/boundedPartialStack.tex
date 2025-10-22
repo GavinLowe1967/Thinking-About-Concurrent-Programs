@@ -1,0 +1,70 @@
+\begin{questionS}
+Implement a bounded partial stack using a monitor.  Give your implementation
+the signature
+\begin{scala}
+class MonitorBoundedPartialStack[T](bound: Int) extends PartialStack[T]
+\end{scala}
+where |ParitalStack| is as in Exercise~\ref{ex:partialStack}.  The |push|
+operation should block while the stack is full, i.e.~contains |bound|
+elements.
+
+Test your implementation using the linearizability testing framework.
+\end{questionS}
+
+%%%%%
+
+\begin{answerS}
+My code is below.  For convenience, I use a trait |PartialStack1| which gives
+a default no-op implementation of |shutdown|.
+
+The implementation is very similar to that for the bounded partial queue,
+except adapted to a stack.  We use conditions |notFull| and |nonEmpty| to
+signal that the relevant precondition holds.  Each operation waits on the
+appropriate condition until the precondition holds.
+%
+\begin{scala}
+trait PartialStack1[T] extends PartialStack[T]{
+  def shutdown() = {}
+}
+
+/** A bounded partial stack implemented as a monitor. */
+class MonitorBoundedPartialStack[T](bound: Int) extends PartialStack1[T]{
+  /** The stack itself. */
+  private val stack = new Stack[T]
+
+  /** A monitor object, to control the synchronisations. */
+  private val lock = new Lock
+
+  /** Condition for signalling that the stack is not full. */
+  private val notFull = lock.newCondition
+
+  /** Condition for signalling that the stack is not empty. */
+  private val notEmpty = lock.newCondition
+
+  /** Push £x£.  Blocks while the queue is full. */
+  def push(x: T) = lock.mutex{
+    notFull.await(stack.length < bound) // Wait for a signal. (1)
+    stack.push(x)
+    notEmpty.signal() // Signal to a £pop£ at (2).
+  }
+
+  /** Dequeue a value.  Blocks until the queue is non-empty. */
+  def pop(): T = lock.mutex{
+    notEmpty.await(stack.nonEmpty) // Wait for a signal. (2)
+    val result = stack.pop()
+    notFull.signal() // Signal to a £push£ at (1).
+    result
+  }
+} 
+\end{scala}
+
+The implementation can be tested precisely as in
+Exercise~\ref{ex:partialStack}, except the push operation on the sequential
+specification object needs to capture the precondition:
+%
+\begin{scala}
+  def seqPush(x: Int)(st: SeqStack) : (Unit, SeqStack) = {
+    require(st.length < bound); ((), st.push(x))
+  }
+\end{scala}
+\end{answerS}

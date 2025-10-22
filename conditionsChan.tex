@@ -1,4 +1,4 @@
-\section{Implementing a Synchronous Channel using Conditions}
+\section{A Synchronous Channel}
 
 Conditions can also be used to implement synchronisation objects.  A thread
 that needs to synchronise can wait for another thread; when another thread
@@ -10,7 +10,7 @@ senders and receivers.
 
 %%%%%
 
-\begin{figure}
+\begin{figure}[htbp]
 \begin{scala}
 trait SyncChanT[A]{
   /** Send £x£, synchronously. */
@@ -111,11 +111,12 @@ We require three conditions for signals between threads:
 \item Each sender will signal to a receiver on |slotFull| that it has
   deposited a value, which the receiver can take;
 
-\item The receiver will then signal back to the sender on |continue| that it
-  can continue; this makes the channel synchronous;
+\item The receiver will then signal back to the sender on |continue|,
+  indicating that it can continue; this makes the channel synchronous;
 
-\item The receiver will signal to a sender for the next round on |slotEmptied|
-  that it has cleared the value, so that sender can deposit its value.
+\item The receiver will signal to a sender for the next round on
+  |slotEmptied|, indicating that it has cleared the value, so that sender can
+  deposit its value.
 \end{itemize}
 %
 Figure~\ref{fig:syncChan-seqDiagram} illustrates the sequence of signals.
@@ -125,7 +126,7 @@ Note that it needs to recheck |full| when it receives a signal on, in case
 another sender has run in the meantime and filled the slot.  It then deposits
 its value, and signals to a waiting receiver on |slotFull|.  Finally, it waits
 for a signal back on |continue|.  Note that there is no need to recheck |full|
-at this point, as it cannot be preempted by another sender. 
+at this point, as this thread cannot be preempted by another sender.
 
 The receiver waits, on |slotFull|, for a value to be deposited.  It again
 needs to recheck |full| when it receives a signal, in case another receiver
@@ -134,11 +135,18 @@ sender on |continue|, clears the slot, and then signals to the next sender on
 |slotEmptied|. 
 
 Note that for each operation, the |full| variable is needed for two slightly
-different purposes:
+different purposes.
 %
 \begin{itemize}
 \item When the operation starts, the value of |full| indicates whether the
-  operation can proceed immediately, without waiting;
+  operation can proceed immediately, without waiting.  In the case of
+  |receive|, it might be that a sender has deposited a value, but the signal
+  on |slotFull| was lost, because there was no waiting receiver at that
+  point.  Likewise, in the case of |send|, it might be that the previous
+  receiver has cleared the slot, but the signal on |slotEmptied| was lost,
+  because there was no waiting sender at that point.  In each case, the value
+  of |full| reflects the earlier signal. 
+
 \item When the thread receives a signal, the value of |full| indicates whether
   the thread can now proceed, or whether it has been preempted and so must
   wait again.
@@ -152,16 +160,16 @@ Study the details of the implementation.  Make sure you understand why each of
 the signals is necessary.
 \end{instruction}
 
-
 We can test this implementation by running some threads that perform sends and
 receives, and log the call and return of each operation.  For simplicity, we
 arrange that every send is of a different value.  This makes it easy to
-identify matching sends and receives (if they exist).  We then check that the
-two invocations overlap.  
+identify matching sends and receives in the log(if they exist).  We then check
+that each invocation is matched by an invocation of the other operation, and
+that the two invocations overlap.
 
 As in Section~\ref{sec:exchanger}, it is sound to assume the values sent are
 all different, because the implementation is \emph{data independent} in the
-type |A| of data: values of this type are stored, read, and returned, but no
+type |A| of data: values of this type are stored, read, and returned; but no
 operation (e.g.~|==|) is done on them.  This means that for any erroneous
 history, there would be a corresponding erroneous history using distinct
 values.

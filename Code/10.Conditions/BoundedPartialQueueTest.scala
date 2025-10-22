@@ -7,7 +7,7 @@ import ox.scl._
 object BoundedPartialQueueTest{
   var iters = 200  // Number of iterations by each worker
   val MaxVal = 20 // Maximum value placed in the queue
-  var enqueueProb = 0.3 // probability of doing an enqueue
+//  var enqueueProb = 0.3 // probability of doing an enqueue
   var bound = 10 // the bound on the length of the queue
 
   type SeqQueue = scala.collection.immutable.Queue[Int]
@@ -40,7 +40,7 @@ object BoundedPartialQueueTest{
     while(i < args.length) args(i) match{
       case "--iters" => iters = args(i+1).toInt; i += 2 
       case "--reps" => reps = args(i+1).toInt; i += 2 
-      case "--enqueueProb" => enqueueProb = args(i+1).toDouble; i += 2
+//      case "--enqueueProb" => enqueueProb = args(i+1).toDouble; i += 2
       case "--monitor" => queueType = "monitor"; i += 1
       case "--bound" => bound = args(i+1).toInt; i += 2
       case arg => println("Unrecognised argument: "+arg); sys.exit()

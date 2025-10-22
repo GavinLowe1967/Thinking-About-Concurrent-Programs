@@ -3,7 +3,7 @@ package tacp.interactingPeers
 import ox.scl._
 
 /** A synchronous atomic broadcast, to be used by `n` receivers. */
-class AtomicBroadcast[A](n: Int){
+class AtomicBroadcast[A](n: Int){ 
   require(n >= 2)
 
   /* We arrange the sender and receiver into a binary heap, with the sender at
@@ -33,6 +33,9 @@ class AtomicBroadcast[A](n: Int){
     go(0)!x; go(1)!x
   }
 }
+
+// Note: this doesn't extend the trait tacp.clientServer.AtomicBroadcastT,
+// because the `receive` operation takes the thread's identity.
 
 // =======================================================
 

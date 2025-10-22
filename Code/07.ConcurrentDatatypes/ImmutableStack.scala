@@ -15,6 +15,9 @@ class ImmutableStack[A](private val stack: List[A] = List()){
   /** Is the stack empty? */
   def isEmpty = stack.isEmpty
 
+  /** The length of the stack. */
+  def length = stack.length
+
   override def hashCode = stack.hashCode
 
   override def equals(other: Any) = other match{

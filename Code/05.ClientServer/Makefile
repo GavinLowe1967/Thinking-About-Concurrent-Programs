@@ -6,7 +6,7 @@ MONDIR = $(ROOT)/monitors
 
 MON_SRC_DIR = ../10.Conditions
 
-EXERCISES = $(DIR)/MenWomenTest.class $(DIR)/AtomicBroadcast.class
+EXERCISES = $(DIR)/MenWomenTest.class $(DIR)/AtomicBroadcastTest.class
 
 all: $(DIR)/RAServer.class $(DIR)/PartialRAServer.class		\
   $(DIR)/ExchangerTest.class $(DIR)/FilterChan.class $(EXERCISES)
@@ -30,6 +30,13 @@ $(MONDIR)/MonitorExchanger.class: $(MON_SRC_DIR)/MonitorExchanger.scala
 	cd $(MON_SRC_DIR); make exchanger
 
 exchanger: $(DIR)/Exchanger.class
+
+# Atomic broadcast 
+
+$(DIR)/AtomicBroadcastTest.class: $(DIR)/AtomicBroadcast.class $(MONDIR)/AtomicBroadcast.class
+
+$(MONDIR)/AtomicBroadcast.class: $(MON_SRC_DIR)/AtomicBroadcast.scala
+	cd $(MON_SRC_DIR); make atomicBroadcast
 
 # Standard recipe
 

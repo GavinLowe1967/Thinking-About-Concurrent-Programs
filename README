@@ -1,52 +1,40 @@
 Chapter 1: Introduction
-- What is concurrency?
 - reasons for concurrency.  TO DO
 - concurrent architectures: TO DO
-- disciplined interaction
-- in first part of course, threads use disjoint variables -- say later
 - correctness properties: TO DO
-- summary: TO DO
-- exercises
 
 Chaper 2: Message passing using channels.
-- Defining and using channels
-- Example: printing multiples of four
-- Buffered channels
-- Closing channels
-- Example: producing the natural numbers
-- Example: Mergesort
-- Reasoning about the order of actions
-- Summary - TODO: review
-- Exercises - TO DO: review
-
 
 Chapter 3: Example: Numerical Integration
-- Trapzeium example, probably also bag-of-tasks.  Move material on experiments 
-to appendix 
-- Note Words: range (whole range of integration), sub-range (for a task), interval (for a trapezium)
 
--- Note (27/05/2025): scala tacp.trapezium.TrapeziumExperiment --doBagBuffer
-   on home machine seems to suggest unbounded buffers help when tasks are too
-   small; but the same experiment on casteret suggests the opposite!
+Chapter 4: Alternation
 
 
+Chaper 5: Clienta and Servers
 
-Experiments: buffering experiment; throughput
+Chapter 6: Interacting Peers
 
-Chapter 5: Alternation
+Chapter 7: Concurrent Datatypes
+
+Chapter 8: Data Parallel
+
+Chapter 9: Locks
+
+Chapter 10: Conditions: 
+- improve section on other languages
+- check exercises
+- more exercises
+
+Chapter 11: JVM Monitors -- to write
+
+Chapter 12: Semaphores -- to write
 
 
-Chaper 6: Client-Server
-
-Chapter 7: Interacting Peers
-
-Chapter 8: Concurrent Datatypes
-- Include material from sharedVariables.tex
  
 
 Appendices
 
-- Scala -- write; case classes; Option types
+- Scala -- TODO: improve; change to free-form text, with subsections.
 - Experiments -- improve
 
 --------------
@@ -57,6 +45,9 @@ Check for correct usage of ??[A] and !![A]:
 fgrep -n "?[" *.tex | fgrep -v "??"
 fgrep -n "?\`" *.tex 
 grep "[!][[]" *.tex | egrep -v "[!]{2}"
+
+Change doTest -> doTest()
+Provide default implementations of shutdown? 
 
 
 SCL: 

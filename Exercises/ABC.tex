@@ -17,11 +17,13 @@ identities of the |B|- and |C|-threads with which it synchronises.  Likewise,
 the |B|- and |C|-threads call |BSync| and |CSync|, respectively.  Each
 operation will block until other threads call the other two operations.
 Implement a class that extends this trait, using |Condition|s.
+
+Test your code.
 \end{question}
 
 %%%%%
 
-\begin{answer}
+\begin{answerI}
 In problems like this, it is easiest to pick a particular order for events to
 happen.  My solution follows the sequence diagram below.  Signals on |aStart|,
 |bStart| and |cStart| indicate that the relevant thread can start and should
@@ -126,5 +128,9 @@ class ABCSyncMonitor[A,B,C] extends ABCSync[A,B,C]{
 }
 \end{scala}
 
-\end{answer}
+One way to test the code is to run threads with distinct identities, the same
+number of threads of each sort, that each call the operation once, writing
+events into a log before and after the operation.  Then we can traverse the
+log and check that all three threads agree on each synchronisation.
+\end{answerI}
 

@@ -9,12 +9,22 @@ SharedSyncChan.scala: a shared synchronous channel.
 
 SharedSyncChanTest.scala: test for the synchronous channel.
 
+MonitorExchanger.scala: an exchanger.
+
+ConditionsBarrier.scala: a barrier synchronisation implemented using conditions. 
+
 BarberC.scala: sleeping barber example.
 
 
 EXERCISES
 
-MenWomenM.scala
+MonitorBoundedPartialStack.scala: implementation of a bounded partial stack.  
+
+
+
+MenWomenM.scala: the mean and women problem.
+
+ABC.scala: the ABC problem. 
 
    
 OMIT

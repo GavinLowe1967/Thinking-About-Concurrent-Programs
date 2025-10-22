@@ -3,22 +3,57 @@
 \input{conditions1} % introduction, partial queues (unbounded, bounded)
 \input{conditionsChan} % many-many channel
 \input{conditionsExchanger}  % Exchanger
+\input{conditionsBarrier} % barrier synchronisation
 \input{conditions-barber} % TO DO
 
 %%%%%
 
 \section{Summary}
 
-\begin{itemize}
-\item Conditions and targeted signals;
+In this chapter, we have studied how to use conditions to allow one thread to
+wait until it receives a signal from another thread.  Each |Condition| object
+is associated with a |Lock|.  A thread that performs |await| must hold the
+lock, but it releases the lock as part of the |await|.  A thread that
+performs a |signal| must also hold the lock; it retains the lock after
+performing the |signal|.  The thread that receives the signal must wait to
+reobtain the lock, possibly competing with other threads.
 
-\item Examples;
+Conditions are useful for implementing a partial operation on a datatype: a
+thread can wait on the condition until the precondition holds; and a thread
+that makes the precondition true can signal on the condition.  They are also
+useful for implementing synchronisation objects: a thread can wait for another
+thread with which to synchronise; and then the latter thread can signal.  We
+have seen examples of both; the exercises include more examples.
 
-\item Dealing with synchronisation problems.  Be clear about the order in
-  which actions happen, and use signals to ensure that order.  Boolean
-  variable (or some other test on the state) in combination with |Condition|
-  at the start of an operation. 
-\end{itemize}
+The normal reason for a thread to have to wait is that a relevant property
+does not hold: either a precondition of a partial operation does not hold, or
+the thread has to wait for another thread with which to synchronise. 
+Normally, the corresponding signal indicates that the property does hold
+at the point of the signal.  However, it is often the case that some third
+thread might run---before the first thread reobtains the lock---and falsify the
+property again: in such cases, the thread that receives the signal needs
+to recheck the property.  Even when this is not the case, it is normally a
+good idea to assert the property, as a form of documentation, but also to
+catch any behaviours you hadn't thought about.
+
+Designing synchronisation objects, in particular, can be tricky.  Be clear
+about the order in which steps should be taken, e.g.~the order of reads and
+writes of shared variables, and signals between threads.  It is often best to
+enforce a fixed order, rather than allowing multiple different orders: it
+means less to think about.  It is normally necessary to use shared variables
+to record whether a thread of a particular role is waiting, or how many such
+threads are waiting.  
+
+%% \begin{itemize}
+%% \item Conditions and targeted signals;
+
+%% \item Examples;
+
+%% \item Dealing with synchronisation problems.  Be clear about the order in
+%%   which actions happen, and use signals to ensure that order.  Boolean
+%%   variable (or some other test on the state) in combination with |Condition|
+%%   at the start of an operation. 
+%% \end{itemize}
 
 Most other languages provide a mechanism similar to conditions.  For example
 %
@@ -29,11 +64,13 @@ Most other languages provide a mechanism similar to conditions.  For example
 \item C++ |condition_variable|s.
 \end{itemize}
 %
-Note that both of the above may suffer from spurious wake-ups.
+Note that both of the above may suffer from spurious wake-ups.  \framebox{IMPROVE}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \exercises
+
+\input{Exercises/boundedPartialStack}
 
 \input{Exercises/menWomenMonitor}
 
@@ -41,11 +78,8 @@ Note that both of the above may suffer from spurious wake-ups.
 
 TO ADD:
 
-Bounded partial stack
 
 Unisex bathroom (2009 exam): twoTypesProc.tex; 
-
-ABC;
 
 atomicBroadcast; 
 

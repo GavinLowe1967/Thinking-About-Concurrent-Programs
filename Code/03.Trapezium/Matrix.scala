@@ -13,7 +13,7 @@ class MatrixMult(a: Array[Array[Int]], b: Array[Array[Int]],
   type Matrix = Array[Array[Int]]
 
   /** Array to store the result. */
-  private var c = Array.ofDim[Int](n,n)
+  private val c = Array.ofDim[Int](n,n)
 
   trait Task
 
@@ -24,7 +24,7 @@ class MatrixMult(a: Array[Array[Int]], b: Array[Array[Int]],
   case class SingleRowTask(row: Int, start: Int, end: Int) extends Task 
 
   /** Channel for sending tasks. */
-  private val toWorkers = new SyncChan[Task] // (numWorkers)
+  private val toWorkers = new SyncChan[Task] 
 
   /** Calculate and store entry for c(i)(j). */
   private def calculate(i: Int, j: Int) = {

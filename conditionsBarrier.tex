@@ -1,0 +1,74 @@
+\section{Barrier Synchronisation}
+
+We now implement a barrier synchronisation object using conditions.  Recall
+that the object is to be used by~|n| threads.  Each thread calls the operation
+|sync|, passing in their own identity (in fact, this implementation won't use
+those identities, but we want to give the different implementations of a
+barrier the same interface).  Each calls to |sync| should block until all |n|
+threads have called it, and then all should return.  
+
+One challenge we face is to stop two different synchronisations interfering:
+threads might call |sync| for one synchronisation before all threads have
+returned from the previous one.  To this end, we will split each
+synchronisation into two phases: \emph{entering} and \emph{leaving}.  If a
+thread calls |sync| during the leaving phase of the previous synchronisation,
+it waits for that phase to complete.   
+
+%%%%%
+
+\begin{figure}
+\begin{scala}
+class ConditionsBarrier(n: Int) extends BarrierT{
+  /** The number of threads in the main part of the synchronisation. */
+  private var count = 0
+
+  /** Are we in the leaving phase of a synchronisation? */
+  private var leaving = false
+
+  /** Lock for mutual exclusion. */
+  private val lock = new Lock
+
+  /** Condition to indicate that the synchronisation has happened and threads
+    * should continue. */
+  private val continue = lock.newCondition
+
+  /** Condition to indicate that the previous synchronisation has finished, and
+    * threads can enter the main part of the synchronisation. */
+  private val enter = lock.newCondition
+
+  def sync(me: Int) = lock.mutex{
+    enter.await(!leaving) // Wait for previous synchronisation to end (1).
+    if(count == n-1){      // Start leaving phase
+      leaving = true; continue.signalAll() // Signal to threads at (2).
+    }
+    else{      // Have to wait
+      count += 1; continue.await() // Wait for the others (2).
+      assert(leaving); count -= 1
+    }
+    if(count == 0){      // Start entering phase.
+      leaving = false; enter.signalAll() // Signal to threads at (1).
+    }
+  }
+}
+\end{scala}
+\caption{A barrier synchronisation implemented using {\scalastyle
+    Conditions}.}
+\label{fig:ConditionsBarrier}
+\end{figure}
+
+%%%%%
+
+The implementation is in Figure~\ref{fig:ConditionsBarrier}.  The variable
+|leaving| indicates whether the system is in the leaving phase; the variable
+|count| records how many threads are part of the current synchronisation.  We
+use a condition |continue| during the entering phase: threads wait on it until
+all the threads have called |sync|.  The last (|n|th) thread to enter starts
+the leaving phase, and signals to all the threads waiting on |continue|.  We
+use a condition |enter| during the leaving phase: threads wait on it until all
+threads from the previous synchronisation have returned.  The last thread to
+leave starts the entering phase, and signals to all the threads waiting on
+|enter|.
+
+\begin{instruction}
+Study the details of the implementation. 
+\end{instruction}

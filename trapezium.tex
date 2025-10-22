@@ -45,7 +45,9 @@ on that part of the implementation in isolation from other parts; and the
 other parts of the program could use these objects without concern for how
 they were implemented.  Further, this technique means that we could replace
 those objects by other objects that produce the same external behaviour, but
-perhaps using different concurrency techniques \framebox{forward ref here}.
+perhaps using different concurrency techniques: we will see another
+implementation of the bag-of-tasks object, using an explicit lock, in
+Section~\ref{sec:concurrent-objects-locks}.
 
 Encapsulation like this will be an important theme in later chapters.  We will
 arrange for nearly all of the concurrency to be encapsulated within such

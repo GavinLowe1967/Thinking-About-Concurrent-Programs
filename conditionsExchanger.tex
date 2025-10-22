@@ -1,4 +1,4 @@
-\section{Implementing an Exchanger Using Conditions}
+\section{An Exchanger}
 
 We now use |Condition|s to implement an exchanger, following the trait in
 Figure~\ref{fig:ExchangerT}.  The first thread to arrive deposits its value in
@@ -31,33 +31,6 @@ thread's value when $\sm{stage} = \sm{Filled}$, holds the second thread's
 value when $\sm{stage} = \sm{Exchanging}$, and is invalid when $\sm{stage} =
 \sm{Empty}$. 
 
-%%%%% Check position
-
-\begin{figure}
-\begin{center}
-\def\height{5.7}
-\begin{tikzpicture}[xscale = 2.8, yscale = 0.7]
-\draw (0,0) node[draw] (t1) {Thread 1};
-\draw (sender) -- ++ (0,-\height);
-\draw (1,0) node[draw] (t2) {Thread 2}; 
-\draw (receiver) -- ++ (0,-\height);
-\draw (2,0) node[draw] (sender2) {Next thread 1};
-\draw (sender2) -- ++ (0,-\height);
-%
-\draw[<-] (t1) ++ (0,-2) -- 
-  node[above]{\scalashape\footnotesize canStart} ++ (-1,0); 
-\draw[->] (t1) ++ (0,-3) -- 
-  node[above]{\scalashape\footnotesize canStart} ++ (1,0);
-\draw[->] (t2) ++ (0,-4) --
-  node[above]{\scalashape\footnotesize swapped} ++ (-1,0);
-\draw[->] (t1) ++ (0,-5) --
-  node[above, near start]{\scalashape\footnotesize canStart} ++ (2,0);
-\end{tikzpicture}
-\end{center}
-\caption{A sequence diagram illustrating the signals in the implementation of
-  an exchanger.}
-\label{fig:exchanger-seqDiagram}
-\end{figure}
 
 %%%%%
 
@@ -95,7 +68,7 @@ class MonitorExchanger[A] extends tacp.clientServer.Exchanger1T[A]{
     else{
       assert(stage == Filled)
       val result = slot; slot = x // Swap first thread's value with mine.
-      stage = Exchanging; swapped.signal() // Signal to first thread at (2)
+      stage = Exchanging; swapped.signal() // Signal to first thread at (2).
       result
     }
   }
@@ -105,15 +78,43 @@ class MonitorExchanger[A] extends tacp.clientServer.Exchanger1T[A]{
 \label{fig:MonitorExchanger}
 \end{figure}
 
+%%%%% Check position of figure
+
+\begin{figure}
+\begin{center}
+\def\height{5.7}
+\begin{tikzpicture}[xscale = 2.8, yscale = 0.7]
+\draw (0,0) node[draw] (t1) {Thread 1};
+\draw (sender) -- ++ (0,-\height);
+\draw (1,0) node[draw] (t2) {Thread 2}; 
+\draw (receiver) -- ++ (0,-\height);
+\draw (2,0) node[draw] (sender2) {Next thread 1};
+\draw (sender2) -- ++ (0,-\height);
+%
+\draw[<-] (t1) ++ (0,-2) -- 
+  node[above]{\scalashape\footnotesize canStart} ++ (-1,0); 
+\draw[->] (t1) ++ (0,-3) -- 
+  node[above]{\scalashape\footnotesize canStart} ++ (1,0);
+\draw[->] (t2) ++ (0,-4) --
+  node[above]{\scalashape\footnotesize swapped} ++ (-1,0);
+\draw[->] (t1) ++ (0,-5) --
+  node[above, near start]{\scalashape\footnotesize canStart} ++ (2,0);
+\end{tikzpicture}
+\end{center}
+\caption{A sequence diagram illustrating the signals in the implementation of
+  an exchanger.}
+\label{fig:exchanger-seqDiagram}
+\end{figure}
+
 %%%%%
 
-We use a |Lock| to provide mutual exclusion, together with two |Condition|s
-for signalling.  The |Condition| |canStart| is used to prevent a third thread
-interfering with an exchange: a signal on this |Condition| indicates that that
-thread can now start an exchange (unless it has been preempted by another
-thread).  The condition |swapped| is used by the second thread to signal that
-it has swapped values.  Figure~\ref{fig:exchanger-seqDiagram} illustates the
-sequence of signals.  
+We use a |Lock| to provide mutual exclusion, together with two conditions
+for signalling.  The condition |canStart| is used to prevent a third thread
+interfering with an exchange: a signal on this condition indicates that that
+thread can now start an exchange (unless $\sm{stage} = \sm{Exchanging}$,
+i.e.~unless it has been preempted by another thread).  The condition |swapped|
+is used by the second thread to signal that it has swapped values.
+Figure~\ref{fig:exchanger-seqDiagram} illustates the sequence of signals.
 
 In the |exchange| operation, a thread starts by waiting, on |canStart|, for
 the previous exchange to finish, i.e.~until $\sm{stage} \ne \sm{Exchanging}$. 
