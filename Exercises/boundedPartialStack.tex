@@ -1,6 +1,5 @@
 \begin{questionS}
-Implement a bounded partial stack using a monitor.  Give your implementation
-the signature
+Use a monitor to implement a bounded partial stack with signature
 \begin{scala}
 class MonitorBoundedPartialStack[T](bound: Int) extends PartialStack[T]
 \end{scala}
@@ -32,7 +31,7 @@ class MonitorBoundedPartialStack[T](bound: Int) extends PartialStack1[T]{
   /** The stack itself. */
   private val stack = new Stack[T]
 
-  /** A monitor object, to control the synchronisations. */
+  /** A lock, to provide mutual exclusion. */
   private val lock = new Lock
 
   /** Condition for signalling that the stack is not full. */

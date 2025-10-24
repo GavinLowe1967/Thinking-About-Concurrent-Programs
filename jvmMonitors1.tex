@@ -1,0 +1,184 @@
+In the last two chapters, we looked at locks and conditions from SCL.  In this
+chapter, we look at similar mechanisms provided by the Java Virtual Machine
+(JVM).  The fact that these mechanisms are built in to the JVM makes them more
+efficient: the SCL implementations require another layer of interpretation.
+However, they have disadvantages that make them harder to use: we will discuss
+these shortly.  
+
+There are two aspects to the mechanisms in JVM: mutual exclusion, and a
+wait/signal mechanism.  We start with mutual exclusion in the next section,
+and then consider the wait/signal mechanism.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Mutual Exclusion Using JVM Monitors}
+
+The mechanism the JVM provides to ensure mutual exclusion is the
+\SCALA{synchronized} method.  
+%
+If |o| is a reference object and \SCALA{e} is an expression or command, then
+|o.synchronized{e}| acts much like \SCALA{e}, except that at most
+one thread can be active within the \SCALA{synchronized} expressions of the
+object~|o| at any time.  When an object is used like this, we will refer to it
+as a \emph{monitor}. 
+
+If a thread tries to execute a \SCALA{synchronized} expression while another
+thread is within a |synchronized| block on the same monitor, then the former
+thread has to wait until the latter leaves its block.  In effect, the monitor
+provides a lock: when a thread enters a |synchronized| block, it has to obtain
+the lock; when it leaves the block, it releases the lock.  Thus, this can be
+used to ensure that executions of code within |synchronized| blocks do not
+interfere with one another.
+
+The expression |synchronized{e}| is shorthand for |this.synchronized{e}|,
+i.e.~where the current object is used for the monitor.
+
+Note that the monitor must be a \emph{reference} object (a subclass of
+|AnyRef|; see Scala box~\ref{sb:reference-types}), not, for example, an |Int|.
+
+Figure~\ref{fig:counter-monitor} gives a straightforward implementation of a
+counter object, implemented using a JVM monitor.  Each operation is wrapped in
+a |synchronized| block.  The |Counter| object itself acts at the monitor in
+this case.  At most one thread at a time can be inside any of the three
+|synchronized| blocks.
+
+%%%%%
+
+\begin{figure}
+\begin{scala}
+object Counter{
+  private var x = 0
+  def inc() = synchronized{ x += 1 }
+  def dec() = synchronized{ x -= 1 }
+  def get = synchronized{ x }
+}
+\end{scala}
+\caption{A counter implemented using a JVM monitor.}
+\label{fig:counter-monitor}
+\end{figure}
+
+%%%%%
+
+
+\begin{figure}
+\begin{scala}
+class MonitorTotalQueue[T] extends TotalQueue[T]{
+  /** The current state of the queue. */
+  private val queue = new Queue[T]
+
+  /** Enqueue x. */
+  def enqueue(x: T) = synchronized{ queue.enqueue(x) }
+
+  /** Try to dequeue.  Return None if the queue is empty. */
+  def dequeue(): Option[T] = synchronized{ 
+    if(queue.isEmpty) None else Some(queue.dequeue()) 
+  }
+}
+\end{scala}
+\caption{A total queue implemented using a JVM monitor.}
+\label{fig:totalQueue-JVM-monitor}
+\end{figure}
+
+JVM monitors can also be used to implement total datatypes.  For example,
+Figure~\ref{fig:totalQueue-JVM-monitor} gives a straightforward implementation
+of a total queue. 
+
+%%%%%
+
+JVM monitors are re-entrant, like SCL |Lock|s.  For example, consider an
+object of the following form.
+%
+\begin{scala}
+object O{
+  def f(x: Int) = synchronized{ ...; g(y); ... }
+  def g(y: Int) = synchronized{ ... }
+}
+\end{scala}
+%
+If a thread is inside~|f|, it holds the lock on the monitor.  When it
+calls~|g|, it obtains the lock for a second time.  When |g| returns, it still
+holds the lock once.  Only when |f| returns can another thread obtain the
+lock.
+
+Correct use of |synchronized| blocks avoids problems with cache consistency.
+When a thread leaves a |synchronized| block, it \emph{publishes} the values in
+its cache, making them available to other threads.  When a thread enters a
+|synchronized| block, it \emph{subscribes} to all variables published by
+other threads on the monitor.  This means that if all accesses to a variable
+are protected by |synchronized| blocks on the same monitor, as in
+Figure~\ref{fig:counter-monitor} and~\ref{fig:totalQueue-JVM-monitor}, then
+any read of the variable is guaranteed to see the most-recent value written by
+another operation.  Further, compiler optimisations must respect this
+semantics.  This means that if you are using |synchronized| blocks correctly
+to protect against data races, you do not need to worry about memory
+consistency.
+
+The examples we have seen so far have used coarse-grained locking, with a
+single monitor object.  However, it is also possible to use finer-grained
+locking, with multiple monitors, so long as operations using different
+monitors do not interfere.
+
+%%%%%
+
+\begin{figure}
+\begin{scala}
+class StripedCounterArray(n: Int, stripes: Int) 
+    extends tacp.locks.CounterArray(n){
+  require(stripes > 0)
+
+  /** Locks.  £locks(j)£ protects all £a(i)£ such that £i\%stripes $=$ j£. */
+  private val locks = Array.fill(stripes)(new AnyRef)
+
+  def inc(i: Int) = locks(i%stripes).synchronized{ a(i) += 1 }
+
+  def dec(i: Int) = locks(i%stripes).synchronized{ a(i) -= 1 }
+
+  def get(i: Int) = locks(i%stripes).synchronized{ a(i) }
+}
+\end{scala}
+\caption{An array of counters using striped locking.}
+\label{fig:StripedCounterArray-JVM}
+\end{figure}
+
+For example, Figure~\ref{fig:StripedCounterArray-JVM} uses striped locking to
+protect an array of counters, in a very similar style to the implementation in
+Figure~\ref{fig:StripedCounterArray} (and extending the |CounterArray| class
+from Figure~\ref{fig:CounterArray}). As with the earlier example, each monitor
+|locks(j)| protects all counters |a(i)| such that $\sm i \% \sm{stripes} =
+\sm{j}$, so each |a(i)| is protected by \SCALA{locks(i\%stripes)}.  Recall
+that a monitor can be any reference object, i.e.~any subclass of |AnyRef|.  It
+makes sense here to use the simplest such class, i.e.~|AnyRef| itself. 
+
+
+
+sharded set ***
+
+\begin{figure}
+\begin{scala}
+class MonitorShardedSet[A](shards: Int) extends Sharding[A](shards) with Set[A]{
+  /** The shards.  This ShardedSet object represents the union of £sets£. */ 
+  protected val sets = 
+    Array.fill(shards)(new scala.collection.mutable.HashSet[A])
+
+  /** Does this contain £x£? */
+  def contains(x: A): Boolean = {
+    val s = shardFor(x); sets(s).synchronized{ sets(s).contains(x) }
+  }
+
+  /** Add £x£ to this.  Return true if £x£ was not already in the set. */
+  def add(x: A): Boolean = {
+    val s = shardFor(x); sets(s).synchronized{ sets(s).add(x) }
+  }
+
+  /** Remove £x£ from this.  Return true if £x£ was previously in the set. */
+  def remove(x: A): Boolean = {
+    val s = shardFor(x); sets(s).synchronized{ sets(s).remove(x) }
+  }
+}
+\end{scala}
+\caption{A sharded set implemented using JVM monitors.}
+\label{fig:MonitorShardedSet}
+\end{figure}
+
+
+But not linked list example *** 

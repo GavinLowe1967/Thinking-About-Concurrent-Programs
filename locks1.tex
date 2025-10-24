@@ -212,9 +212,10 @@ in the next chapter.
 Figure~\ref{fig:LockTotalQueue} gives an implementation of a total queue (see
 Section~\ref{sec:total-queue}), implemented using a lock.  Each of the main
 operation simply performs the operation on the encapsulated |Queue|, while
-achieving mutual exclusion using a |Lock|.  (We include the |shutdown|
-operation simply to match the |TotalQueue| trait, but it is a no-op in this
-case.) 
+achieving mutual exclusion using a |Lock|.  
+%% (We include the |shutdown|
+%% operation simply to match the |TotalQueue| trait, but it is a no-op in this
+%% case.) 
 
 %%%%%
 
@@ -234,9 +235,6 @@ class LockTotalQueue[T] extends TotalQueue[T]{
   def dequeue(): Option[T] = lock.mutex{ 
     if(queue.isEmpty) None else Some(queue.dequeue()) 
   }
-
-  /** Shutdown the queue. */
-  def shutdown() = {} // Nothing to do.
 }
 \end{scala}
 \caption{A total queue implemented using a lock.}

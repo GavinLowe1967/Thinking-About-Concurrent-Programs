@@ -27,9 +27,10 @@ trait SyncChanT[A]{
 %%%%%
 
 The implementation is in Figure~\ref{fig:SharedSyncChan}.  The variable
-|value| holds the value currently being sent, or maybe the previous value
-sent.  The variable |full| indicates whether the value in |value| is valid,
-i.e.~if a current sender is trying to send it. 
+|value| holds the value currently being sent, or maybe the previous value sent
+(we will sometimes refer to a variable like this as a \emph{slot}).  The
+variable |full| indicates whether the value in |value| is valid, i.e.~if a
+current sender is trying to send it.
 
 %%%%% Check positioning of figure.
 

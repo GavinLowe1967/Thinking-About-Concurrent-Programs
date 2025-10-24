@@ -1,0 +1,75 @@
+\begin{question}
+Recall the atomic broadcast problem from Exercise~\ref{ex:atomicBroadcast}: a
+mechanism is required to allow a single sender to synchronously broadcast a
+message to~|n| receivers, repeatedly.  Implement a class to solve this
+problem, using conditions internally.  You may assume $\sm n > 0$.
+\end{question}
+
+%%%%%
+
+\begin{answerI}
+My code is below.  As with the barrier synchronisation example in the body of
+the chapter, we need to ensure that different synchronisations do not
+interfere.  To that end, all the receivers wait until the previous
+synchronisation has finished and all threads have returned; they then record
+their presence and wait for the sender.  The sender waits until all |n|
+receivers have entered, writes its values, and signals to the receivers.  The
+receivers pick up the sender's value; the last one to leave resets for the
+next round and signals to waiting receivers.  Comments in the code give more
+details. 
+%
+\begin{scala}
+class AtomicBroadcast[A](n: Int) extends tacp.clientServer.AtomicBroadcastT[A]{
+  require(n > 0)
+
+  /** Number of receivers waiting (when £slotFilled = false£), or the number still
+    * to leave (when £slotFilled = true£). */
+  private var waiting = 0
+
+  private var slot: A = _
+
+  /** Is the value in £slot£ valid?  This remains true until the last receiver has
+    * read £slot£. */
+  private var slotFilled = false
+
+  private val lock = new Lock
+
+  /** A condition to signal to the sender that all the readers are waiting, and
+    * so it can write its value and return. */
+  private val canWrite = lock.newCondition
+
+  /** A condition to signal to receivers that the previous synchronisation is
+    * complete, so they can enter the main part of the operation. */
+  private val canEnter = lock.newCondition
+
+  /** A condition to signal to receivers that they can read the sender's value. */
+  private val canRead = lock.newCondition
+
+  def send(x: A) = lock.mutex{
+    canWrite.await(slotFilled == false && waiting == n) 
+                                             // Wait for the receivers (2).
+    slot = x; slotFilled = true
+    canRead.signalAll() // Signal to the receivers at (3).
+  }
+
+  def receive(): A = lock.mutex{
+    canEnter.await(slotFilled == false) // Wait for previous round to finish (1).
+    waiting += 1
+    if(waiting == n) 
+      canWrite.signal() // The last receiver signals to the sender at (2).
+    canRead.await() // Wait for the sender (3).
+    waiting -= 1
+    if(waiting == 0){ // The last receiver to leave resets for the next round.
+      slotFilled = false 
+      canEnter.signalAll() // Signal to receivers on the next round at (1).
+    }
+    slot
+  }
+}
+\end{scala}
+%
+This requires $\sm n > 0$, or else the sender will deadlock on its second
+iteration: |slotFilled| will be |true|, and there is no receiver to set it to
+|false|.  We could avoid this assumption by treating $\sm n = 0$ as a special
+case.
+\end{answerI}

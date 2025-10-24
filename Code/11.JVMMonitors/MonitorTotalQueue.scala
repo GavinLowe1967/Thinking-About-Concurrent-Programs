@@ -4,19 +4,17 @@ import ox.scl._
 
 import scala.collection.mutable.Queue
 
-/** A total queue implemented using a Lock. */
-class LockTotalQueue[T] extends TotalQueue[T]{
+/** A total queue implemented using a JVM monitor. */
+class MonitorTotalQueue[T] extends TotalQueue[T]{
   /** The current state of the queue. */
   private val queue = new Queue[T]
 
-  /** A Lock to protect queue. */
-  private val lock = new Lock
-
-  /** Enqueue x. */ 
-  def enqueue(x: T) = lock.mutex{ queue.enqueue(x) }
+  /** Enqueue x. */
+  def enqueue(x: T) = synchronized{ queue.enqueue(x) }
 
   /** Try to dequeue.  Return None if the queue is empty. */
-  def dequeue(): Option[T] = lock.mutex{ 
+  def dequeue(): Option[T] = synchronized{ 
     if(queue.isEmpty) None else Some(queue.dequeue()) 
   }
 }
+ 

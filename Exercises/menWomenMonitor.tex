@@ -1,7 +1,7 @@
 \begin{question}
 Recall the following synchronisation problem from
 Exercise~\ref{ex:menWomenServer}.  There are two types of client thread, which
-we shall call \emph{men} and \emph{women}.  These threads need to pair off for
+we  call \emph{men} and \emph{women}.  These threads need to pair off for
 some purpose, with each pair containing one thread of each type.  Design a
 monitor to support this, with operations
 %
@@ -30,12 +30,13 @@ The variable |stage| records which stage has been reached.  There are three
 |Condition|s, each for signalling to the relevant next thread at a particular
 stage.  After receiving a signal at stage~1 or~2, the thread needs to recheck
 the value of |stage|, in case it has been preempted; but there is no need for
-the man to recheck |stage| at stage~3, because it can be the only thread ready
-to receive the relevant signal.    
+the man thread to recheck |stage| at stage~3, because it can be the only
+thread ready to receive the relevant signal.
 %
 \begin{scala}
 class MenWomenM extends tacp.clientServer.MenWomenT{
-  private val Empty = 0; private val ManStored = 1; private val WomanStored = 2
+  private val Empty = 0; private val ManStored = 1
+  private val WomanStored = 2
 
   /** The stage of the current exchange. */
   private var stage = Empty
@@ -49,16 +50,16 @@ class MenWomenM extends tacp.clientServer.MenWomenT{
   private val nameCleared, manWritten, womanWritten = lock.newCondition
 
   def manSync(me: String): String = lock.mutex{
-    nameCleared.await(stage == Empty) // Wait for previous round to finish. (1)
+    nameCleared.await(stage == Empty) // Wait for previous round to finish (1).
     name = me; stage = ManStored // Store my name.
     manWritten.signal() // Signal to woman at (2).
-    womanWritten.await() // Wait for woman. (3)
+    womanWritten.await() // Wait for woman (3).
     stage = Empty; nameCleared.signal() // Signal to next man at (1).
     name
   }
 
   def womanSync(me: String): String = lock.mutex{
-    manWritten.await(stage == ManStored) // Wait for man. (2)
+    manWritten.await(stage == ManStored) // Wait for man (2).
     val him = name; name = me; stage = WomanStored // Swap names.
     womanWritten.signal() // Signal to man at (3).
     him

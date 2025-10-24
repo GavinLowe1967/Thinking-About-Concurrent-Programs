@@ -11,7 +11,7 @@ trait TotalQueue[T]{
   def dequeue(): Option[T]
 
   /** Shut down the queue. */
-  def shutdown(): Unit
+  def shutdown() = {}
 }
 
 // -------------------------------------------------------
@@ -42,7 +42,7 @@ class ServerTotalQueue[T] extends TotalQueue[T]{
 
   def isEmpty: Boolean = isEmptyChan?()
 
-  def shutdown() = { 
+  override def shutdown() = { 
     enqueueChan.close(); dequeueChan.close(); isEmptyChan.close() 
   }
 }
@@ -71,7 +71,7 @@ class ServerTotalQueue2[T] extends TotalQueue[T]{
     val c = new SyncChan[Option[T]]; dequeueChan!c; c?() 
   }
 
-  def shutdown() = { enqueueChan.close(); dequeueChan.close() }
+  override def shutdown() = { enqueueChan.close(); dequeueChan.close() }
 }
 
 // =======================================================
@@ -98,6 +98,6 @@ class FaultyTotalQueue[T] extends TotalQueue[T]{
 
   def dequeue(): Option[T] = dequeueChan?()
 
-  def shutdown() = { enqueueChan.close(); dequeueChan.close() }
+  override def shutdown() = { enqueueChan.close(); dequeueChan.close() }
 
 }

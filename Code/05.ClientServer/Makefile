@@ -38,7 +38,7 @@ $(DIR)/AtomicBroadcastTest.class: $(DIR)/AtomicBroadcast.class $(MONDIR)/AtomicB
 $(MONDIR)/AtomicBroadcast.class: $(MON_SRC_DIR)/AtomicBroadcast.scala
 	cd $(MON_SRC_DIR); make atomicBroadcast
 
-# Standard recipe
+# Standard recipes
 
 clean:
 	rm $(DIR)/*.class; fsc -shutdown

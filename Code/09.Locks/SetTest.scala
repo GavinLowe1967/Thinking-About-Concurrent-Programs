@@ -36,14 +36,17 @@ object SetTest{
     }
   } 
 
-  private var linkedList = false
+  private val LinkedList = 0; private val Sharded = 1
+  private val ShardedMonitor = 2
 
   /** Perform a single test. */
-  def doTest = {
+  def doTest(choice: Int) = {
     val s = 1 << (1+Random.nextInt(6)) // Number of shards. 
     var p = 1+Random.nextInt(10) // Number of workers.
     val concSet: Set[Int] = 
-      if(linkedList) new LinkedListSet[Int] else new ShardedSet[Int](s)
+      if(choice == LinkedList) new LinkedListSet[Int] 
+      else if(choice == Sharded) new ShardedSet[Int](s)
+      else{ assert(choice == ShardedMonitor); new MonitorShardedSet[Int](s) }
     val seqSet = new SeqSet
     val tester = 
       LinearizabilityTester[SeqSet,ConcSet](seqSet, concSet, p, worker)
@@ -51,12 +54,13 @@ object SetTest{
   }
 
   def main(args: Array[String]) = {
-    var i = 0
+    var i = 0; var choice = Sharded
     while(i < args.length) args(i) match{
-      case "--linkedList" => linkedList = true; i += 1
+      case "--linkedList" => choice = LinkedList; i += 1
+      case "--shardedMonitor" => choice = ShardedMonitor; i += 1
     }
 
-    for(r <- 0 until 10000){ doTest; if(r%50 == 0) print(".") }
+    for(r <- 0 until 10000){ doTest(choice); if(r%50 == 0) print(".") }
     println()
   }
 

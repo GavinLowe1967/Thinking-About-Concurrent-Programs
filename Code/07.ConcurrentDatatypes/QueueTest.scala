@@ -40,6 +40,7 @@ object QueueTest{
       case "2" => new ServerTotalQueue2[Int]
       case "faulty" => new FaultyTotalQueue[Int]
       case "lock" => new LockTotalQueue[Int]
+      case "monitor" => new MonitorTotalQueue[Int]
     }
     val seqQueue = Queue[Int]()
     val tester = LinearizabilityTester[SeqQueue,ConcQueue](
@@ -59,6 +60,7 @@ object QueueTest{
       case "-2" => queueType = "2"; i += 1
       case "--faulty" => queueType = "faulty"; i += 1
       case "--lock" => queueType = "lock"; i += 1
+      case "--monitor" => queueType = "monitor"; i += 1
       case arg => println("Unrecognised argument: "+arg); sys.exit()
     }
 

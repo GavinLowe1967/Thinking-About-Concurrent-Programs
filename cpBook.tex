@@ -11,7 +11,7 @@
 \usepgflibrary{arrows}
 \tikzset{>=angle 90}
 \usepackage{pgfplots}
-\pgfplotsset{compat=1.10}
+\pgfplotsset{compat=1.16}
 
 \usepackage{book} % misc macros
 
@@ -46,7 +46,7 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\includeonly{conditions}
+\includeonly{jvmMonitors}
 
 \begin{document}
 \maketitle
@@ -75,12 +75,15 @@
 \include{dataParallel} % 8
 \include{locks} % 9
 \include{conditions} % 10
+\include{jvmMonitors} % 11
 
 %%%%%
 
 % 11. JVM monitors  \label{chap:JVMMonitors}
+% mod3 question
 
 % 12. semaphores \label{chap:semaphores}
+% mod3, producer-consumer, men & women, bounded buffer (counting semaphores). 
 
 % 13. other approaches
 

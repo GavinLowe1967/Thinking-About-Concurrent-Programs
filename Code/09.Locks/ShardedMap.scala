@@ -2,8 +2,6 @@ package tacp.datatypes
 
 import ox.scl._
 
-import Sharding._
-
 trait Map[K,V]{
   /** Optionally get the value associated with k. */
   def get(k: K): Option[V] 
@@ -20,16 +18,7 @@ trait Map[K,V]{
 // =======================================================
 
 /** A sharded map from K to V, using `shards` shards. */
-class ShardedMap[K,V](shards: Int) extends Map[K,V]{
-  require(shards > 1)
-
-  /** The amount to shift hash codes to obtain the index of the relevant
-    * shard. */
-  private val shift = 32-logShards(shards)
-
-  /** The shard in which k is stored. */ 
-  private def shardFor(k: K) = improve(k.hashCode) >>> shift
-
+class ShardedMap[K,V](shards: Int) extends Sharding[K](shards) with Map[K,V]{
   /** The shards.  This ShardedMap object represents the union of maps. */ 
   private val maps = 
     Array.fill(shards)(new scala.collection.mutable.HashMap[K, V])

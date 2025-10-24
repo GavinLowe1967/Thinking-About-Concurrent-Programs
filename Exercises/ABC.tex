@@ -14,9 +14,10 @@ trait ABCSync[A,B,C]{
 %
 Each |A|-thread calls |ASync|, passing in its identity; it receives back the
 identities of the |B|- and |C|-threads with which it synchronises.  Likewise,
-the |B|- and |C|-threads call |BSync| and |CSync|, respectively.  Each
-operation will block until other threads call the other two operations.
-Implement a class that extends this trait, using |Condition|s.
+the |B|- and |C|-threads call |BSync| and |CSync|, respectively, and receive
+back the identities of the threads with which it synchronises.  Each operation
+will block until other threads call the other two operations.  Implement a
+class that extends this trait, using conditions.
 
 Test your code.
 \end{question}
@@ -99,30 +100,30 @@ class ABCSyncMonitor[A,B,C] extends ABCSync[A,B,C]{
   private val aSignal, bSignal = lock.newCondition
 
   def ASync(me: A) = lock.mutex{
-    aStart.await(!aFull)          // (A1)
+    aStart.await(!aFull)          // Wait for previous round to end (A1).
     assert(!bFull && !cFull); a = me; aFull = true
-    bStart.signal()                // signal to B£-£thread at (B1)
-    aSignal.await()                // (A2)
+    bStart.signal()                // Signal to B£-£thread at (B1).
+    aSignal.await()                // Wait for other threads (A2).
     assert(aFull && bFull && cFull)
-    bSignal.signal()                 // signal to B£-£thread at (B2)
+    bSignal.signal()                 // Signal to B£-£thread at (B2).
     (b,c)
   }
 
   def BSync(me: B) = lock.mutex{
-    bStart.await(aFull && !bFull)         // (B1)
+    bStart.await(aFull && !bFull)         // Wait for my turn (B1).
     assert(!cFull); b = me; bFull = true
-    cStart.signal()                 // signal to C£-£thread at (C1)
-    bSignal.await()                // (B2)
+    cStart.signal()                 // Signal to C£-£thread at (C1).
+    bSignal.await()                // Wait for other threads (B2).
     assert(aFull && bFull && cFull)
     aFull = false; bFull = false; cFull = false
-    aStart.signal()               // signal to next A£-£thread at (A1)
+    aStart.signal()               // Signal to next A£-£thread at (A1).
     (a,c)
   }
 
   def CSync(me: C) = lock.mutex{
-    cStart.await(bFull && !cFull)         // (C1)
+    cStart.await(bFull && !cFull)         // Wait for my turn (C1).
     assert(aFull); c = me; cFull = true
-    aSignal.signal() // Signal to A£-£thread at (A2)
+    aSignal.signal() // Signal to A£-£thread at (A2).
     (a,b)
   }
 }

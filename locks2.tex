@@ -225,17 +225,8 @@ access this single shard.
 
 \begin{figure}
 \begin{scala}
-/** A sharded set containing elements of type A, using `shards` shards. */
-class ShardedSet[A](shards: Int) extends Set[A]{
-  require(shards > 1)
-
-  /** The amount to shift hash codes to obtain the index of the relevant
-    * shard. */
-  private val shift = 32-Sharding.logShards(shards)
-
-  /** The shard in which £x£ is stored. */ 
-  private def shardFor(x: A) = Sharding.improve(x.hashCode) >>> shift
-
+/** A sharded set containing elements of type A, using £shards£ shards. */
+class ShardedSet[A](shards: Int) extends Sharding[K](shards) with Set[A]{
   /** The shards.  This £ShardedSet£ object represents the union of £sets£. */ 
   private val sets = Array.fill(shards)(new scala.collection.mutable.HashSet[A])
 
@@ -268,9 +259,11 @@ Figure~\ref{fig:ShardedSet} gives an implementation using this idea, using a
 |HashSet| for each shard.  Our implementation abstracts away from how
 operations are performed on the individual shards, for example issues such as
 resizing a hash table, delegating these to the |HashSet| objects.
-Figure~\ref{fig:Sharding} gives some supporting code
-(Exercise~\ref{ex:sharded-map} asks you to implement a mapping using sharding;
-some of this supporting code will also be useful there).
+Figure~\ref{fig:Sharding} defines the |shardFor| function, which we will
+discuss shortly: we will reuse this class later.
+%% gives some supporting code
+%% (Exercise~\ref{ex:sharded-map} asks you to implement a mapping using sharding;
+%% some of this supporting code will also be useful there).
 
 Each of the three public operations acts in a similar way: it calculates the
 index for the shard, obtains the relevant lock, and then performs the
@@ -280,25 +273,34 @@ corresponding operation on the relevant shard.
 
 \begin{figure}
 \begin{scala}
-/** Useful functions supporting sharding. */
-object Sharding{
+/** Class to support sharding, using £shards£ shards, with keys of type £A£. */
+abstract class Sharding[A](shards: Int){
+  require(shards > 1)
+
   /** Improve a hash code. */
-  def improve(hcode: Int): Int = {
+  private def improve(hcode: Int): Int = {
     var h = hcode + ~(hcode << 9)
     h = h ^ (h >>> 14); h = h + (h << 4); h ^ (h >>> 10)
   }
 
-  /** The log of shards.  Check this is a power of 2. */
-  def logShards(shards: Int) = {
+  /** The log of £shards£.  Check this is a power of 2. */
+  private def logShards = {
     var s = shards; var i = 0
     while(s > 1){ s = s >> 1; i += 1 }
     require(shards == 1 << i, 
       s"The number of shards should be a power of 2, received $shards.")
     i
   }
+
+  /** The amount to shift hash codes to obtain the index of the relevant
+    * shard. */
+  private val shift = 32-logShards
+
+  /** The shard in which £x£ is stored. */ 
+  protected def shardFor(x: A) = improve(x.hashCode) >>> shift
 }
 \end{scala}
-\caption{Some functions supporting sharding.}
+\caption{Class providing support for sharding.}
 \label{fig:Sharding}
 \end{figure}
 

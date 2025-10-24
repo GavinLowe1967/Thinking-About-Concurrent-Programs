@@ -9,8 +9,7 @@ Chapter 3: Example: Numerical Integration
 
 Chapter 4: Alternation
 
-
-Chaper 5: Clienta and Servers
+Chaper 5: Clients and Servers
 
 Chapter 6: Interacting Peers
 
@@ -22,8 +21,8 @@ Chapter 9: Locks
 
 Chapter 10: Conditions: 
 - improve section on other languages
-- check exercises
-- more exercises
+- check atomic broadcast exercise
+- more exercises -- could do with more easy-ish exercises. 
 
 Chapter 11: JVM Monitors -- to write
 

@@ -4,11 +4,12 @@ DIR = $(ROOT)/datatypes
 
 DPDIR = $(ROOT)/dataParallel
 
+# Source directories for classes that use tests here.
+
 DP_SRC_DIR = ../08.DataParallel
-
 LOCK_SRC_DIR = ../09.Locks
-
-MON_SRC_DIR = ../10.Conditions
+COND_SRC_DIR = ../10.Conditions
+MON_SRC_DIR = ../11.JVMMonitors
 
 EXERCISES = $(DIR)/TotalStack.class $(DIR)/Sudoku.class $(DIR)/PartialStack.class
 
@@ -17,17 +18,23 @@ all: $(DIR)/QueueTest.class $(DIR)/PartialQueueTest.class $(DIR)/WordPath.class 
 clean:
 	rm $(DIR)/*.class; fsc -shutdown
 
-# Queues
+# Total queues
 
-$(DIR)/QueueTest.class: $(DIR)/TotalQueue.class $(DIR)/LockTotalQueue.class
-
-$(DIR)/PartialQueueTest.class: $(DIR)/PartialQueue.class $(DIR)/MonitorPartialQueue.class
+$(DIR)/QueueTest.class: $(DIR)/TotalQueue.class $(DIR)/LockTotalQueue.class $(DIR)/MonitorTotalQueue.class
 
 $(DIR)/LockTotalQueue.class: $(LOCK_SRC_DIR)/LockTotalQueue.scala
 	cd $(LOCK_SRC_DIR); make
 
-$(DIR)/MonitorPartialQueue.class: $(MON_SRC_DIR)/MonitorPartialQueue.scala
-	cd $(MON_SRC_DIR); make queue
+$(DIR)/MonitorTotalQueue.class: $(MON_SRC_DIR)/MonitorTotalQueue.scala
+	cd $(MON_SRC_DIR); make tQueue
+
+# Partial queues
+
+$(DIR)/PartialQueueTest.class: $(DIR)/PartialQueue.class $(DIR)/MonitorPartialQueue.class
+
+
+$(DIR)/MonitorPartialQueue.class: $(COND_SRC_DIR)/MonitorPartialQueue.scala
+	cd $(COND_SRC_DIR); make queue
 
 # BF search
 

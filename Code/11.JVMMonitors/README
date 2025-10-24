@@ -1,0 +1,14 @@
+Counter.scala: A simple example of a counter using synchronized blocks. 
+
+MonitorTotalQueue.scala: A total queue.
+
+StripedCounterArray.scala: An array of counters, protected using striped
+locking.
+
+MonitorShardedSet: A sharded set implemented using a monitor.
+
+TODO:
+
+Stripped locking in array
+
+Sharded map

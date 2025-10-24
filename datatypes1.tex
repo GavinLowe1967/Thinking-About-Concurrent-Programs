@@ -111,7 +111,7 @@ trait TotalQueue[T]{
   def dequeue(): Option[T]
 
   /** Shut down the queue. */
-  def shutdown: Unit
+  def shutdown: Unit = {}
 }
 \end{scala}
 %\end{mysamepage}
@@ -131,8 +131,8 @@ queue using one of the techniques we'll see later in the course.  The server
 stores the queue itself (using a |Queue| from the Scala API).  Clients use
 channels to cause the server to enqueue and dequeue values.  Note that the
 server handles operations in a one-at-a-time way, preventing operations from
-interfering with one another.  We also include a |shutdown| operation, to
-provide a way to terminate the server thread, and so allow garbage collection.
+interfering with one another.  
+
 
 %%%%%
 
@@ -159,7 +159,7 @@ class ServerTotalQueue[T] extends TotalQueue[T]{
 
   fork(server)
 
-  def shutdown() = { enqueueChan.close; dequeueChan.close }
+  override def shutdown() = { enqueueChan.close; dequeueChan.close }
 }
 \end{scala}
 \caption{A total queue implemented using a server.}
@@ -167,6 +167,15 @@ class ServerTotalQueue[T] extends TotalQueue[T]{
 \end{figure}
 
 %%%%%
+
+
+We include a |shutdown| operation, to provide a way to terminate the server
+thread, and so allow garbage collection.  Later, we will see other
+implementations of |TotalQueue|.  We include |shutdown| in the |TotalQueue|
+trait, so as to ensure a uniform interface, for example, for testing.  It is
+convenient to give |shutdown| a default no-op implementation in |TotalQueue|,
+as that is what we will want in later implementations, and to override the
+definition just in |Server|\-|TotalQueue|.
 
 \begin{instruction}
 Study the details of the implementation.
