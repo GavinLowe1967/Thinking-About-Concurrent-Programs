@@ -1,0 +1,178 @@
+\section{Waiting and Signalling Using JVM Monitors}
+
+We now consider the second aspect of JVM monitors, namely the wait signal
+mechanism.  If |o| is a reference object, then it has the following
+operations, each of which can be performed only inside a |synchronized| block
+on~|o|:
+\begin{itemize}
+\item |o.wait()|: suspend, giving up the lock on~|o|; wait for a signal, and
+  then re-acquire the lock;
+
+\item |o.notify()| : signal to a thread waiting on~|o|, if there is
+  one (if there is no thread waiting, the operation has no effect);
+
+\item |o.notifyAll()|: signal to all threads waiting on~|o|. 
+\end{itemize}
+%
+Each operation should be performed while holding the lock on~|o|, i.e.~from
+inside a |synchronized| block on~|o|.  When a thread signals, it keeps the
+lock: the thread that receives the signal must wait for the signaller to
+release the lock, and then needs to compete with other threads to re-acquire
+the lock.
+
+The operation |wait()| is shorthand for |this.wait()|, i.e.~where the thread
+waits on the current object.  Similar things hold for |notify()| and
+|notifyAll()|. 
+
+Figure~\ref{fig:partial-queue-JVM-monitor} illustrates the mechanism in an
+implementation of a partial queue.  The |dequeue| operation has to wait if the
+queue is empty.  An |enqueue| operation performs a |notify|, to wake up a
+waiting |dequeue|.
+
+%%%%%
+
+\begin{figure}
+\begin{scala}
+import scala.collection.mutable.Queue
+
+class JVMMonitorPartialQueue[T] extends PartialQueue[T]{
+  /** The current state of the queue. */
+  private val queue = new Queue[T]
+
+  /** Enqueue £x£. */
+  def enqueue(x: T) = synchronized{ 
+    queue.enqueue(x) 
+    notify() // Signal to a waiting £dequeue£.
+  }
+
+  /** Try to dequeue, blocking while the queue is empty.  */
+  def dequeue(): T = synchronized{ 
+    while(queue.isEmpty) wait() // Wait for a value.
+    queue.dequeue() 
+  }
+}
+\end{scala}
+\caption{A partial queue implemented using a JVM monitor.}
+\label{fig:partial-queue-JVM-monitor}
+\end{figure}
+
+%%%%%
+
+As with the implementation using a |Condition| in
+Figure~\ref{fig:MonitorPartialQueue}, a waiting |dequeue| needs to recheck
+whether the queue is empty when it receives a signal, because it is possible
+that some other thread has performed a |dequeue| in the meantime and emptied
+the queue.  
+
+However, there is another reason why it needs to perform this check, which
+would hold even if there were no other thread that could attempt a |dequeue|.
+Sometimes a call of |wait| wakes up even if no other thread has signalled!
+This is known as a \emph{spurious wakeup}.  I consider this a bug (apparently
+it is caused by a similar feature in operating system threading
+implementations; but it is a feature that the JVM fails to deal with).
+Nevertheless, we have to deal with it.  That means that whenever a call of
+|wait| wakes up, it should recheck the relevant condition, in case it has
+received a spurious wakeup.
+
+\begin{instruction}
+Study the details of the implementation.
+\end{instruction}
+
+The implementation of a bounded partial queue is fairly straightforward,
+because there is a single point in the code where a thread can wait.  However,
+things are harder when threads can wait in multiple different places.  SCL
+monitors allow signals to be targeted to the correct place, by using a
+different |Condition| for each.  However, there is no similar way to target
+signals in a JVM monitor.  If there are threads waiting in multiple places,
+when there is a signal, it will be nondeterministic where the signal is
+received, so it might well be received in the wrong place!  
+
+In such circumstances it is necessary to use |notifyAll|.  This means that the
+signal will reach the right place, if there is a thread waiting there.
+However, threads waiting in other places should identify that the signal was
+not intended for them, and wait again.  And likewise, if there are multiple
+threads waiting at the place to which the signal was intended, the first to
+obtain the lock can continue (if not preempted by another thread), but the
+remainder should normally wait again.  
+
+This is illustrated in Figure~\ref{fig:bounded-partial-queue-JVM-monitor}, to
+implement a bounded partial queue.  Again, a |dequeue| has to wait when the
+queue is empty; in addition, an |enqueue| has to wait when the queue is full.
+An |enqueue| signals to a waiting |dequeue|; but it has to perform
+|notifyAll()|, in case there are both |enqueue|s and |dequeue|s waiting.
+Likewise, a |dequeue| signals to a waiting |enqueue|, but again has to perform
+|notifyAll()|.  (In fact, when we use |notifyAll|, we can't have enqueues and
+dequeues waiting simultaneously, because the waiting conditions are disjoint;
+but we could if we used |notify|.)
+
+%%%%%
+
+\begin{figure}
+\begin{scala}
+class JVMMonitorBoundedPartialQueue[T](bound: Int) extends PartialQueue[T]{
+  require(bound > 0)
+
+  /** The current state of the queue. */
+  private val queue = new Queue[T]
+
+  /** Enqueue £x£. */
+  def enqueue(x: T) = synchronized{ 
+    while(queue.length == bound) wait() // Wait for a space (1).
+    queue.enqueue(x)
+    notifyAll() // Signal to a waiting dequeue at (2).
+  }
+
+  /** Try to dequeue, blocking while the queue is empty.  */
+  def dequeue(): T = synchronized{ 
+    while(queue.isEmpty) wait() // Wait for a value (2).
+    val result = queue.dequeue() 
+    notifyAll() // Signal to a waiting enqueue at (1).
+    result
+  }
+}
+\end{scala}
+\caption{A bounded partial queue implemented using a JVM monitor.}
+\label{fig:bounded-partial-queue-JVM-monitor}
+\end{figure}
+
+%%%%%
+
+\begin{instruction}
+Study the implementation.  Make sure you understand why using |notify| could
+go wrong.
+\end{instruction}
+
+%% We can slightly improve the efficiency of the implementations.  We can arrange
+%% for an |enqueue| to perform a |notifyAll| only when it makes the queue
+%% non-empty, i.e.~if it was previously empty:
+%% %
+%% \begin{scala}
+%%   def enqueue(x: T) = synchronized{ 
+%%     while(queue.length == bound) wait() // Wait for a space (1).
+%%     queue.enqueue(x)
+%%     if(queue.length == 1) notifyAll() // Signal to a waiting dequeue at (2).
+%%   }
+%% \end{scala}
+%% %
+%% This works because we have an invariant that there is a waiting |dequeue| only
+%% if the queue is empty; thus there is no point in signalling at other times. 
+%% % Actually, this doesn't save much -- a notifyAll when there are no waiting
+%% % threads. 
+%% \begin{scala}
+%%   def dequeue(): T = synchronized{ 
+%%     while(queue.isEmpty) wait() // Wait for a value (2).
+%%     val result = queue.dequeue() 
+%%     if(queue.length == bound-1) 
+%%       notifyAll() // Signal to a waiting enqueue at (1).
+%%     result
+%%   }
+%% \end{scala}
+
+Having to use |notifyAll| is a disadvantage of JVM monitors.  It will
+typically mean that several threads are woken up, only for them to have to
+wait again.  In particular, scheduling and descheduling threads are quite
+expensive operations, to this adds a fairly significant overhead.  In such
+cases, it is probably better to use |Condition|s, which allow targetted
+signalling. 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
