@@ -1,6 +1,6 @@
 package tacp.jvmMonitors
 
-import ox.scl._
+// import ox.scl._
 
 /** A shared synchronous channel passing data of type A, implemented using a
   * JVM monitor. */

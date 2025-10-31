@@ -38,7 +38,7 @@ class SharedSyncChan[A] extends SyncChanT[A]{
     value = x; full = true   // Deposit my value.
     slotFull.signal()        // Signal to receiver.
     continue.await()         // Wait for receiver.
-  }
+  } 
 
   def receive(): A = lock.mutex{
     slotFull.await(full)               // Wait for sender.

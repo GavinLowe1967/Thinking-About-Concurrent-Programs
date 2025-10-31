@@ -4,7 +4,7 @@ import ox.scl._
 import scala.collection.mutable.Queue
 
 /** A bounded partial queue implemented as a monitor. */
-class BoundedMonitorPartialQueue[T](bound: Int) extends PartialQueue1[T]{
+class BoundedMonitorPartialQueue[T](bound: Int) extends PartialQueue[T]{
   /** The queue itself. */
   private val queue = new Queue[T]
 

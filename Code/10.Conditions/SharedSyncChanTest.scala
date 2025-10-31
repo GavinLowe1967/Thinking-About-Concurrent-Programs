@@ -63,14 +63,17 @@ object SharedSyncChanTest{
     } // End of while loop.
   }
 
+  private val Conditions = 0; private val JVMMon = 1
+
   /** Do a single test. 
     * @param useSemaphores should the semaphore implementation be used? */
-  def doTest(useSemaphores: Boolean) = {
+  def doTest(choice: Int) = {
     val p = 8 // Number of senders and receivers.
     val iters = 10 // Number of items for each sender to send.
     val chan: SyncChanT[Int] = // Channel to test.
-      if(useSemaphores) ??? // new SyncChanSemaphores[Int] 
-      else new SharedSyncChan[Int]
+      if(choice == Conditions) new SharedSyncChan[Int]
+      else if(choice == JVMMon) new tacp.jvmMonitors.JVMMonitorSyncChan[Int]
+      else ??? // new SyncChanSemaphores[Int]
     val log = new Log[LogEvent](2*p) // Shared log; receivers use ids [p..2p).
 
     // The sender; all values sent are distinct. 
@@ -95,8 +98,12 @@ object SharedSyncChanTest{
   }
 
   def main(args: Array[String]) = {
-    val useSemaphores = args.nonEmpty && args(0) == "--sem"
-    for(r <- 0 until 10000){ doTest(useSemaphores); if(r%100 == 0) print(".") }
+    var i = 0; var choice = Conditions
+    while(i < args.length) args(i) match{
+      case "--JVM" => choice = JVMMon; i += 1
+    }
+
+    for(r <- 0 until 10000){ doTest(choice); if(r%100 == 0) print(".") }
     println()
   }
 }

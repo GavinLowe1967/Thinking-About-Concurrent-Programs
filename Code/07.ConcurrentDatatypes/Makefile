@@ -9,7 +9,7 @@ DPDIR = $(ROOT)/dataParallel
 DP_SRC_DIR = ../08.DataParallel
 LOCK_SRC_DIR = ../09.Locks
 COND_SRC_DIR = ../10.Conditions
-MON_SRC_DIR = ../11.JVMMonitors
+JVM_MON_SRC_DIR = ../11.JVMMonitors
 
 EXERCISES = $(DIR)/TotalStack.class $(DIR)/Sudoku.class $(DIR)/PartialStack.class
 
@@ -25,16 +25,22 @@ $(DIR)/QueueTest.class: $(DIR)/TotalQueue.class $(DIR)/LockTotalQueue.class $(DI
 $(DIR)/LockTotalQueue.class: $(LOCK_SRC_DIR)/LockTotalQueue.scala
 	cd $(LOCK_SRC_DIR); make
 
-$(DIR)/MonitorTotalQueue.class: $(MON_SRC_DIR)/MonitorTotalQueue.scala
-	cd $(MON_SRC_DIR); make tQueue
+$(DIR)/MonitorTotalQueue.class: $(JVM_MON_SRC_DIR)/MonitorTotalQueue.scala
+	cd $(JVM_MON_SRC_DIR); make tQueue
+
+tQueue: $(DIR)/TotalQueue.class
 
 # Partial queues
 
-$(DIR)/PartialQueueTest.class: $(DIR)/PartialQueue.class $(DIR)/MonitorPartialQueue.class
-
+$(DIR)/PartialQueueTest.class: $(DIR)/PartialQueue.class $(DIR)/MonitorPartialQueue.class $(DIR)/JVMMonitorPartialQueue.class
 
 $(DIR)/MonitorPartialQueue.class: $(COND_SRC_DIR)/MonitorPartialQueue.scala
 	cd $(COND_SRC_DIR); make queue
+
+$(DIR)/JVMMonitorPartialQueue.class: $(JVM_MON_SRC_DIR)/JVMMonitorPartialQueue.scala
+	cd $(JVM_MON_SRC_DIR); make pQueue
+
+pQueue: $(DIR)/PartialQueue.class
 
 # BF search
 

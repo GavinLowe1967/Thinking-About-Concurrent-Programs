@@ -36,14 +36,15 @@ wait for the signaller to release the lock, and then needs to compete with
 other threads to re-acquire the lock. 
 
 Figure~\ref{fig:MonitorPartialQueue} uses this technique to implement a
-partial queue.  (The helper trait |PartialQueue1| gives a default no-op
-implementation of the |shutdown| operation.)  Here, a |Lock| is used for
+partial queue.  %% (The helper trait |PartialQueue1| gives a default no-op
+%% implementation of the |shutdown| operation.)  
+Here, a |Lock| is used for
 mutual exclusion.  In addition, a |Condition| |notEmpty| is used to allow a
 |dequeue| that cannot proceed---because the queue is empty---to wait; this
 releases the lock.  A thread that performs an |enqueue| signals on |notEmpty|
 to indicate that the queue is now not empty.  The waiting thread that receives
 the signal  has to wait to reacquire the lock, which is done as part of
-the |await| operation.  It then needs to re-check whether the queue is empty:
+the |await| operation.  It then needs to recheck whether the queue is empty:
 it is possible that another thread performed a |dequeue|, after this thread
 received the signal but before it acquired the lock, and so re-emptied the
 queue.
@@ -52,11 +53,9 @@ queue.
 
 \begin{figure}
 \begin{scala}
-trait PartialQueue1[T] extends PartialQueue[T]{
-  def shutdown() = {}
-}
+import scala.collection.mutable.Queue
 
-class MonitorPartialQueue[T] extends PartialQueue1[T]{
+class MonitorPartialQueue[T] extends PartialQueue[T]{
   /** The queue itself. */
   private val queue = new Queue[T]
 
@@ -118,6 +117,25 @@ Thus the |dequeue| operation could be written more succinctly as:
   }
 \end{scala}
 
+It is tempting to write the |enqueue| operation as follows, so that only an
+|enqueue| that makes the queue non-empty signals.
+%
+\begin{scala}
+  def enqueue(x: T) = lock.mutex{ // £\emph{This doesn't work!}£
+    queue.enqueue(x)
+    if(queue.length == 1) notEmpty.signal() // Signal to a waiting dequeue.
+  } 
+\end{scala}
+%
+However, this doesn't work.  Suppose the queue is empty, and there are two
+waiting |dequeue|s.  Now if an |enqueue| runs it will signal to one of them.
+However, it is possible that a second |enqueue| obtains the lock before the
+|dequeue| that received the signal.  With the above implementation, the second
+|enqueue| will not signal.  That means that only one of the |dequeues|
+receives a signal and runs, and the second it left waiting, despite the fact
+that there is a second value in in the queue that it could take. 
+
+
 Try to choose good names for |Condition|s.  I use the convention that the name
 of a |Condition| corresponds to the property that a signal on the condition
 indicates, or, equivalently, the property for which a thread waits.  Above, a
@@ -134,7 +152,7 @@ monitor may use multiple |Condition|s.
 
 \begin{figure}
 \begin{scala}
-class BoundedMonitorPartialQueue[T](bound: Int) extends PartialQueue1[T]{
+class BoundedMonitorPartialQueue[T](bound: Int) extends PartialQueue[T]{
   /** The queue itself. */
   private val queue = new Queue[T]
 

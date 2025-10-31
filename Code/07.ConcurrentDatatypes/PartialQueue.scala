@@ -11,13 +11,13 @@ trait PartialQueue[T]{
   def dequeue(): T
 
   /** Shut down the queue. */
-  def shutdown(): Unit
+  def shutdown(): Unit = {}
 }
 
-/** A partial queue with a no-op shutdown. */
-trait PartialQueue1[T] extends PartialQueue[T]{
-  def shutdown() = {}
-}
+// /** A partial queue with a no-op shutdown. */
+// trait PartialQueue1[T] extends PartialQueue[T]{
+//   def shutdown() = {}
+// }
 
 // -------------------------------------------------------
 

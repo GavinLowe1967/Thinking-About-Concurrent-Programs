@@ -22,7 +22,7 @@ trait PartialQueue[T]{
   def dequeue(): T
 
   /** Shut down the queue. */
-  def shutdown()
+  def shutdown() = {}
 }
 
 class ServerPartialQueue[T] extends PartialQueue[T]{
@@ -44,7 +44,7 @@ class ServerPartialQueue[T] extends PartialQueue[T]{
 
   fork(server)
 
-  def shutdown() = { enqueueChan.close(); dequeueChan.close() }
+  override def shutdown() = { enqueueChan.close(); dequeueChan.close() }
 }
 \end{scala}
 \caption{The interface for partial queues, and an implementation using a

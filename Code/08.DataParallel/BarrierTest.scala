@@ -14,6 +14,7 @@ object BarrierTest{
   private case class Leave(id: Int) extends LogEvent
 
   private val DoLog = 0; private val Server = 1; private val Conditions = 2
+  private val JVMMon = 3
 
   /** Run a single test. */
   def doTest(choice: Int) = {
@@ -22,6 +23,7 @@ object BarrierTest{
     val barrier: BarrierT = 
       if(choice == DoLog) new BarrierLog(p) 
       else if(choice == Conditions) new tacp.monitors.ConditionsBarrier(p) 
+      else if(choice == JVMMon) new tacp.jvmMonitors.JVMMonitorBarrier(p)
       else{ assert(choice == Server); new ServerBarrier(p) }
     val log = new debug.Log[LogEvent](p)
     def worker(me: Int) = thread{
@@ -61,6 +63,7 @@ object BarrierTest{
     while(i < args.length) args(i) match{
       case "--log" => choice = DoLog; i += 1
       case "--conditions" => choice = Conditions; i += 1
+      case "--JVM" => choice = JVMMon; i += 1
     }
 
     for(r <- 0 until reps){ doTest(choice); if(r%10 == 0) print(".") }

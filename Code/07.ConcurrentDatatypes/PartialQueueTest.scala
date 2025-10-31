@@ -32,6 +32,7 @@ object PartialQueueTest{
   def doTest(queueType: String) = {
     val concQueue: PartialQueue[Int] = 
       if(queueType == "server") new ServerPartialQueue[Int]
+      else if(queueType == "JVM") new JVMMonitorPartialQueue[Int]
       else{ assert(queueType == "monitor"); new MonitorPartialQueue[Int] }
     val seqQueue = Queue[Int]()
     val tester =
@@ -49,6 +50,7 @@ object PartialQueueTest{
       case "--iters" => iters = args(i+1).toInt; i += 2 
       case "--reps" => reps = args(i+1).toInt; i += 2 
       case "--monitor" => queueType = "monitor"; i += 1
+      case "--JVM" => queueType = "JVM"; i += 1
       // case "--semaphore" => queueType = "semaphore"; i += 1
       // case "--countingSemaphore" => queueType = "counting semaphore"; i += 1
       case arg => println("Unrecognised argument: "+arg); sys.exit()

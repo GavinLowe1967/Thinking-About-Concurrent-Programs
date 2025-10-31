@@ -18,13 +18,19 @@ Chapter 7: Concurrent Datatypes
 Chapter 8: Data Parallel
 
 Chapter 9: Locks
+- Add work stealing example, 2023 exam, workStealing.tex
 
 Chapter 10: Conditions: 
+- ?? Timed wait operators ??
+- Add diagram of thread states (monitors lecture slides)
+- Add readers & writers example
 - improve section on other languages
-- check atomic broadcast exercise
 - more exercises -- could do with more easy-ish exercises. 
 
-Chapter 11: JVM Monitors -- to write
+Chapter 11: JVM Monitors -- in progress.
+- Add synchronous channel
+- Add barrier synchronisation. 
+- Move lock example earlier?  Before queues. 
 
 Chapter 12: Semaphores -- to write
 

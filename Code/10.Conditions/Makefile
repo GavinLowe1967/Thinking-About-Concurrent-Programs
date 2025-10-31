@@ -1,29 +1,43 @@
 ROOT = ../tacp
 
+# Directories for targets
+
 DIR = $(ROOT)/monitors
-
 DTDIR = $(ROOT)/datatypes
-
 CSDIR = $(ROOT)/clientServer
+JVM_MON_DIR = $(ROOT)/jvmMonitors
+
+# Directories for source code
 
 CS_SRC_DIR = ../05.ClientServer
-
 DT_SRC_DIR = ../07.ConcurrentDatatypes
+JVM_MON_SRC_DIR = ../11.JVMMonitors
 
 EXERCISES = $(DTDIR)/MonitorBoundedPartialStack.class $(DIR)/MenWomenM.class \
   $(DIR)/ABC.class $(DIR)/AtomicBroadcast.class
 
-all: $(DTDIR)/MonitorPartialQueue.class $(DTDIR)/BoundedPartialQueueTest.class $(DIR)/SharedSyncChanTest.class $(DIR)/MonitorExchanger.class $(DIR)/ConditionsBarrier.class $(DIR)/BarberC.class  $(EXERCISES)
+QUEUES = $(DTDIR)/MonitorPartialQueue.class	\
+  $(DTDIR)/BoundedPartialQueueTest.class
+
+all: $(QUEUES) $(DIR)/SharedSyncChanTest.class $(DIR)/MonitorExchanger.class $(DIR)/ConditionsBarrier.class $(DIR)/BarberC.class  $(EXERCISES)
 
 # Partial queue
 
-$(DTDIR)/BoundedPartialQueueTest.class:  $(DTDIR)/BoundedMonitorPartialQueue.class
-
 $(DTDIR)/MonitorPartialQueue.class $(DTDIR)/BoundedMonitorPartialQueue.class: $(DTDIR)/PartialQueue.class
+
+$(DTDIR)/BoundedPartialQueueTest.class:  $(DTDIR)/BoundedMonitorPartialQueue.class $(DTDIR)/JVMMonitorBoundedPartialQueue.class
+
+$(DTDIR)/JVMMonitorBoundedPartialQueue.class: $(JVM_MON_SRC_DIR)/JVMMonitorBoundedPartialQueue.scala
+	cd $(JVM_MON_SRC_DIR); make bpQueue
 
 # Synchronous channel.
 
-$(DIR)/SharedSyncChanTest.class: $(DIR)/SharedSyncChan.class
+$(DIR)/SharedSyncChanTest.class: $(DIR)/SharedSyncChan.class $(JVM_MON_DIR)/JVMMonitorSyncChan.class
+
+$(JVM_MON_DIR)/JVMMonitorSyncChan.class: $(JVM_MON_SRC_DIR)/JVMMonitorSyncChan.scala
+	cd $(JVM_MON_SRC_DIR); make syncChan
+
+syncChan: $(DIR)/SharedSyncChan.class
 
 # Men and women problem
 

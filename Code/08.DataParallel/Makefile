@@ -3,9 +3,11 @@ ROOT = ../tacp
 DIR = $(ROOT)/dataParallel
 DTDIR = $(ROOT)/datatypes
 MONDIR = $(ROOT)/monitors
+JVM_MON_DIR = $(ROOT)/jvmMonitors
 
 DT_SRC_DIR = ../07.ConcurrentDatatypes
 MON_SRC_DIR = ../10.Conditions
+JVM_MON_SRC_DIR = ../11.JVMMonitors
 
 EXERCISES = $(DIR)/ServerCombiningBarrier.class $(DIR)/BarrierLog.class	\
   $(DIR)/PrefixSumsShared.class $(DIR)/ArrayMax.class			\
@@ -15,7 +17,7 @@ all: $(DIR)/BarrierTest.class $(DIR)/PrefixSumsTest.class	\
   $(DIR)/JacobiTest.class $(DIR)/JacobiExperiment.class		\
   $(DIR)/BFSGraphSearch.class $(DIR)/Gravity.class $(EXERCISES)
 
-$(DIR)/BarrierTest.class: $(DIR)/ServerBarrier.class $(DIR)/BarrierLog.class $(MONDIR)/ConditionsBarrier.class
+$(DIR)/BarrierTest.class: $(DIR)/ServerBarrier.class $(DIR)/BarrierLog.class $(MONDIR)/ConditionsBarrier.class $(JVM_MON_DIR)/JVMMonitorBarrier.class
 
 $(DIR)/JacobiTest.class $(DIR)/JacobiExperiment.class: $(DIR)/Jacobi.class
 
@@ -46,3 +48,6 @@ $(DTDIR)/%.class: $(DT_SRC_DIR)/%.scala
 
 $(MONDIR)/%.class: $(MON_SRC_DIR)/%.scala
 	cd $(MON_SRC_DIR); make
+
+$(JVM_MON_DIR)/JVMMonitorBarrier.class: $(JVM_MON_SRC_DIR)/JVMMonitorBarrier.scala
+	cd $(JVM_MON_SRC_DIR); make barrier

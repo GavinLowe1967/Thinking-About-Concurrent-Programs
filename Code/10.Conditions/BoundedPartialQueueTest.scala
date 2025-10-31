@@ -8,7 +8,7 @@ object BoundedPartialQueueTest{
   var iters = 200  // Number of iterations by each worker
   val MaxVal = 20 // Maximum value placed in the queue
 //  var enqueueProb = 0.3 // probability of doing an enqueue
-  var bound = 10 // the bound on the length of the queue
+  var bound = 6 // the bound on the length of the queue
 
   type SeqQueue = scala.collection.immutable.Queue[Int]
   type ConcQueue = PartialQueue[Int]
@@ -32,33 +32,36 @@ object BoundedPartialQueueTest{
     }
   }
 
+  val p = 4      // Number of workers
+
+  def doTest(queueType: String) = {
+    // The shared concurrent queue
+    val concQueue: PartialQueue[Int] = queueType match{
+      case "monitor" => new BoundedMonitorPartialQueue[Int](bound)
+      case "JVM" => new JVMMonitorBoundedPartialQueue[Int](bound)
+    }
+    val seqQueue = Queue[Int]()
+    val tester = LinearizabilityTester[SeqQueue,ConcQueue](
+      seqQueue, concQueue, p, worker _)
+    assert(tester() > 0)
+    concQueue.shutdown()
+  }
+
   def main(args: Array[String]) = {
     // parse arguments
     var i = 0; var queueType = "monitor"
-    val p = 4      // Number of workers 
     var reps = 10000  // Number of repetitions
     while(i < args.length) args(i) match{
       case "--iters" => iters = args(i+1).toInt; i += 2 
       case "--reps" => reps = args(i+1).toInt; i += 2 
 //      case "--enqueueProb" => enqueueProb = args(i+1).toDouble; i += 2
       case "--monitor" => queueType = "monitor"; i += 1
+      case "--JVM" => queueType = "JVM"; i += 1
       case "--bound" => bound = args(i+1).toInt; i += 2
       case arg => println("Unrecognised argument: "+arg); sys.exit()
     }
 
-    for(r <- 0 until reps){
-      // The shared concurrent queue
-      val concQueue = queueType match{
-        case "monitor" => new BoundedMonitorPartialQueue[Int](bound)
-      }
-      val seqQueue = Queue[Int]()
-      val tester = LinearizabilityTester[SeqQueue,ConcQueue](
-        seqQueue, concQueue, p, worker _)
-      assert(tester() > 0)
-      concQueue.shutdown()
-
-      if(r%50 == 0) print(".")
-    } // end of for loop
+    for(r <- 0 until reps){ doTest(queueType); if(r%50 == 0) print(".") }
     println()
   }
 }

@@ -149,9 +149,8 @@ from Figure~\ref{fig:CounterArray}). As with the earlier example, each monitor
 that a monitor can be any reference object, i.e.~any subclass of |AnyRef|.  It
 makes sense here to use the simplest such class, i.e.~|AnyRef| itself. 
 
+%%%%%
 
-
-sharded set ***
 
 \begin{figure}
 \begin{scala}
@@ -165,12 +164,12 @@ class MonitorShardedSet[A](shards: Int) extends Sharding[A](shards) with Set[A]{
     val s = shardFor(x); sets(s).synchronized{ sets(s).contains(x) }
   }
 
-  /** Add £x£ to this.  Return true if £x£ was not already in the set. */
+  /** Add £x£ to this.  Return £true£ if £x£ was not already in the set. */
   def add(x: A): Boolean = {
     val s = shardFor(x); sets(s).synchronized{ sets(s).add(x) }
   }
 
-  /** Remove £x£ from this.  Return true if £x£ was previously in the set. */
+  /** Remove £x£ from this.  Return £true£ if £x£ was previously in the set. */
   def remove(x: A): Boolean = {
     val s = shardFor(x); sets(s).synchronized{ sets(s).remove(x) }
   }
@@ -180,5 +179,27 @@ class MonitorShardedSet[A](shards: Int) extends Sharding[A](shards) with Set[A]{
 \label{fig:MonitorShardedSet}
 \end{figure}
 
+%%%%%
 
-But not linked list example *** 
+Figure~\ref{fig:MonitorShardedSet} gives a sharded set implemented using JVM
+monitors.  Recall that the set is implemented in terms of some number of
+smaller sets, known as shards.  Here we use |shards| |HashSet|s, stored in an
+array |sets|.  A value~|x| is stored in the shard with index |shardFor(x)|
+(defined in the class |Sharding|).  We want each shard to be independently
+lockable, so operations on it are performed under mutual exclusion.  We could
+create |shards| new |AnyRef| objects, as we did in
+Figure~\ref{fig:StripedCounterArray-JVM}.  However, a simpler method is to use
+the |HashSet| objects themselves, as they are reference objects.  Hence each
+operation on |set(s)| is protected by a |synchronized| block on |sets(s)|
+itself.
+
+However, it is not possible to re-implement the example from
+Section~\ref{sec:linked-list-fine-grained} of a linked list using fine-grained
+locking.  The extent of a |synchronized| block is defined by the brackets
+around it.  Thus two different |synchronized| blocks by the same thread
+satisfy the normal rules for bracketing: either they are disjoint, or one is
+fully inside the other.  As noted in
+Section~\ref{sec:linked-list-fine-grained}, the periods during which a thread
+has two consecutive nodes locked does not satisfy this property.
+
+

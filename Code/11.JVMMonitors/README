@@ -7,6 +7,10 @@ locking.
 
 MonitorShardedSet: A sharded set implemented using a monitor.
 
+JVMMonitorPartialQueue.scala: A partial queue.
+
+JVMMonitorSyncChan.scala: A synchronous channel. 
+
 TODO:
 
 Stripped locking in array
