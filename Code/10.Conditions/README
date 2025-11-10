@@ -1,6 +1,6 @@
 MonitorPartialQueue.scala: Implementation of a partial queue using a monitor. 
 
-BoundedMonitorPartialQueue.scala: Implementation of a bounded partial queue
+MonitorBoundedPartialQueue.scala: Implementation of a bounded partial queue
 using a monitor.
 
 BoundedPartialQueueTest.scala: Linearizability tester for a partial queue.
@@ -15,17 +15,19 @@ ConditionsBarrier.scala: a barrier synchronisation implemented using conditions.
 
 BarberC.scala: sleeping barber example.
 
+ReadersWriters.scala: The readers and writers problem.
+
+ReadersWritersTest.scala: Test for the readers and writers.
 
 EXERCISES
 
 MonitorBoundedPartialStack.scala: implementation of a bounded partial stack.  
 
-
-
 MenWomenM.scala: the mean and women problem.
 
 ABC.scala: the ABC problem. 
 
+AtomicBroadcast.scala: Atomic broadcast.
    
 OMIT
 

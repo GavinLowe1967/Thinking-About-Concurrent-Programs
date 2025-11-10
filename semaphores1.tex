@@ -1,0 +1,152 @@
+A semaphore is an important synchronisation tool.  The idea (and name) is
+inspired by railway signalling, where a flag is raised to indicate that track
+ahead can be entered, or lowered to indicate that the track ahead is occupied.
+A train arriving at the section of track waits until the flag is up, enters
+the section, and the flag is lowered again.  When the train leaves the section
+of track, the flag is raised. 
+
+A semaphore 
+%% has a boolean variable, that indicates whether the flag is down.  It
+has two operations:
+%
+\begin{description}
+\item[\scalastyle{down()}:]
+Wait until the flag is in the up position, and then put the flag down and
+procced;
+
+\item[\scalastyle{up()}:]
+Put the flag up, to allow another thread to proceed.
+\end{description}
+%
+The operations \SCALA{down} and \SCALA{up} are sometimes called \SCALA{P} and
+\SCALA{V} (the initial letters of the Dutch words for the operations),
+{\scalastyle wait} and \SCALA{signal}, or \SCALA{acquire} and
+\SCALA{release}.
+
+Figure~\ref{fig:semaphore-implementation} gives a straightforward
+implementation of a semaphore using a JVM monitor.  The variable |isUp|
+records whether the flag is currently in the up position.
+
+%%%%%
+
+\begin{figure}
+\begin{scala}
+/** A binary semaphore.
+  * @param £isUp£ is the semaphore initially in the up state? */
+class Semaphore(private var isUp: Boolean){
+  def down() = synchronized{
+    while(!isUp) wait()
+    isUp = false
+  }
+
+  def up() = synchronized{
+    require(!isUp); isUp = true; notify()
+  }
+}
+\end{scala}
+\caption{An implementation of a binary semaphore.}
+\label{fig:semaphore-implementation}
+\end{figure}
+
+Note that the |up| operation requires that the semaphore is not already up.
+This is a slightly non-standard design decisions: most implementations treat
+the operation as a no-op in this case.  However, my experience is that trying
+to put the semaphore up when it is already up is nearly always an error: a
+signal gets lost.  I think it is better for the implementation to throw an
+exception in this case, so that the error can be detected and removed.
+
+\begin{instruction}
+Make sure you understand how the implementation matches the informal
+description given earlier.
+\end{instruction}
+
+In fact, many operating system kernels provide implementations of semaphores.
+Those semaphores can then be used to implement other concurrency support, such
+as monitors, within a programming language.
+
+As with other concurrency mechanisms, semaphores can be used both for
+providing mutual exclusion, which we will study in the next section, and for
+waiting and signalling, which we will see subsequently.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Using a Semaphore for Mutual Exclusion}
+
+One use of semaphores is to provide mutual exclusion.  
+
+Such a semaphore is created with
+\begin{scala}
+  val mutex = new Semaphore(true)
+\end{scala}
+or
+\begin{scala}
+  val mutex = new MutexSemaphore
+\end{scala}
+%
+using the definition
+%
+\begin{scala}
+  class MutexSemaphore extends Semaphore(true)
+\end{scala}
+%
+A thread entering the critical region executes
+\begin{scala}
+  mutex.down()
+\end{scala}
+%
+This blocks if the semaphore is already down, i.e.~if another thread is in the
+critical region.  In the initial state, the operation will not block. 
+%
+A thread leaving the critical region executes
+\begin{scala}
+  mutex.up()
+\end{scala}
+%
+This unblocks a waiting thread (if there is one).
+
+Figure~\ref{fig:semaphore-counter} gives an implementation of a counter that
+uses a semaphore to provide mutual exclusion on the private variable~|x|.
+Each operation initially performs a |down| on the semaphore, and performs an
+|up| at the end.  Note that the |get| operation has to copy the value of~|x|
+into a thread-local variable before raising the semaphore.
+
+%%%%%
+
+\begin{figure}
+\begin{scala}
+object Counter{
+  private var x = 0
+  
+  private var mutex = new MutexSemaphore
+    
+  def inc() = { mutex.down(); x = x+1; mutex.up() }
+  def dec() = { mutex.down(); x = x-1; mutex.up() }
+  def get = { mutex.down(); val result = x; mutex.up(); result }
+}
+\end{scala}
+\caption{An implementation of a counter using a semaphore for mutual
+  exclusion.}
+\label{fig:semaphore-counter}
+\end{figure}
+
+%%%%%
+
+This technique can be used to provide mutual exclusion on arbitrary objects,
+much like a |Lock|.
+
+As with most concurrency primitives, it is possible to misuse semaphores.  For
+exampe, consider the following code, where semaphore \SCALA{sem1} is used to
+protect resource \SCALA{res1}, and semaphore \SCALA{sem2} is used to protect
+resource \SCALA{res2}.
+%
+\begin{scala}
+  val sem1 = MutexSemaphore(); val sem2 = MutexSemaphore()
+  def t1 = thread{ sem1.down(); ...; sem2.down(); ... ; sem2.up(); ...; sem1.up() }
+  def t2 = thread{ sem2.down(); ...; sem1.down(); ... ; sem1.up(); ...; sem2.up() }
+  run(t1 || t2)
+\end{scala}
+%
+This can deadlock.  Thread~|t1| can perform  |sem1.down()|, and thread~|t2| can
+perform~|sem2.down()|.  Then, when each tries to perform |down| on the other
+semaphore, they are blocked indefinitely. 
+
