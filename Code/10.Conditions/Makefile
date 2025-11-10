@@ -19,7 +19,9 @@ EXERCISES = $(DTDIR)/MonitorBoundedPartialStack.class $(DIR)/MenWomenM.class \
 QUEUES = $(DTDIR)/MonitorPartialQueue.class	\
   $(DTDIR)/BoundedPartialQueueTest.class
 
-all: $(QUEUES) $(DIR)/SharedSyncChanTest.class $(DIR)/MonitorExchanger.class $(DIR)/ConditionsBarrier.class $(DIR)/BarberC.class  $(EXERCISES)
+all: $(QUEUES) $(DIR)/SharedSyncChanTest.class $(DIR)/MonitorExchanger.class	\
+  $(DIR)/ConditionsBarrier.class $(DIR)/BarberC.class				\
+  $(DIR)/ReadersWritersTest.class $(EXERCISES)
 
 # Partial queue
 
@@ -71,6 +73,9 @@ $(CSDIR)/AtomicBroadcast.class: $(CS_SRC_DIR)/AtomicBroadcast.scala
 	cd $(CS_SRC_DIR); make
 
 atomicBroadcast: $(DIR)/AtomicBroadcast.class
+
+# Readers and writers
+$(DIR)/ReadersWritersTest.class: $(DIR)/ReadersWriters.class
 
 # Standard recipes
 

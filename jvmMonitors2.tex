@@ -1,6 +1,6 @@
 \section{Waiting and Signalling Using JVM Monitors}
 
-We now consider the second aspect of JVM monitors, namely the wait signal
+We now consider the second aspect of JVM monitors, namely the wait/signal
 mechanism.  If |o| is a reference object, then it has the following
 operations, each of which can be performed only inside a |synchronized| block
 on~|o|:
@@ -18,16 +18,115 @@ Each operation should be performed while holding the lock on~|o|, i.e.~from
 inside a |synchronized| block on~|o|.  When a thread signals, it keeps the
 lock: the thread that receives the signal must wait for the signaller to
 release the lock, and then needs to compete with other threads to re-acquire
-the lock.
+the lock.  This also ensures memory consistency. 
 
 The operation |wait()| is shorthand for |this.wait()|, i.e.~where the thread
-waits on the current object.  Similar things hold for |notify()| and
-|notifyAll()|. 
+waits on the current object.  The operations |notify()| and |notifyAll()| are
+similar.  Thus these forms go together with |synchronized| blocks on the
+current object.
 
-Figure~\ref{fig:partial-queue-JVM-monitor} illustrates the mechanism in an
-implementation of a partial queue.  The |dequeue| operation has to wait if the
-queue is empty.  An |enqueue| operation performs a |notify|, to wake up a
-waiting |dequeue|.
+% \section{Implementing a Lock}
+
+We illustrate the technique by using a JVM monitor to implement a simple lock.
+The implementation in Figure~\ref{fig:jvmMonitorLock} uses a boolean variable
+|locked| to record whether a thread currently holds the lock.  The |acquire|
+operation waits until |locked| is |false|, and sets |locked| to |true|.  The
+|release| operation sets |locked| to |false|, and signals to a waiting thread
+in |acquire|.
+
+%%%%%
+
+\begin{figure}
+\begin{scala} 
+class Lock{
+  /** Does a thread currently hold the lock? */
+  private var locked = false
+
+  /** Acquire the lock. */
+  def acquire() = synchronized{
+    while(locked) wait() // Wait for current thread to release the lock. 
+    locked = true
+  }
+
+  /** Release the lock.*/
+  def release() = synchronized{
+    locked = false
+    notify() // Signal to an £acquire£.
+  }
+}
+\end{scala}
+\caption{An implementation of a lock using a JVM monitor.}
+\label{fig:jvmMonitorLock}
+\end{figure}
+
+%%%%%
+
+When the |acquire| operation receives a signal, it has to recheck whether
+|locked| is true, because it is possible that some other thread has called
+|acquire| in the meantime, and set |locked| to |true|.  This is similar to
+what we had to do in several examples that use |Condition|s.
+
+However, there is another reason why the |acquire| operation needs to perform
+this check, which would hold even if there were no other thread that could
+attempt |acquire|.  Sometimes a call of |wait| wakes up even if no other
+thread has signalled!  This is known as a \emph{spurious wakeup}.  I consider
+this a bug (apparently it is caused by a similar feature in operating system
+threading implementations; but it is a feature that the JVM fails to deal
+with).  Nevertheless, we have to deal with it.  That means that whenever a
+call of |wait| wakes up, the thread should recheck the relevant condition, in
+case it has received a spurious wakeup.
+
+\begin{instruction}
+Study the details of the implementation.
+\end{instruction}
+
+One way to test this implementation is to have a shared counter, and to
+arrange for threads to increment or decrement the counter, protected by
+a |Lock|; at the end, we can check that the counter holds the expected value.
+
+Alternatively, we can test the lock for linearizability, by considering a lock
+to be a datatype with two states, {locked} and {unlocked}.  We can arrange for
+threads to repeatedly acquire and release the lock.  Then we can test for
+linearizability, taking the sequential specification object to be a |Boolean|,
+with |true| representing that the lock is held by a thread, and with
+operations defined as follows.
+%
+\begin{mysamepage}
+\begin{scala}
+  type SeqLock = Boolean
+  def seqAcquire(held: SeqLock): (Unit, SeqLock) = { require(!held); ((), true) }
+  def seqRelease(held: SeqLock): (Unit, SeqLock) = { assert(held); ((), false) }
+\end{scala}
+\end{mysamepage}
+%
+(We use |assert|, rather than |require|, in |seqRelease|, because the property
+failing would represent an error in the testing system, rather than an attempt
+to linearize an operation at the wrong point: we expect a thread to call
+|release| only when it holds the lock.  If the assertion were to fail, the
+linearizability tester would throw an exception.)
+
+
+Note that, unlike SCL |Lock|s, this implementation of a lock is not
+re-entrant: a thread that holds the lock cannot acquire it for a second time.
+To do so, the implementation would have to record which thread currently holds
+the lock (the SCL implementation stores the relevant |java.lang.Thread|
+object), and how many times that thread holds the lock.  
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Partial Queues}
+
+We now use a JVM monitor to implement a partial queue; see
+Figure~\ref{fig:partial-queue-JVM-monitor}.  The |dequeue| operation has to
+wait if the queue is empty.  An |enqueue| operation performs a |notify|, to
+wake up a waiting |dequeue|.
+%
+As with the implementation using a |Condition| in
+Figure~\ref{fig:MonitorPartialQueue}, a waiting |dequeue| needs to recheck
+whether the queue is empty when it receives a signal, for two reasons: it is
+possible that some other thread has performed a |dequeue| in the meantime and
+emptied the queue; and it needs to guard aganist a spurious wakeup.
 
 %%%%%
 
@@ -58,42 +157,38 @@ class JVMMonitorPartialQueue[T] extends PartialQueue[T]{
 
 %%%%%
 
-As with the implementation using a |Condition| in
-Figure~\ref{fig:MonitorPartialQueue}, a waiting |dequeue| needs to recheck
-whether the queue is empty when it receives a signal, because it is possible
-that some other thread has performed a |dequeue| in the meantime and emptied
-the queue.  
 
-However, there is another reason why it needs to perform this check, which
-would hold even if there were no other thread that could attempt a |dequeue|.
-Sometimes a call of |wait| wakes up even if no other thread has signalled!
-This is known as a \emph{spurious wakeup}.  I consider this a bug (apparently
-it is caused by a similar feature in operating system threading
-implementations; but it is a feature that the JVM fails to deal with).
-Nevertheless, we have to deal with it.  That means that whenever a call of
-|wait| wakes up, it should recheck the relevant condition, in case it has
-received a spurious wakeup.
+%% However, there is another reason why it needs to perform this check, which
+%% would hold even if there were no other thread that could attempt a |dequeue|.
+%% Sometimes a call of |wait| wakes up even if no other thread has signalled!
+%% This is known as a \emph{spurious wakeup}.  I consider this a bug (apparently
+%% it is caused by a similar feature in operating system threading
+%% implementations; but it is a feature that the JVM fails to deal with).
+%% Nevertheless, we have to deal with it.  That means that whenever a call of
+%% |wait| wakes up, it should recheck the relevant condition, in case it has
+%% received a spurious wakeup.
 
 \begin{instruction}
 Study the details of the implementation.
 \end{instruction}
 
-The implementation of a bounded partial queue is fairly straightforward,
-because there is a single point in the code where a thread can wait.  However,
+The implementation of an unbounded partial queue is fairly straightforward,
+because there is a single point in the code where a thread can wait.  The same
+is true of the implementation of a lock in the previous section.  However,
 things are harder when threads can wait in multiple different places.  SCL
 monitors allow signals to be targeted to the correct place, by using a
 different |Condition| for each.  However, there is no similar way to target
 signals in a JVM monitor.  If there are threads waiting in multiple places,
 when there is a signal, it will be nondeterministic where the signal is
-received, so it might well be received in the wrong place!  
+received, so it might well be received in the wrong place!
 
 In such circumstances it is necessary to use |notifyAll|.  This means that the
-signal will reach the right place, if there is a thread waiting there.
-However, threads waiting in other places should identify that the signal was
-not intended for them, and wait again.  And likewise, if there are multiple
-threads waiting at the place to which the signal was intended, the first to
-obtain the lock can continue (if not preempted by another thread), but the
-remainder should normally wait again.  
+signal will be received by all threads, so it will reach the right place if
+there is a thread waiting there.  However, threads waiting in other places
+should identify that the signal was not intended for them, and wait again.
+And likewise, if there are multiple threads waiting at the place to which the
+signal was intended, the first to obtain the lock can continue (if not
+preempted by another thread), but the remainder should normally wait again.
 
 This is illustrated in Figure~\ref{fig:bounded-partial-queue-JVM-monitor}, to
 implement a bounded partial queue.  Again, a |dequeue| has to wait when the
@@ -169,10 +264,10 @@ go wrong.
 %% \end{scala}
 
 Having to use |notifyAll| is a disadvantage of JVM monitors.  It will
-typically mean that several threads are woken up, only for them to have to
-wait again.  In particular, scheduling and descheduling threads are quite
-expensive operations, to this adds a fairly significant overhead.  In such
-cases, it is probably better to use |Condition|s, which allow targetted
-signalling. 
+typically mean that several threads are woken up, only for most of them to
+have to wait again.  Scheduling and descheduling threads are
+quite expensive operations, so this adds a fairly significant overhead.  In
+such cases, it is probably better to use |Condition|s, which allow targeted
+signalling.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+

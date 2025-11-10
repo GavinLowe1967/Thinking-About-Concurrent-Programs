@@ -2,13 +2,51 @@
 \label{chap:JVMMonitors}
 
 \input{jvmMonitors1} % Locking
-\input{jvmMonitors2} % signalling; partial queues
-\input{jvmMonitors3} % sync chan; implementing a lock
-\input{jvmMonitors4} % timeout exchanger.
+\input{jvmMonitors2} % signalling; implementing a lock; partial queues
+\input{jvmMonitors3} % sync chan;  barrier; timeout exchanger.
 
 %%%%%
 
 \section{Summary}
+
+In this chapter, we have seen the primitive operations provided by the JVM for
+implementing concurrency.  
+
+Mutual exclusion can be implemented using |synchronized| blocks.  At most one
+thread can be active inside a |synchronized| block on a particular object at
+any time.  The |synchronized| operation can be used on any reference object,
+which allows for fine-grained locking.  As with SCL |Lock|s, JVM
+|synchronized| blocks are re-entrant, and provide suitable memory guarantees.
+The |synchronized| mechanism is more efficient than SCL |Lock|s, because it is
+implemented directly in the JVM: I recommend using it in preference to |Lock|s
+unless there is a good reason to do otherwise.  
+
+JVM monitors also provide a wait/signal mechanism, via the |wait| and |notify|
+operation.  These can be called only by a thread inside a |synchronized| block
+on the same object.  When a thread calls |wait|, it releases the lock; when it
+wakes up, it must wait to regain the lock.  
+
+The |wait| operation suffers from spurious wakeups: a thread in a |wait| may
+resume even though it has not received a signal.  It is nearly always
+necessary for a thread to re-check the relevant condition when it awakes from
+a |wait| to guard against a spurious wakeup (we saw an exception with the
+timed exchanger in Section~\ref{sec:timed-exchanger}, where a spurious wakeup
+was treated the same as a timeout).  Spurious wakeups are rather rare, and we
+certainly can't depend upon them to happen: if we want a thread to resume, it
+must be sent a signal.
+
+A disadvantage of the |wait|/|notify| system, compared with |Condition|s, is
+that signals cannot be targeted.  If threads can be waiting in two or more
+places in the code, a |notify| may not be received at the intended place.  We
+therefore need to use a |notifyAll|, which is less efficient.  I therefore
+recommend normally using |Condition|s when threads can wait in two of more
+places.  However, as |wait| and |notify| are implemented within the JVM, they
+can be more efficient than |Condition|s in other circumstances. 
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \exercises
 

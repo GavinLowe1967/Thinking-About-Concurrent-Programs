@@ -1,13 +1,13 @@
-In the last two chapters, we looked at locks and conditions from SCL.  In this
-chapter, we look at similar mechanisms provided by the Java Virtual Machine
-(JVM).  The fact that these mechanisms are built in to the JVM makes them more
-efficient: the SCL implementations require another layer of interpretation.
-However, they have disadvantages that make them harder to use: we will discuss
-these shortly.  
+In the last two chapters, we looked at the support for monitors provided by
+SCL, namely locks and conditions.  In~this chapter, we look at similar
+mechanisms provided by the Java Virtual Machine (JVM).  The fact that these
+mechanisms are built in to the JVM makes them more efficient: the SCL
+implementations require another layer of interpretation.  However, they have
+disadvantages that make them harder to use: we will discuss these shortly.
 
-There are two aspects to the mechanisms in JVM: mutual exclusion, and a
-wait/signal mechanism.  We start with mutual exclusion in the next section,
-and then consider the wait/signal mechanism.
+As with SCL monitors, there are two aspects to JVM monitors: mutual exclusion,
+and a wait/signal mechanism.  We start with mutual exclusion in the next
+section, and then consider the wait/signal mechanism.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -30,11 +30,11 @@ the lock; when it leaves the block, it releases the lock.  Thus, this can be
 used to ensure that executions of code within |synchronized| blocks do not
 interfere with one another.
 
-The expression |synchronized{e}| is shorthand for |this.synchronized{e}|,
-i.e.~where the current object is used for the monitor.
-
 Note that the monitor must be a \emph{reference} object (a subclass of
 |AnyRef|; see Scala box~\ref{sb:reference-types}), not, for example, an |Int|.
+
+The expression |synchronized{e}| is shorthand for |this.synchronized{e}|,
+i.e.~where the current object is used for the monitor.
 
 Figure~\ref{fig:counter-monitor} gives a straightforward implementation of a
 counter object, implemented using a JVM monitor.  Each operation is wrapped in
@@ -83,17 +83,23 @@ JVM monitors can also be used to implement total datatypes.  For example,
 Figure~\ref{fig:totalQueue-JVM-monitor} gives a straightforward implementation
 of a total queue. 
 
+\begin{instruction}
+Study the implementation.
+\end{instruction}
+
 %%%%%
 
 JVM monitors are re-entrant, like SCL |Lock|s.  For example, consider an
 object of the following form.
 %
+\begin{mysamepage}
 \begin{scala}
-object O{
+object Obj{
   def f(x: Int) = synchronized{ ...; g(y); ... }
   def g(y: Int) = synchronized{ ... }
 }
 \end{scala}
+\end{mysamepage}
 %
 If a thread is inside~|f|, it holds the lock on the monitor.  When it
 calls~|g|, it obtains the lock for a second time.  When |g| returns, it still
@@ -118,6 +124,15 @@ single monitor object.  However, it is also possible to use finer-grained
 locking, with multiple monitors, so long as operations using different
 monitors do not interfere.
 
+For example, Figure~\ref{fig:StripedCounterArray-JVM} uses striped locking to
+protect an array of counters, in a very similar style to the implementation in
+Figure~\ref{fig:StripedCounterArray} (and extending the |CounterArray|
+abstract class from Figure~\ref{fig:CounterArray}). As with the earlier
+example, each monitor |locks(j)| protects all counters |a(i)| such that $\sm i
+\% \sm{stripes} = \sm{j}$, so each |a(i)| is protected by
+\SCALA{locks(i\%stripes)}.  Recall that a monitor can be any reference object,
+i.e.~any subclass of |AnyRef|.  It makes sense here to use the simplest such
+class, i.e.~|AnyRef| itself.
 %%%%%
 
 \begin{figure}
@@ -139,15 +154,7 @@ class StripedCounterArray(n: Int, stripes: Int)
 \caption{An array of counters using striped locking.}
 \label{fig:StripedCounterArray-JVM}
 \end{figure}
-
-For example, Figure~\ref{fig:StripedCounterArray-JVM} uses striped locking to
-protect an array of counters, in a very similar style to the implementation in
-Figure~\ref{fig:StripedCounterArray} (and extending the |CounterArray| class
-from Figure~\ref{fig:CounterArray}). As with the earlier example, each monitor
-|locks(j)| protects all counters |a(i)| such that $\sm i \% \sm{stripes} =
-\sm{j}$, so each |a(i)| is protected by \SCALA{locks(i\%stripes)}.  Recall
-that a monitor can be any reference object, i.e.~any subclass of |AnyRef|.  It
-makes sense here to use the simplest such class, i.e.~|AnyRef| itself. 
+ 
 
 %%%%%
 
@@ -186,7 +193,8 @@ monitors.  Recall that the set is implemented in terms of some number of
 smaller sets, known as shards.  Here we use |shards| |HashSet|s, stored in an
 array |sets|.  A value~|x| is stored in the shard with index |shardFor(x)|
 (defined in the class |Sharding|).  We want each shard to be independently
-lockable, so operations on it are performed under mutual exclusion.  We could
+lockable, so operations on it are performed under mutual exclusion.  Thus we
+need |shards| monitor objects.  We could
 create |shards| new |AnyRef| objects, as we did in
 Figure~\ref{fig:StripedCounterArray-JVM}.  However, a simpler method is to use
 the |HashSet| objects themselves, as they are reference objects.  Hence each
