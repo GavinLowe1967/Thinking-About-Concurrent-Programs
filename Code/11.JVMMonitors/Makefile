@@ -49,9 +49,9 @@ bpQueue: $(DTDIR)/JVMMonitorBoundedPartialQueue.class
 
 # Synchronous channel
 
-$(DIR)/JVMMonitorSyncChan.class: $(MONDIR)/SharedSyncChan.class
+$(DIR)/JVMMonitorSyncChan.class: $(MONDIR)/SyncChanT.class
 
-$(MONDIR)/SharedSyncChan.class: $(MON_SRC_DIR)/SharedSyncChan.scala
+$(MONDIR)/SyncChanT.class: $(MON_SRC_DIR)/SyncChanT.scala
 	cd $(MON_SRC_DIR); make syncChan
 
 syncChan: $(DIR)/JVMMonitorSyncChan.class
@@ -64,6 +64,10 @@ $(DPDIR)/ServerBarrier.class: $(DP_SRC_DIR)/ServerBarrier.scala
 	cd $(DP_SRC_DIR); make
 
 barrier: $(DIR)/JVMMonitorBarrier.class
+
+# Lock
+
+lock: $(DIR)/Lock.class
 
 # Standard recipes
 

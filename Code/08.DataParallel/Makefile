@@ -13,19 +13,23 @@ EXERCISES = $(DIR)/ServerCombiningBarrier.class $(DIR)/BarrierLog.class	\
   $(DIR)/PrefixSumsShared.class $(DIR)/ArrayMax.class			\
   $(DIR)/SmoothSharedTest.class $(DIR)/LargestComponent.class
 
-all: $(DIR)/BarrierTest.class $(DIR)/PrefixSumsTest.class	\
-  $(DIR)/JacobiTest.class $(DIR)/JacobiExperiment.class		\
-  $(DIR)/BFSGraphSearch.class $(DIR)/Gravity.class $(EXERCISES)
+all: $(DIR)/PrefixSumsTest.class $(DIR)/JacobiTest.class	\
+  $(DIR)/JacobiExperiment.class $(DIR)/BFSGraphSearch.class	\
+  $(DIR)/Gravity.class $(EXERCISES)
 
-$(DIR)/BarrierTest.class: $(DIR)/ServerBarrier.class $(DIR)/BarrierLog.class $(MONDIR)/ConditionsBarrier.class $(JVM_MON_DIR)/JVMMonitorBarrier.class
+# $(DIR)/BarrierTest.class
+
+# $(DIR)/BarrierTest.class: $(DIR)/ServerBarrier.class $(DIR)/BarrierLog.class $(MONDIR)/ConditionsBarrier.class $(JVM_MON_DIR)/JVMMonitorBarrier.class
 
 $(DIR)/JacobiTest.class $(DIR)/JacobiExperiment.class: $(DIR)/Jacobi.class
 
 $(DIR)/BFSGraphSearch.class: $(DTDIR)/GraphSearch.class $(DTDIR)/ConcSet.class $(DTDIR)/TotalQueue.class
 
-$(DIR)/ServerCombiningBarrier.class: $(DIR)/BarrierLog.class
+$(DIR)/BarrierLog.class: $(DIR)/ServerCombiningBarrier.class $(DIR)/ServerBarrier.class
 
-$(DIR)/PrefixSumsSgared.class: $(DIR)/PrefixSums.class
+barrier: $(DIR)/BarrierLog.class
+
+$(DIR)/PrefixSumsShared.class: $(DIR)/PrefixSums.class
 
 $(DIR)/PrefixSumsTest.class: $(DIR)/PrefixSumsShared.class
 

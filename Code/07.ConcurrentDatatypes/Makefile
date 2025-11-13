@@ -13,7 +13,7 @@ JVM_MON_SRC_DIR = ../11.JVMMonitors
 
 EXERCISES = $(DIR)/TotalStack.class $(DIR)/Sudoku.class $(DIR)/PartialStack.class
 
-all: $(DIR)/QueueTest.class $(DIR)/PartialQueueTest.class $(DIR)/WordPath.class $(EXERCISES)
+all: $(DIR)/QueueTest.class $(DIR)/PartialQueue.class $(DIR)/WordPath.class $(EXERCISES)
 
 clean:
 	rm $(DIR)/*.class; fsc -shutdown
@@ -32,13 +32,13 @@ tQueue: $(DIR)/TotalQueue.class
 
 # Partial queues
 
-$(DIR)/PartialQueueTest.class: $(DIR)/PartialQueue.class $(DIR)/MonitorPartialQueue.class $(DIR)/JVMMonitorPartialQueue.class
+# $(DIR)/PartialQueueTest.class: $(DIR)/PartialQueue.class $(DIR)/MonitorPartialQueue.class $(DIR)/JVMMonitorPartialQueue.class
 
-$(DIR)/MonitorPartialQueue.class: $(COND_SRC_DIR)/MonitorPartialQueue.scala
-	cd $(COND_SRC_DIR); make queue
+# $(DIR)/MonitorPartialQueue.class: $(COND_SRC_DIR)/MonitorPartialQueue.scala
+# 	cd $(COND_SRC_DIR); make queue
 
-$(DIR)/JVMMonitorPartialQueue.class: $(JVM_MON_SRC_DIR)/JVMMonitorPartialQueue.scala
-	cd $(JVM_MON_SRC_DIR); make pQueue
+# $(DIR)/JVMMonitorPartialQueue.class: $(JVM_MON_SRC_DIR)/JVMMonitorPartialQueue.scala
+# 	cd $(JVM_MON_SRC_DIR); make pQueue
 
 pQueue: $(DIR)/PartialQueue.class
 

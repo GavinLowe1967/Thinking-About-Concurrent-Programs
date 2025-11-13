@@ -1,12 +1,14 @@
-package tacp.monitors
+package tacp.tests
 
 import ox.scl._
 import scala.util.Random
 
+import tacp.monitors.SyncChanT
+
 /** Test harness for the SyncChanManyMany and SyncChanSemaphores classes.
   * A command line flag of --sem indicates that the semaphore-based version 
   * should be used. */
-object SharedSyncChanTest{
+object SyncChanTest{
   // We will log using events of the following form.
   abstract class LogEvent
   case class BeginSend(me: Int, x: Int) extends LogEvent
@@ -63,7 +65,7 @@ object SharedSyncChanTest{
     } // End of while loop.
   }
 
-  private val Conditions = 0; private val JVMMon = 1
+  private val Conditions = 0; private val JVMMon = 1; private val Semaphores = 2
 
   /** Do a single test. 
     * @param useSemaphores should the semaphore implementation be used? */
@@ -71,9 +73,11 @@ object SharedSyncChanTest{
     val p = 8 // Number of senders and receivers.
     val iters = 10 // Number of items for each sender to send.
     val chan: SyncChanT[Int] = // Channel to test.
-      if(choice == Conditions) new SharedSyncChan[Int]
+      if(choice == Conditions) new tacp.monitors.MonitorSyncChan[Int]
       else if(choice == JVMMon) new tacp.jvmMonitors.JVMMonitorSyncChan[Int]
-      else ??? // new SyncChanSemaphores[Int]
+      else{ 
+        assert(choice == Semaphores); new tacp.semaphores.SemaphoreSyncChan[Int]
+      }
     val log = new Log[LogEvent](2*p) // Shared log; receivers use ids [p..2p).
 
     // The sender; all values sent are distinct. 
@@ -101,6 +105,7 @@ object SharedSyncChanTest{
     var i = 0; var choice = Conditions
     while(i < args.length) args(i) match{
       case "--JVM" => choice = JVMMon; i += 1
+      case "--semaphores" => choice = Semaphores; i += 1
     }
 
     for(r <- 0 until 10000){ doTest(choice); if(r%100 == 0) print(".") }

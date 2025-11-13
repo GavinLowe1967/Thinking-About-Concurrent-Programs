@@ -2,8 +2,16 @@ package tacp.jvmMonitors
 
 import ox.scl._
 
+trait LockT{
+  /** Acquire the lock. */
+  def acquire(): Unit 
+
+  /** Release the lock.*/
+  def release(): Unit
+}
+ 
 /** A simple lock implemented using a JVM monitor. */
-class Lock{
+class Lock extends LockT{
   /** Does a thread currently hold the lock? */
   private var locked = false
 
@@ -22,8 +30,10 @@ class Lock{
 
 // =======================================================
 
+// Note: there is a linearizability tester for locks in the Tests directory. 
+
 /** A simple test on Lock. */
-object LockTest{
+object SimpleLockTest{
   /* We run an even number of threads, half of which increment `c` `iters`
    * times, and the remainder decrement `c` `iters` times, in each case
    * protected by `lock`.  At the end, we check `c` = 0.  */
@@ -56,33 +66,33 @@ object LockTest{
 
 // =======================================================
 
-/** Linearizability testing of the lock. */
-object LockLinTest{
-  /** The sequential specification datatype: true represents that the lock is
-    * held by a thread. */
-  type SeqLock = Boolean
+// /** Linearizability testing of the lock. */
+// object LockLinTest{
+//   /** The sequential specification datatype: true represents that the lock is
+//     * held by a thread. */
+//   type SeqLock = Boolean
 
-  def seqAcquire(l: SeqLock): (Unit, SeqLock) = { require(!l); ((), true) }
+//   def seqAcquire(l: SeqLock): (Unit, SeqLock) = { require(!l); ((), true) }
 
-  def seqRelease(l: SeqLock): (Unit, SeqLock) = { assert(l); ((), false) }
+//   def seqRelease(l: SeqLock): (Unit, SeqLock) = { assert(l); ((), false) }
 
-  val iters = 100
+//   val iters = 100
 
-  def worker(me: Int, log: LinearizabilityLog[SeqLock, Lock]) = {
-    for(i <- 0 until iters){
-      log(_.acquire(), "acquire", seqAcquire)
-      log(_.release(), "release", seqRelease)
-    }
-  }
+//   def worker(me: Int, log: LinearizabilityLog[SeqLock, Lock]) = {
+//     for(i <- 0 until iters){
+//       log(_.acquire(), "acquire", seqAcquire)
+//       log(_.release(), "release", seqRelease)
+//     }
+//   }
 
-  def doTest() = {
-    val tester = LinearizabilityTester[SeqLock,Lock](false, new Lock, 8, worker)
-    if(tester() <= 0) sys.exit()
-  }
+//   def doTest() = {
+//     val tester = LinearizabilityTester[SeqLock,Lock](false, new Lock, 8, worker)
+//     if(tester() <= 0) sys.exit()
+//   }
 
-  def main(args: Array[String]) = {
-    for(i <- 0 until 5000){ doTest(); if(i%200 == 0) print(".") }
-    println()
-  }
+//   def main(args: Array[String]) = {
+//     for(i <- 0 until 5000){ doTest(); if(i%200 == 0) print(".") }
+//     println()
+//   }
 
-}
+// }

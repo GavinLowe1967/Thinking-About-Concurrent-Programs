@@ -1,7 +1,10 @@
-package tacp.datatypes
+package tacp.tests
 
 import scala.collection.immutable.Queue
 import ox.scl._
+
+import tacp.datatypes.{PartialQueue, ServerPartialQueue, MonitorPartialQueue,
+  JVMMonitorPartialQueue, SemaphorePartialQueue, CountingSemaphorePartialQueue}
 
 object PartialQueueTest{
   var iters = 20 // Number of iterations by each worker
@@ -33,6 +36,9 @@ object PartialQueueTest{
     val concQueue: PartialQueue[Int] = 
       if(queueType == "server") new ServerPartialQueue[Int]
       else if(queueType == "JVM") new JVMMonitorPartialQueue[Int]
+      else if(queueType == "semaphore") new SemaphorePartialQueue[Int]
+      else if(queueType == "counting semaphore") 
+        new CountingSemaphorePartialQueue[Int]
       else{ assert(queueType == "monitor"); new MonitorPartialQueue[Int] }
     val seqQueue = Queue[Int]()
     val tester =
@@ -51,8 +57,8 @@ object PartialQueueTest{
       case "--reps" => reps = args(i+1).toInt; i += 2 
       case "--monitor" => queueType = "monitor"; i += 1
       case "--JVM" => queueType = "JVM"; i += 1
-      // case "--semaphore" => queueType = "semaphore"; i += 1
-      // case "--countingSemaphore" => queueType = "counting semaphore"; i += 1
+      case "--semaphore" => queueType = "semaphore"; i += 1
+      case "--countingSemaphore" => queueType = "counting semaphore"; i += 1
       case arg => println("Unrecognised argument: "+arg); sys.exit()
     }
 

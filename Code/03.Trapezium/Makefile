@@ -18,16 +18,20 @@ FSC = fsc -deprecation -d .. -cp .:..
 
 $(DIR)/Trapezium.class: $(DIR)/TrapeziumT.class
 
-$(DIR)/TrapeziumBag.class: $(DIR)/Trapezium.class
+$(DIR)/TrapeziumBag.class $DIR)/BagOfTasks.class: $(DIR)/Trapezium.class
 
-$(DIR)/TrapeziumBagObjects.class: $(DIR)/TrapeziumT.class $(DIR)/BagOfTasksLock.class
+$(DIR)/TrapeziumBagObjects.class: $(DIR)/TrapeziumT.class $(DIR)/BagOfTasks.class $(DIR)/BagOfTasksLock.class
 
 $(DIR)/BagOfTasksLock.class: $(LOCK_SRC_DIR)/BagOfTasksLock.scala
-	cd $(LOCK_SRC_DIR); make
+	cd $(LOCK_SRC_DIR); make trapezium
 
 $(DIR)/TrapeziumTest.class $(DIR)/TrapeziumRun.class: $(DIR)/Trapezium.class $(DIR)/TrapeziumBag.class $(DIR)/TrapeziumBagObjects.class
 
+
+
 $(DIR)/TrapeziumExperiment.class: $(DIR)/TrapeziumRun.class
+
+bagOfTasks: $(DIR)/BagOfTasks.class
 
 # $(DIR)/TrapeziumExperiment.class: TrapeziumExperiment.scala
 # 	$(FSCX) $<

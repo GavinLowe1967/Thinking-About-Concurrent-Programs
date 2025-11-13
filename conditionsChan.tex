@@ -1,4 +1,5 @@
 \section{A Synchronous Channel}
+\label{sec:conditionsChan}
 
 Conditions can also be used to implement synchronisation objects.  A thread
 that needs to synchronise can wait for another thread; when another thread
@@ -64,7 +65,7 @@ current sender is trying to send it.
 
 \begin{figure}
 \begin{scala}
-class SharedSyncChan[A] extends SyncChanT[A]{
+class SyncChan[A] extends SyncChanT[A]{
   /** The current or previous value. */
   private var value = null.asInstanceOf[A]
 

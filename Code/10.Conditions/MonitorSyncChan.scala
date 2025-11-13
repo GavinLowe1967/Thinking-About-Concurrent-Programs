@@ -2,18 +2,11 @@ package tacp.monitors
 
 import ox.scl._
 
-/** Trait for a synchronous channel. */
-trait SyncChanT[A]{
-  /** Send x, synchronously. */
-  def send(x: A): Unit
 
-  /** Receive a value. */
-  def receive(): A
-}
 
 /** A shared synchronous channel passing data of type A, implemented using a
   * monitor. */
-class SharedSyncChan[A] extends SyncChanT[A]{
+class MonitorSyncChan[A] extends SyncChanT[A]{
   /** The current or previous value. */
   private var value = null.asInstanceOf[A]
 

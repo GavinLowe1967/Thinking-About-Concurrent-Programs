@@ -1,18 +1,9 @@
+package tacp.datatypes
+
 import ox.scl._
 import scala.collection.mutable.Queue
 
-/** A partial queue. */
-trait PartialQueue[T]{
-  /** Enqueue x. */
-  def enqueue(x: T): Unit
-
-  /** Dequeue a value.  Blocks until the queue is non-empty. */
-  def dequeue: T
-
-  /** Shut down the queue. */
-  def shutdown = {}
-}
-
+import tacp.datatypes.PartialQueue
 
 class SemaphorePartialQueue[T] extends PartialQueue[T]{
   /** The queue itself. */
@@ -28,27 +19,27 @@ class SemaphorePartialQueue[T] extends PartialQueue[T]{
    * fairness, it's best to keep tests short, e.g. with --iters 30. */
 
   /** Semaphore on which a dequeue waits until the queue is non-empty. */
-  private val dequeueWait = new SignallingSemaphore
+  private val nonEmptyS = new SignallingSemaphore
 
   /** Enqueue x. */
   def enqueue(x: T) = {
-    mutex.down
+    mutex.down()
     queue.enqueue(x)
-    if(waitingDequeues > 0) dequeueWait.up // pass the baton to a dequeue
-    else mutex.up
+    if(waitingDequeues > 0) nonEmptyS.up() // Pass the baton to a dequeue.
+    else mutex.up()
   }
 
-  def dequeue: T = {
-    mutex.down
-    if(queue.isEmpty){  // have to wait
-      waitingDequeues += 1; mutex.up
-      dequeueWait.down // wait for signal
+  /** Dequeue a value. */
+  def dequeue(): T = {
+    mutex.down()
+    if(queue.isEmpty){  // Thread has to wait.
+      waitingDequeues += 1; mutex.up()
+      nonEmptyS.down() // Wait for signal.
       assert(queue.length == 1)
       waitingDequeues -= 1
     }
-    val result = queue.dequeue; mutex.up; result
+    val result = queue.dequeue(); mutex.up(); result
   }
-
 }
 
 // -------------------------------------------------------
@@ -66,17 +57,17 @@ class CountingSemaphorePartialQueue[T] extends PartialQueue[T]{
   private val size = new CountingSemaphore(0)
 
   def enqueue(v: T) = {
-    mutex.down
+    mutex.down()
     queue.enqueue(v)
-    size.up
-    mutex.up
+    size.up()
+    mutex.up()
   }
 
-  def dequeue: T = {
-    size.down
-    mutex.down
-    val result = queue.dequeue
-    mutex.up
+  def dequeue(): T = {
+    size.down()
+    mutex.down()
+    val result = queue.dequeue()
+    mutex.up()
     result
   }
 }

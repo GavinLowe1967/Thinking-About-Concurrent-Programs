@@ -3,6 +3,7 @@ ROOT = ../tacp
 # Directories for targets
 
 DIR = $(ROOT)/monitors
+DPDIR = $(ROOT)/dataParallel
 DTDIR = $(ROOT)/datatypes
 CSDIR = $(ROOT)/clientServer
 JVM_MON_DIR = $(ROOT)/jvmMonitors
@@ -11,6 +12,7 @@ JVM_MON_DIR = $(ROOT)/jvmMonitors
 
 CS_SRC_DIR = ../05.ClientServer
 DT_SRC_DIR = ../07.ConcurrentDatatypes
+DP_SRC_DIR = ../08.DataParallel
 JVM_MON_SRC_DIR = ../11.JVMMonitors
 
 EXERCISES = $(DTDIR)/MonitorBoundedPartialStack.class $(DIR)/MenWomenM.class \
@@ -19,7 +21,7 @@ EXERCISES = $(DTDIR)/MonitorBoundedPartialStack.class $(DIR)/MenWomenM.class \
 QUEUES = $(DTDIR)/MonitorPartialQueue.class	\
   $(DTDIR)/BoundedPartialQueueTest.class
 
-all: $(QUEUES) $(DIR)/SharedSyncChanTest.class $(DIR)/MonitorExchanger.class	\
+all: $(QUEUES) $(DIR)/MonitorSyncChan.class $(DIR)/MonitorExchanger.class	\
   $(DIR)/ConditionsBarrier.class $(DIR)/BarberC.class				\
   $(DIR)/ReadersWritersTest.class $(EXERCISES)
 
@@ -32,14 +34,20 @@ $(DTDIR)/BoundedPartialQueueTest.class:  $(DTDIR)/BoundedMonitorPartialQueue.cla
 $(DTDIR)/JVMMonitorBoundedPartialQueue.class: $(JVM_MON_SRC_DIR)/JVMMonitorBoundedPartialQueue.scala
 	cd $(JVM_MON_SRC_DIR); make bpQueue
 
+# Barrier synchronisation
+
+$(DIR)/ConditionsBarrier.class: $(DPDIR)/ServerBarrier.class
+
+$(DPDIR)/ServerBarrier.class: $(DP_SRC_DIR)/ServerBarrier.scala
+	cd $(DP_SRC_DIR); make barrier
+
+barrier: $(DIR)/ConditionsBarrier.class
+
 # Synchronous channel.
 
-$(DIR)/SharedSyncChanTest.class: $(DIR)/SharedSyncChan.class $(JVM_MON_DIR)/JVMMonitorSyncChan.class
+$(DIR)/MonitorSyncChan.class: $(DIR)/SyncChanT.class
 
-$(JVM_MON_DIR)/JVMMonitorSyncChan.class: $(JVM_MON_SRC_DIR)/JVMMonitorSyncChan.scala
-	cd $(JVM_MON_SRC_DIR); make syncChan
-
-syncChan: $(DIR)/SharedSyncChan.class
+syncChan: $(DIR)/MonitorSyncChan.class
 
 # Men and women problem
 
@@ -75,7 +83,7 @@ $(CSDIR)/AtomicBroadcast.class: $(CS_SRC_DIR)/AtomicBroadcast.scala
 atomicBroadcast: $(DIR)/AtomicBroadcast.class
 
 # Readers and writers
-$(DIR)/ReadersWritersTest.class: $(DIR)/ReadersWriters.class
+$(DIR)/ReadersWritersTest.class: $(DIR)/ReadersWritersLock.class
 
 # Standard recipes
 

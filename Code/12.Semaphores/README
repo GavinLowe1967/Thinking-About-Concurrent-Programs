@@ -1,1 +1,10 @@
 Counter.scala: A counter implemented using semaphores.
+
+SemaphorePartialQueue.scala: An implementation of a partial queue using
+semaphores.  Includes CountingSemaphorePartialQueue, which uses a counting
+semaphore.
+
+SemaphoreBarrier.scala: Implementation of a barrier.
+
+SemaphoreSynChan: Implementation of a synchronous channel.
+

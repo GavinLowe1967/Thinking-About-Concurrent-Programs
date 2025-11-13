@@ -1,0 +1,5 @@
+PartialQueueTest.scala: Test of the implementations of a partial queue.
+
+BarrierTest.scala: Test of the implementations of a combining barrier.
+
+SyncChanTest.scala: Test of the implementations of a synchronous channel. 

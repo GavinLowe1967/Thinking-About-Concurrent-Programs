@@ -14,6 +14,8 @@ all:
 	cd 09.Locks; make
 	cd 10.Conditions; make
 	cd 11.JVMMonitors; make
+	cd 12.Semaphores; make
+	cd Tests; make
 
 clean:
 	rm $(ROOT)/*/*.class; fsc -shutdown

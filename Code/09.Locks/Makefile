@@ -1,13 +1,11 @@
 ROOT = ../tacp
 
 DIR = $(ROOT)/locks
-
 DTDIR = $(ROOT)/datatypes
-
 TRAPDIR = $(ROOT)/trapezium
-
 MONDIR = $(ROOT)/jvmMonitors
 
+TRAP_SRC_DIR = ../03.Trapezium
 MON_SRC_DIR = ../11.JVMMonitors
 
 EXERCISES = $(DTDIR)/MapTest.class $(DTDIR)/LinkedListMap.class  $(DTDIR)/ShardedMap.class $(DTDIR)/ConcurrentIterator.class
@@ -36,6 +34,14 @@ $(DTDIR)/ShardedMap.class: $(DTDIR)/ShardedSet.class
 
 $(DTDIR)/MapTest.class: $(DTDIR)/ShardedMap.class $(DTDIR)/LinkedListMap.class
 
+# Trapezium
+
+$(TRAPDIR)/BagOfTasksLock.class: $(TRAPDIR)/BagOfTasks.class
+
+$(TRAPDIR)/BagOfTasks.class: $(TRAP_SRC_DIR)/BagOfTasks.scala
+	cd $(TRAP_SRC_DIR); make bagOfTasks
+
+trapezium:  $(TRAPDIR)/BagOfTasksLock.class
 
 clean:
 	rm $(DIR)/*.class; fsc -shutdown

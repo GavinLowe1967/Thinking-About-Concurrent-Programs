@@ -1,9 +1,10 @@
 package tacp.semaphores
 
 import ox.scl._
+import tacp.jvmMonitors.LockT
 
-/** A class providing first-come-first-served mutual exclusion. */
-class MutexQueue{
+/** A class providing first-come, first-served mutual exclusion. */
+class QueueLock extends LockT{
   /** A queue of semaphores for waiting threads. */
   private val queue = new scala.collection.mutable.Queue[Semaphore]
 
@@ -13,32 +14,35 @@ class MutexQueue{
   /** Semaphore for mutual exclusion on this object's variables. */
   private val mutex = new MutexSemaphore
 
-  /** Enter the critical section. */
-  def enter = {
+  /** Acquire the lock. */
+  def acquire() = {
     mutex.down()
-    if(busy || !queue.isEmpty){ // have to wait
+    if(busy || !queue.isEmpty){ // Have to wait.
       val sem = new SignallingSemaphore
       queue.enqueue(sem)
-      mutex.up(); sem.down() // wait turn
+      mutex.up(); sem.down() // Wait for turn.
+      assert(!busy)  
     }
     busy = true
     mutex.up()
   }
 
-  /** Leave the critical section. */
-  def leave = {
+  /** Release the lock. */
+  def release() = {
     mutex.down()
     busy = false
-    if(queue.nonEmpty){ // wake up next process
-      val first = queue.dequeue; first.up()
+    if(queue.nonEmpty){ // Wake up next thread.
+      val first = queue.dequeue(); first.up()
     }
     else mutex.up()
-  }
+  } 
 }
 
 // -------------------------------------------------------
 
-object MutexQueueTest{
+// Note: there is a linearizability tester for locks in the Tests directory.
+
+object SimpleQueueLockTest{
   /* The following should really be specifiable via the command line... */
   var p = 5 // number of clients
   var iters = 1000 // # iterations by each client
@@ -50,12 +54,12 @@ object MutexQueueTest{
   case class Leave(c: Int) extends LogEvent
 
   /** A client */
-  def client(me: Int, controller: MutexQueue, log: Log[LogEvent]) = thread{
+  def client(me: Int, controller: QueueLock, log: Log[LogEvent]) = thread{
     for(_ <- 0 until iters){
-      controller.enter
+      controller.acquire()
       log.add(me, Enter(me))
       log.add(me, Leave(me))
-      controller.leave
+      controller.release()
     }
   }
 
@@ -82,10 +86,10 @@ object MutexQueueTest{
   /** Run a single test. */
   def runTest = {
     val log = new Log[LogEvent](p)
-    val controller = new MutexQueue
+    val controller = new QueueLock
     val clients = || (for (i <- 0 until p) yield client(i, controller, log))
     run(clients)
-    if(!checkLog(log.get)) sys.exit
+    if(!checkLog(log.get)) sys.exit()
   }
 
   def main(args: Array[String]) = {
@@ -93,7 +97,7 @@ object MutexQueueTest{
       runTest
       if(r%5 == 0) print(".")
     }
-    println
+    println()
   }
 
 }
