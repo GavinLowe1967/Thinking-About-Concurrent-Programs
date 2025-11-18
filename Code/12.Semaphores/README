@@ -6,5 +6,10 @@ semaphore.
 
 SemaphoreBarrier.scala: Implementation of a barrier.
 
-SemaphoreSynChan: Implementation of a synchronous channel.
+SemaphoreSynChan.scala: Implementation of a synchronous channel.
+
+QueueLock.scala: A lock using a queue of semaphores to provide first-come,
+first-served access.
+
+SemaphoreReadersWriters.scala: A readers and writers lock
 

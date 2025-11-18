@@ -61,6 +61,16 @@ class Lock{
 
 %%%%%
 
+Note that there are two levels of locking going on in this example.  Each
+operation uses a |synchronized| block, which provides a lock on the |Lock|
+object, to protect the shared variable |locked|, and to ensure that the
+threads execute in a one-at-a-time order.  However, the |Lock| object provides
+a lock that can be used by client code.  It is reasonable to suppose that each
+thread that acquires the |Lock| will hold it for a reasonable amount of time,
+longer that the time a thread spends running in the |acquire| or |release|
+operations.  Thus the |synchronized| blocks act as a short-term lock, but each
+|Lock| object acts as a longer term lock.
+
 When the |acquire| operation receives a signal, it has to recheck whether
 |locked| is true, because it is possible that some other thread has called
 |acquire| in the meantime, and set |locked| to |true|.  This is similar to

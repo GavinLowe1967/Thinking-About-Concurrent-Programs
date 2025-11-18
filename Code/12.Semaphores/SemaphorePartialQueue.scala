@@ -56,9 +56,9 @@ class CountingSemaphorePartialQueue[T] extends PartialQueue[T]{
     * queue.length. */
   private val size = new CountingSemaphore(0)
 
-  def enqueue(v: T) = {
+  def enqueue(x: T) = {
     mutex.down()
-    queue.enqueue(v)
+    queue.enqueue(x)
     size.up()
     mutex.up()
   }

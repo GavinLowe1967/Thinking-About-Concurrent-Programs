@@ -15,7 +15,11 @@ DP_SRC_DIR = ../08.DataParallel
 MON_SRC_DIR = ../10.Conditions
 JVM_MON_SRC_DIR = ../11.JVMMonitors
 
-all: $(DIR)/Counter.class $(DTDIR)/SemaphorePartialQueue.class $(DIR)/SemaphoreBarrier.class $(DIR)/SemaphoreSyncChan.class $(DIR)/QueueLock.class
+EXAMPLES = $(DIR)/Counter.class $(DTDIR)/SemaphorePartialQueue.class	\
+  $(DIR)/SemaphoreBarrier.class $(DIR)/SemaphoreSyncChan.class		\
+  $(DIR)/QueueLock.class $(DIR)/SemaphoreReadersWriters.class
+
+all: $(EXAMPLES)
 
 # Partial queues
 
@@ -23,6 +27,8 @@ $(DTDIR)/SemaphorePartialQueue.class: $(DTDIR)/PartialQueue.class
 
 $(DTDIR)/PartialQueue.class: $(DT_SRC_DIR)/PartialQueue.scala
 	cd $(DT_SRC_DIR); make pQueue
+
+pQueue: $(DTDIR)/SemaphorePartialQueue.class
 
 # Barrier synchronisation
 
@@ -50,6 +56,15 @@ $(JVM_MON_DIR)/Lock.class: $(JVM_MON_SRC_DIR)/Lock.scala
 	cd $(JVM_MON_SRC_DUR); make lock
 
 lock: $(DIR)/QueueLock.class
+
+# Readers and writers
+
+$(DIR)/SemaphoreReadersWriters.class: $(MONDIR)/ReadersWritersLock.class
+
+$(MONDIR)/ReadersWritersLock.class: $(MON_SRC_DIR)/ReadersWritersLock.scala
+	cd $(MON_SRC_DIR); make readersWriters
+
+readersWriters: $(DIR)/SemaphoreReadersWriters.class
 
 # Standard recipes
 

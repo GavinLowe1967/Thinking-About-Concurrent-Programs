@@ -23,7 +23,7 @@ QUEUES = $(DTDIR)/MonitorPartialQueue.class	\
 
 all: $(QUEUES) $(DIR)/MonitorSyncChan.class $(DIR)/MonitorExchanger.class	\
   $(DIR)/ConditionsBarrier.class $(DIR)/BarberC.class				\
-  $(DIR)/ReadersWritersTest.class $(EXERCISES)
+  $(DIR)/ReadersWritersLock.class $(EXERCISES)
 
 # Partial queue
 
@@ -83,7 +83,10 @@ $(CSDIR)/AtomicBroadcast.class: $(CS_SRC_DIR)/AtomicBroadcast.scala
 atomicBroadcast: $(DIR)/AtomicBroadcast.class
 
 # Readers and writers
-$(DIR)/ReadersWritersTest.class: $(DIR)/ReadersWritersLock.class
+
+$(DIR)/MonitorReadersWriters.class: $(DIR)/ReadersWritersLock.class
+
+readersWriters: $(DIR)/MonitorReadersWriters.class
 
 # Standard recipes
 

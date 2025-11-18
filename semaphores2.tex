@@ -1,13 +1,12 @@
 \section{Signalling Using Semaphores}
 
 Recall, that a semaphore that is used to enforce mutual exclusion is initially
-up.  A thread that enters the critical region does a \SCALA{down}, to block
-other threads from entering.  When it leaves the critical region it does an
-\SCALA{up}, to allow other threads to proceed.
+\emph{up}.  A thread that enters the critical region does a \SCALA{down}, to
+block other threads from entering.  When it leaves the critical region it does
+an \SCALA{up}, to allow other threads to proceed.
 
-
-By contrast a \emph{signalling semaphore} is initially down.  A thread can
-send a signal by performing an \SCALA{up}.  A thread waits for a signal by
+By contrast a \emph{signalling semaphore} is initially \emph{down}.  A thread
+can send a signal by performing an \SCALA{up}.  A thread waits for a signal by
 performing a \SCALA{down}.
 \begin{scala}
   private val signal = new Semaphore(false)
@@ -27,15 +26,20 @@ The \SCALA{waiter} cannot proceed before the signal is sent (but the
 \SCALA{signaller} can proceed before the signal is received).
 Note that the signal is received by only one other thread.  
 
+I think of a signalling semaphore as rather like how one might send a signal
+using a flag.  The flag is put \emph{up} to send the signal.  When the signal
+is received, the flag is put \emph{down}. 
+
 %% Note also that if the |signaller| performs the signal before the |waiter|
 %% is ready, the signal is not lost.
 
 Semaphores and conditions are similar, in that each provides a signalling
 mechanism.
 %
-The main difference is that a semaphore has a state: it is either up or down.
-This means that if an |up| is performed before a thread is waiting, then the
-signal is not lost.  
+The main difference is that a semaphore has a state: it is either \emph{up} or
+\emph{down}.  This means that if an |up| operation is performed before a
+thread is waiting (when the semaphore is in the \emph{down} state), then the
+signal is not lost (the semaphore moves to the \emph{up} state).
 %
 By contrast, if a signal is performed on a condition when
 no thread is waiting, then the signal is lost: in such cases, it is often
@@ -70,12 +74,12 @@ subscripts represent the iteration number.
    \sm{signal1.up}_2.
 \end{align}
 \]
-Thread~|t2| is suspended after performing its first signal, so that |t1|
-performs its second signal \emph{before} |t2| consumes the first signal. 
-With our implementation of semaphores, the precondition of |up| is not
-satisfied, and an exception is thrown. 
-If we had allowed an |up| when the semaphore is already up (and made it a
-no-op), the execution would have continued something like:
+Here, thread~|t2| is suspended after performing its first signal, so that |t1|
+performs its second signal \emph{before} |t2| consumes the first signal.  With
+our implementation of semaphores, the precondition of |up| is not satisfied,
+and an exception is thrown.  If we had allowed an |up| when the semaphore is
+already up (and made it a no-op), the second signal on |t1| would be lost.
+The execution would have continued something like:
 \[
 \begin{align}
 %\sm{signal1.up}_1,\; \sm{signal2.up}_1,\; \sm{signal2.down}_1,\;
@@ -83,8 +87,8 @@ no-op), the execution would have continued something like:
 \ldots,\; \sm{signal1.down}_1,\; \sm{signal2.up}_2,\; \sm{signal2.down}_2.
 \end{align}
 \]
-Here the second signal by |t1| is lost.  Subsequently, |t1| terminates, but
-|t2| is stuck waiting for a second signal.
+Subsequently, |t1| terminates, but |t2| is stuck waiting for a second signal
+on |signal1|.  It would be difficult to track down the cause of this problem. 
 
 A solution is to reverse the order of events in one of the threads.
 \begin{scala}
@@ -92,7 +96,7 @@ A solution is to reverse the order of events in one of the threads.
   def t2 = thread{ for(...){ ...; signal1.down(); signal2.up(); ... } }
 \end{scala}
 %
-We can reason as follows (recall the ``happens before'' relation $\prec$).
+We can reason as follows (using the ``happens before'' relation $\prec$).
 \[
 \begin{array}{rcl@{\qquad}l}
 \sm{signal1.up}_1 & \prec & \sm{signal1.down}_1 & 
@@ -108,7 +112,8 @@ completes the synchronisation on the $n$th iteration before the other thread
 has signalled on that iteration.
 %
 The precondition of |up| is satisfied since $\sm{signal1.down}_n \prec
-\sm{signal1.up}_{n+1}$, for each~$n$, and similarly for |signal2|.
+\sm{signal1.up}_{n+1}$ and $\sm{signal2.down}_n \prec \sm{signal2.up}_{n+1}$,
+for each~$n$.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -144,7 +149,7 @@ class SemaphorePartialQueue[T] extends PartialQueue[T]{
   /** Semaphore to provide mutual exclusion. */
   private val mutex = new MutexSemaphore
 
-  /** Semaphore on which a £dequeue£ waits until the queue is non-empty. */
+  /** Semaphore on which a £dequeue£ waits until the queue is non£-£empty. */
   private val nonEmptyS = new SignallingSemaphore
 
   /** Enqueue x. */
@@ -178,12 +183,15 @@ class SemaphorePartialQueue[T] extends PartialQueue[T]{
 
 The technique used by |enqueue| is known as \emph{passing the baton}.  The
 |enqueue| decides what sort of operation should run next---either a waiting
-|dequeue| or a new operation--- and ``passes it the baton'' by lifting the
+|dequeue| or a new operation---and ``passes it the baton'' by lifting the
 appropriate semaphore.  This is a very useful technique.  Often the current
-thread is in the best position to decide which thread can run next.  We will
-use the technique again in later examples.
+thread is in the best position to decide which thread can run next.  The
+technique allows us to choreograph the threads, so that they perform steps in
+an appropriate order: enforcing a rigid order makes the implementation easier
+to understand.  We will use the technique again in later examples.
 
-There are two important things to remember when passing the baton.
+There are two important things to remember when using the technique of passing
+the baton.
 %
 \begin{enumerate}
 \item
@@ -198,13 +206,18 @@ By contrast, the waiting thread should lift the mutex before waiting:
 otherwise the system will deadlock.
 \end{enumerate}
 
+\begin{instruction}
+Study the details of the implementation of the partial queue.  Make sure you
+understand the rationale for each semaphore operation.
+\end{instruction}
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{Barrier Synchronisation}
 
 We now use semaphores to implement a barrier synchronisation that can be used
 to synchronise $\sm n > 1$ threads.  The implementation again uses the
-technique of passing the barrier.  
+technique of passing the baton.  
 
 The implementation is in Figure~\ref{fig:SemaphoreBarrier}.  It records the
 number of threads currently waiting in a variable \SCALA{waiting}.  This is
@@ -233,7 +246,8 @@ class SemaphoreBarrier(n: Int) extends tacp.dataParallel.BarrierT{
   }
 }
 \end{scala}
-\caption{An implementation of a barrier synchronisation using sem\-a\-phores.}
+\caption{An implementation of a barrier synchronisation object using
+  sem\-a\-phores.}
 \label{fig:SemaphoreBarrier}
 \end{figure}
 
@@ -265,3 +279,8 @@ the next round.
 Note that after the $\sm n$th thread has called |sync|, no other thread can
 obtain the mutex until the last thread exits, since \SCALA{mutex} remains
 down.  This prevents different rounds from interfering.
+
+\begin{instruction}
+Study the details of the implementation.  Persuade yourself that the semaphore
+operations must occur in the order described.
+\end{instruction}

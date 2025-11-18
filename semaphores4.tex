@@ -1,0 +1,258 @@
+\section{A Readers and Writers Lock}
+
+We now implement a readers and writers lock using semaphores.  As in
+Section~\ref{sec:conditionsReadersWriters}, we aim to prevent starvation of
+writers (collectively), and of each reader.
+
+We use the technique of passing the baton.  We use separate semaphores for
+signalling (passing the baton) to a reader or to a writer.  A signal on each
+of these semaphores indicates that a waiting thread can enter.
+
+The code is in Figures~\ref{fig:SemaphoreReadersWriters1}
+and~\ref{fig:SemaphoreReadersWriters2}.  As before, we keep track of the
+number of readers and writers in the critical section, using variables
+|readers| and |writers|, and maintain the invariant 
+\[\mstyle
+(\sm{readers} = 0 \lor \sm{writers} = 0) \land \sm{writers} \le 1.
+\]
+We also keep track of how many readers and writers are waiting, so an
+exiting thread can know to whom to pass the baton.  We use a mutex semaphore
+to protect the object variables.
+
+
+%%%%%
+
+\begin{figure}
+\begin{scala}
+class SemaphoreReadersWriters extends ReadersWritersLock{
+  /** Number of readers currently in the critical region. */
+  private var readers = 0
+  /** Number of writers currently in the critical region. */
+  private var writers = 0
+  /* Invariant: £$(\sm{readers} = 0 \lor \sm{writers} = 0) \land \sm{writers} \le 1$£. */
+
+  /** Number of readers waiting to enter. */
+  private var readersWaiting = 0
+  /** Number of writers waiting to enter. */
+  private var writersWaiting = 0
+
+  private val mutex = new MutexSemaphore
+
+  /* Invariant: if £writers $= 0$£, £writersWaiting $= 0$£, and £mutex£ is up, then
+   * £readersWaiting $= 0$£. */
+
+  /** Semaphore to signal to a waiting reader that it can now enter.  A signal
+    * indicates that £writers $= 0$£. */
+  private val readerEnterS = new SignallingSemaphore
+
+  /** Condition to signal to a waiting writer that it can now enter.  A signal
+    * indicates that £readers $= 0$£ and £writers $= 0$£. */ 
+  private val writerEnterS = new SignallingSemaphore
+
+  ... // Continued in Figure £\sl\ref{fig:SemaphoreReadersWriters2}£.
+}
+\end{scala}
+\caption{A readers and writers lock, implemented using semaphores (part~1).}
+\label{fig:SemaphoreReadersWriters1}
+\end{figure}
+
+%%%%%
+
+As in Section~\ref{sec:conditionsReadersWriters}, a reader trying to enter
+waits if there is a waiting writer.  This helps to ensure that writers aren't
+starved.  
+
+%%%%%
+
+\begin{figure}
+\begin{scala}
+  def readerEnter() = {
+    mutex.down()
+    if(writers > 0 || writersWaiting > 0){ // Thread has to wait.
+      readersWaiting += 1
+      mutex.up(); readerEnterS.down() // Wait for signal (1).
+      assert(writers == 0); readersWaiting -= 1
+    }
+    readers += 1
+    if(readersWaiting > 0) readerEnterS.up() // Signal to next reader at (1).
+    else mutex.up()
+  }
+
+  def readerExit() = {
+    mutex.down()
+    assert(writers == 0); readers -= 1 
+    if(readers == 0 && writersWaiting > 0) 
+      writerEnterS.up() // Signal to writer at (2).
+    else{ assert(readersWaiting == 0 || writersWaiting > 0);  mutex.up() } 
+  }
+
+  def writerEnter() = {
+    mutex.down()
+    if(readers > 0 || writers > 0){ // Thread has to wait.
+      writersWaiting += 1
+      mutex.up(); writerEnterS.down() // Wait for signal (2).
+      assert(readers == 0 && writers == 0); writersWaiting -= 1
+    }
+    writers += 1
+    mutex.up()
+  }
+
+  def writerExit() = {
+    mutex.down()
+    assert(writers == 1 && readers == 0); writers -= 1 
+    if(readersWaiting > 0) readerEnterS.up() // Signal to reader at (1).
+    else if(writersWaiting > 0) writerEnterS.up() // Signal to writer at (2).
+    else mutex.up()
+  }
+}
+\end{scala}
+\caption{A readers and writers lock, implemented using semaphores (part~2).}
+\label{fig:SemaphoreReadersWriters2}
+\end{figure}
+
+%%%%%
+
+When a writer exits, it passes the baton to a waiting reader if there is one.
+Otherwise, it passes the baton to a waiting writer if there is one.
+Otherwise, it raises the mutex, to pass the baton to a thread calling an
+operation.  Thus it gives priority to waiting readers, which helps to prevent
+readers from being starved. 
+
+When a reader exits, if now $\sm{readers} = 0$, it passes the baton to a
+waiting writer if there is one.  Again, this is to help ensure that writers
+aren't starved.  It turns out that there cannot be another reader waiting at
+this point.  There is an invariant that, when the mutex is up, if
+$\sm{writers} = 0$ and $\sm{writersWaiting} = 0$, then $\sm{readersWaiting} =
+0$: there is no need for a reader to wait when ${\sm{writers} = 0}$ and
+$\sm{writersWaiting} = 0$.  Thus, when the exiting reader acquires the mutex,
+if $\sm{writersWaiting} = 0$ there is no waiting reader.  In this case, it
+simply raises the mutex to pass the baton to a new operation call.
+
+If a reader has to wait, when it receives a signal (necessarily from a
+writer), it passes the baton to another reader if there is one.  Thus, the
+baton will be passed from the writer to a reader, and then from one reader to
+another, until all the readers have entered.  The final reader simply raises
+the mutex. 
+
+\begin{instruction}
+Study the details of the implementation.  Persuade yourself that the claimed
+invariants hold.
+\end{instruction}
+
+%% A leaving reader can signal to a waiting writer.  A leaving writer can signal
+%% to either a waiting reader or waiting writer.
+
+%% The previous version could cause a writer to be starved, if readers
+%% continually enter and leave the critical section such that there is always at
+%% least one reader.  To avoid this, we force a new reader to wait if there is
+%% already a waiting writer.
+
+%% On the assumption that no thread remains in the critical section for ever,
+%% this ensures that writers collectively are not starved.  Once a writer starts
+%% waiting, no more readers will enter the CS; eventually all readers will leave
+%% the CS; and a writer will receive a signal.
+
+%% The implementation is potentially unfair to an \emph{individual} writer.  If
+%% repeatedly several writers are waiting, a particular writer may never receive
+%% the signal.  Likewise, a thread may never receive a signal on |mutex|
+%% (although this is less likely). 
+
+%% The implementation of a semaphore does not guarantee to be fair to each
+%% individual waiting thread, although in practice it might be.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Counting semaphores}
+
+The semaphores we have seen so far have been binary: they have just two
+states, \emph{up} and \emph{down}.  By contrast, a \emph{counting semaphore}
+has a non-negative integer as its state.  The \SCALA{down} operation waits
+until the value is strictly positive, and decrements it.  The \SCALA{up}
+operation increments the value, waking a thread if necessary.
+
+Figure~\ref{fig:CountingSemaphore} gives an implementation of a counting
+semaphore, using a JVM monitor.  The constructor of the semaphore takes an
+optional parameter that represents the initial state, with default value
+of~|0|.
+
+%%%%%
+
+\begin{figure}[htbp]
+\begin{scala}
+class CountingSemaphore(private var permits: Int = 0){
+  def down() = synchronized{
+    while(permits == 0) wait()
+    permits -= 1
+  }
+
+  def up() = synchronized{
+    permits += 1
+    notify()
+  }
+}
+\end{scala}
+\caption{The implementation of a counting semaphore.}
+\label{fig:CountingSemaphore}
+\end{figure}
+
+%%%%%
+
+The value of the semaphore can be thought of as the number of \emph{permits}
+available for |down| operations.  Each |down| operation consumes one permit.
+Each |up| operation provides one additional permit.
+
+Figure~\ref{fig:CountingSemaphorePartialQueue} gives an implementation of a
+partial queue that uses a counting semaphore~|size|, together with a mutex
+semaphore that protects the underlying queue.  In particular, the state of
+|size| equals the number of items in the queue: it can be thought of as the
+number of permits to perform dequeues; initially, it equals the default
+value~|0|.  Each |enqueue| operation provides one permit, so performs
+|size.up()|.  Each |dequeue| operation consumes one permit, so performs
+|size.down()|; this blocks when the queue is empty, as required.
+
+%%%%%
+
+\begin{figure}
+\begin{scala}
+class CountingSemaphorePartialQueue[T] extends PartialQueue[T]{
+  /** The queue itself. */
+  private val queue = new scala.collection.mutable.Queue[T]
+
+  /** Semaphore for mutual exclusion on £queue£. */
+  private val mutex = new MutexSemaphore()
+
+  /** Semaphore for dequeueing.  The state of the semaphore equals
+    * £queue.length£. */
+  private val size = new CountingSemaphore(0)
+
+  def enqueue(x: T) = {
+    mutex.down()
+    queue.enqueue(x)
+    size.up()
+    mutex.up()
+  }
+
+  def dequeue(): T = {
+    size.down()
+    mutex.down()
+    val result = queue.dequeue()
+    mutex.up()
+    result
+  }
+}
+\end{scala}
+\caption{A partial queue implemented using a counting semaphore.}
+\label{fig:CountingSemaphorePartialQueue}
+\end{figure}
+
+
+%%%%%
+
+Note that the order in which |dequeue| obtains the semaphores is important: it
+performs |size.down()| \emph{before} |mutex.down()|.  If it were to obtain
+|mutex| first, and |queue| is empty, then the |size.down()| operation would
+block.  But at this point, this thread holds the mutex, so all other threads
+would be blocked: the system would be deadlocked!
+
+%% \emph{Exercise:} adapt this example to produce a bounded buffer that cannot
+%% hold more than $n$ pieces of data.

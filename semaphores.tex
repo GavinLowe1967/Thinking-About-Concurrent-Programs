@@ -5,195 +5,61 @@
 \input{semaphores2} % signalling; partial queue & passing the baton; barrier,
 \input{semaphores3}  % synchronous channel, queue-lock
 % \input{semaphores-syncchan}
-%\input{semaphores-readers-writers} -- cut, one example too many?
+\input{semaphores4} % readers and writes; counting semaphores
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-\section{Counting semaphores}
-
-The semaphores we have seen so far have been binary: they have just two
-states, up and down.
-
-A counting semaphore has a non-negative integer as its state.
-%
-\begin{itemize}
-\item
-The \SCALA{down} operation waits until the value is strictly positive, and
-decrements it;
-
-\item
-The \SCALA{up} operation increments the value, waking a process if necessary.
-\end{itemize}
-%
-The value of the semaphore can be thought of as the number of \emph{permits}
-available for |down| operations. 
-
-
-%%%%%
-
-
-\begin{scala}
-class CountingSemaphore(private var permits: Int = 0){
-
-  def down = synchronized{
-    while(permits == 0) wait()
-    permits -= 1
-  }
-
-  def up = synchronized{
-    permits += 1
-    notify()
-  }
-}
-\end{scala}
-
-
-%%%%%
-
-We can implement a queue, using a counting semaphore to block attempts to
-remove elements until the buffer is non-empty.
-
-\begin{scala}
-/** A queue implemented using a counting semaphore. */
-class CountingSemaphorePartialQueue[T] extends PartialQueue[T]{
-  /** The queue itself. */
-  private val queue = new scala.collection.mutable.Queue[T]
-
-  /** Semaphore for mutual exclusion on queue. */
-  private val mutex = new MutexSemaphore
-
-  /** Semaphore for dequeueing.  The state of the semaphore equals
-    * queue.length. */
-  private val size = new CountingSemaphore(0)
-  ...
-}
-\end{scala}
-
-
-\begin{scala}
-  def enqueue(v: T) = {
-    mutex.down
-    queue.enqueue(v)
-    size.up
-    mutex.up
-  }
-
-  def dequeue(): T = {
-    size.down
-    mutex.down
-    val result = queue.dequeue()
-    mutex.up
-    result
-  }
-\end{scala}
-
-
-%%%%%
-
-\heading{A partial queue}
-
-Note that the order in which |dequeue| obtains the semaphores is
-important.  If it were to obtain |mutex| first, and |queue| is empty,
-then this would block |enqueue|, so the system would be deadlocked. 
-
-\emph{Exercise:} adapt this example to produce a bounded buffer that cannot
-hold more than $n$ pieces of data.
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-% \begin{scala}
-% class Buff[T]{
-%   private val queue = new scala.collection.mutable.Queue[T];
-%   private val mutex = new Semaphore; 
-%   private val size = new CountingSemaphore(0);
-%   ...
-% }
-% \end{scala}
-% %
-% \SCALA{queue} holds the data.  
-
-% \SCALA{mutex} is used to ensure mutual exclusion of operations upon
-% \SCALA{queue}.  
-
-% \SCALA{size} is a counting semaphore which stores the number of elements
-% currently in \SCALA{queue}; it is used to block attempts to remove elements
-% when its value is~$0$.
-% \end{slide}
-
-% %%%%%
-
-% \begin{slide}
-% \heading{An unbounded buffer}
-
-% \begin{scala}
-% class Buff[T]{
-%   ...
-
-%   def add(v:T) = {
-%     mutex.down;
-%     queue.enqueue(v);
-%     size.up; mutex.up;
-%   }
-
-%   def remove:T = {
-%     size.down; mutex down;
-%     val result = queue.dequeue;
-%     mutex.up; return result;
-%   }
-% }
-% \end{scala}
-% \end{slide}
-
-%%%%%
-
-% \begin{slide}
-% \heading{A bounded buffer}
-
-% \emph{Exercise:} adapt this example to produce a bounded buffer, that cannot
-% hold more than $n$ pieces of data.
-% \end{slide}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\begin{slide}
-\heading{Summary}
+\section{Summary}
 
-\begin{itemize}
-\item
-Semantics of semaphores;
+In this chapter we have studied semaphores.  A binary semaphore has two
+states, \emph{up} and \emph{down}.  The |up| operation requires the semaphore
+to be in the \emph{down} state, and puts it into the \emph{up} state.  The
+|down| operation waits until the semaphore is in the \emph{up} state, and puts
+it into the \emph{down} state. 
 
-\item
-Implementing a semaphore using a monitor;
+A semaphores can be used for mutual exclusion.  Such a semaphore is initially
+in the \emph{up} state.  A thread performs |down| before entering the critical
+region, and performs |up| when leaving the critical region.
 
-\item
-Using a semaphore to enforce mutual exclusion;
+A semaphore can also be used for signalling.  Such a semaphore is initially in
+the \emph{up} state.  A thread performs |up| to send a signal.  A thread
+performs |down| to wait to receive a signal.  The semaphore must be in the
+|down| state before the |up| is performed: otherwise, our implementation would
+throw an exception; with other implementations, the signal would be lost.
 
-\item
-Dangers of deadlock;
+Signalling semaphores are often used in combination with a mutex semaphore
+that protects shared variables.  Or sometimes, the combination of several
+semaphores provides mutual exclusion: it is worth being clear about how mutual
+exclusion is achieved in such cases.
 
-\item
-Using a semaphore for signalling;
+Semaphores have some similarities to |Condition|s, in that both can be used
+for waiting and signalling.  The main difference is that a semaphore has a
+state; this means that if a thread performs a signal (|up|) before a thread is
+ready to receive it (via a |down|), the signal is not lost (assuming the
+semaphore is in the \emph{down} state).
 
-\item
-Examples;
+An important technique is that of \emph{passing the baton}.  The current
+thread is often in the best position to decide which thread (or maybe one of a
+group of threads) should run next.  A thread that waits to receive the baton
+should release the mutex: otherwise it will deadlock the system.  By contrast,
+a thread that passes the baton should leave the mutex down; the thread that
+receives the signal takes over ownership of the mutex.  
 
-\item
-Passing the baton;
+We have concentrated on binary semaphores, which have just two states.  By
+contrast, a counting semaphore has a non-negative integer as its state.  The
+state of the semaphore can be thought of as the number of permits to perform
+some operation.  An |up| operation provides another permit, and a |down|
+operation consumes a permit. 
 
-%% \item
-%% Fairness;
-
-\item
-Counting semaphores.
-\end{itemize}
-\end{slide}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \exercises
 
+Bounded queue using counting semaphores.
+
 Something using fine-grained locking.  Linked list?
+
+Combine readers and writers lock with queue lock. 

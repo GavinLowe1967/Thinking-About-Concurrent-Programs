@@ -15,13 +15,15 @@ COND_SRC_DIR = ../10.Conditions
 JVM_MON_SRC_DIR = ../11.JVMMonitors
 SEM_SRC_DIR = ../12.Semaphores
 
-all: $(DIR)/PartialQueueTest.class $(DIR)/BarrierTest.class $(DIR)/SyncChanTest.class $(DIR)/LockTest.class
+all: $(DIR)/PartialQueueTest.class $(DIR)/BarrierTest.class	\
+  $(DIR)/SyncChanTest.class $(DIR)/LockTest.class		\
+  $(DIR)/ReadersWritersTest.class
 
 # Partial queues
 
 $(DIR)/PartialQueueTest.class: $(DTDIR)/PartialQueue.class			\
   $(DTDIR)/MonitorPartialQueue.class $(DTDIR)/JVMMonitorPartialQueue.class	\
-  $(DTDIR)/SemaphorePartialQueue.class
+  $(DTDIR)/SemaphorePartialQueue.class	
 
 $(DTDIR)/PartialQueue.class: $(DT_SRC_DIR)/PartialQueue.scala
 	cd $(DT_SRC_DIR); make pQueue
@@ -82,6 +84,16 @@ $(JVM_MON_DIR)/Lock.class: $(JVM_MON_SRC_DIR)/Lock.scala
 
 $(SEMDIR)/QueueLock.class: $(SEM_SRC_DIR)/QueueLock.scala
 	cd $(SEM_SRC_DIR); make lock
+
+# Readers and writers
+
+$(DIR)/ReadersWritersTest.class: $(MONDIR)/MonitorReadersWriters.class $(SEMDIR)/SemaphoreReadersWriters.class
+
+$(MONDIR)/MonitorReadersWriters.class: $(COND_SRC_DIR)/MonitorReadersWriters.scala $(COND_SRC_DIR)/ReadersWritersLock.scala
+	cd $(COND_SRC_DIR); make readersWriters
+
+$(SEMDIR)/SemaphoreReadersWriters.class: $(SEM_SRC_DIR)/SemaphoreReadersWriters.scala
+	cd $(SEM_SRC_DIR); make readersWriters
 
 # Standard recipes
 
