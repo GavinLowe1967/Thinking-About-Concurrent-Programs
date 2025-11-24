@@ -15,8 +15,9 @@ DT_SRC_DIR = ../07.ConcurrentDatatypes
 DP_SRC_DIR = ../08.DataParallel
 JVM_MON_SRC_DIR = ../11.JVMMonitors
 
-EXERCISES = $(DTDIR)/MonitorBoundedPartialStack.class $(DIR)/MenWomenM.class \
-  $(DIR)/ABC.class $(DIR)/AtomicBroadcast.class
+EXERCISES = $(DTDIR)/MonitorBoundedPartialStack.class $(DIR)/MenWomenM.class	\
+  $(DIR)/ABC.class $(DIR)/AtomicBroadcast.class					\
+  $(DIR)/MonitorProducerConsumer.class
 
 QUEUES = $(DTDIR)/MonitorPartialQueue.class	\
   $(DTDIR)/BoundedPartialQueueTest.class

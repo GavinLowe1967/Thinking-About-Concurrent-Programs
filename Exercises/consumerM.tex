@@ -1,0 +1,125 @@
+\begin{questionS}\label{Q:consumerM}
+Consider the following producer-consumer problem.  Several producers each
+produce one piece of integer data at a time, which they place into a buffer
+using a method \SCALA{put}.  These are accumulated into an array of size~|n|.
+A single consumer can receive that array, once it is full, using the method
+\SCALA{get}.  Thus the desired functionality is captured by the following
+trait.
+%
+\begin{scala}
+trait ProducerConsumer{
+  /** Add £x£ to the buffer, waiting until it is not full. */
+  def put(x: Int): Unit
+
+  /** Get the contents of the buffer, once it is full. */
+  def get: Array[Int]
+}
+\end{scala}
+%
+Note that there is a single consumer that calls the |get| operation. 
+
+Implement the buffer as a monitor.  The consumer should be blocked until the
+array is full, and the producers should be blocked once the array is full.
+Give your implementation the following signature.
+%
+\begin{scala}
+class ProducerConsumerMonitor(n: Int) extends ProducerConsumer{
+  require(n >= 1)
+  ...
+}
+\end{scala}
+
+Write testing code for your implementation, using the linearizability testing
+framework.  Remember that the results of the concurrent and sequential
+operations need to be comparable using ``|==|'', which won't be the case for
+|Array[Int]|.  I suggest you cast the result of the concurrent |get| operation
+to |List[Int]| using the |_.toList| function, and arrange for the
+corresponding sequential operation to return a result of the same type.
+Remember also that the sequential specification object needs to be immutable,
+and ideally comparable using the ``|==|'' operation.
+\end{questionS}
+
+%%%%%
+
+\begin{answerS}
+My code is below.
+%
+\begin{scala}
+class MonitorProducerConsumer(n: Int) extends ProducerConsumer{
+  require(n >= 1)
+
+  /** Array to hold the data. */
+  private var a = new Array[Int](n)
+
+  /** Number of items added to £a£ so far. */
+  private var count = 0
+
+  private val lock = new Lock
+
+  /** Condition for signalling that the old buffer has been taken. */
+  private val notFull = lock.newCondition
+
+  /** Condition for signalling that the buffer has been filled. */
+  private val full = lock.newCondition
+
+  /** Add £x£ to the buffer, waiting until it is not full. */
+  def put(x: Int) = lock.mutex{
+    notFull.await(count < n) // Wait for space (1).
+    a(count) = x; count += 1
+    if(count == n) full.signal() // Signal to a consumer at (2).
+  }
+
+  /** Get the contents of the buffer, once it is full. */
+  def get: Array[Int] = lock.mutex{
+    if(count < n) full.await() // Wait for the buffer to be filled (2).
+    val result = a; a = new Array[Int](n); count = 0;
+    notFull.signalAll() // Signal to all the producers at (1).
+    result    
+  }
+\end{scala}
+%
+Note that the producer has to recheck whether the buffer full each time it is
+awoken, since there are multiple producers, and it is possible that other
+producers have filled the new buffer in the meantime.  However, there is no
+need for the consumer to recheck each time it is awoken, since there is only
+one consumer.
+
+For testing, we take the sequential specification object to be a |List[Int]|.
+The last part of the question hints why using an |Array[Int]| would be less
+good (it would require cloning the array, and objects wouldn't be comparable
+using~``|==|'').  Following the question, we  arrange for the sequential get
+operation to return a |List[Int]|, which is easy given the choice of
+sequential specification type. 
+%
+\begin{scala}
+  /** Sequential specification type.  */
+  type S = List[Int]
+
+  def seqPut(x: Int)(buffer: S): (Unit, S) = {
+    require(buffer.length < n); ((), buffer :+ x)
+  }
+
+  def seqGet(buffer: S): (List[Int], S) = {
+    require(buffer.length == n); (buffer, List[Int]())
+  }
+\end{scala}
+%
+Each consumer needs to cast the result of the |get| to a |List|.
+%
+\begin{scala}
+  /** A worker thread. Thread 0 is the consumer. */
+  def worker(me: Int, log: LinearizabilityLog[S,ProducerConsumer]) = {
+    val random = new scala.util.Random
+    if(me == 0) for(i <- 0 until cIters) log(_.get.toList, "get", seqGet)
+    else 
+      for(i <- 0 until pIters){
+        val x = random.nextInt(maxValue); log(_.put(x), s"put($x)", seqPut(x))
+      }
+  }
+\end{scala}
+%
+I arranged for |numProducers| producers, each performing |pIters| iterations
+per run, and a single consumer performing |cIters| iterations per run, where
+$\sm{pIters} \times \sm{numProducers} = \sm n \times \sm{cIters}$.
+The rest of the testing is standard.
+\end{answerS}

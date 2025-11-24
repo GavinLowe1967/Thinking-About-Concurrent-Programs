@@ -1,6 +1,9 @@
 package tacp.datatypes
 
 import ox.scl._
+// The following allows testing of the alternative implementation of Conditions. 
+// import tacp.jvmMonitors.{Lock,Condition}
+
 import scala.collection.mutable.Queue
 
 /** A partial queue implemented as a monitor. */

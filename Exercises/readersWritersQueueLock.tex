@@ -1,0 +1,67 @@
+\begin{question}
+The readers and writers lock in Section~\ref{sec:semaphoresReadersWriters} was
+fair to writers collectively, but not fair to each individual writer: a
+particular writer might be starved, even though other writers enter the
+critical region.  Adapt the implementation to overcome this, using the
+technique from Section~\ref{sec:queueLock}. 
+\end{question}
+
+\begin{answer}
+This is a fairly straightforward combination of the two techniques.  We remove
+the |writerEnterS| semaphore, and instead replace it with a queue of
+semaphores.  Each writer that needs to wait, adds a new semaphore to the
+queue, and attempts a |down| on it.  A thread can signal to the next writer by
+dequeueing the first semaphore, and doing an |up| on it.  We can remove the
+|writersWaiting| variable, as it is the same as the length of the queue.  My
+code is below, where I have elided the declaration of variables that are
+unchanged from Section~\ref{sec:semaphoresReadersWriters}.
+%
+\begin{scala}
+class SemaphoreReadersWritersQueueLock extends ReadersWritersLock{
+  // ... As in Section £\sl\ref{sec:semaphoresReadersWriters}£.
+
+  /** Semaphores for signalling to waiting writers.  A signal indicates that
+    * readers = 0 and writers = 0. */ 
+  private val queue = new scala.collection.mutable.Queue[Semaphore]
+
+  def readerEnter() = {
+    mutex.down()
+    if(writers > 0 || queue.nonEmpty){ // Have to wait
+      readersWaiting += 1
+      mutex.up(); readerEnterS.down() // Wait for signal (1).
+      assert(writers == 0); readersWaiting -= 1
+    }
+    readers += 1
+    if(readersWaiting > 0) readerEnterS.up() // Signal to next reader at (1).
+    else mutex.up()
+  }
+
+  def readerExit() = {
+    mutex.down()
+    assert(writers == 0); readers -= 1 
+    if(readers == 0 && queue.nonEmpty) 
+      queue.dequeue().up() // Signal to writer at (2).
+    else{ assert(readersWaiting == 0 || queue.nonEmpty);  mutex.up() } 
+  }
+
+  def writerEnter() = {
+    mutex.down()
+    if(readers > 0 || writers > 0){ // Have to wait
+      val sem = new SignallingSemaphore; queue.enqueue(sem)
+      mutex.up(); sem.down() // Wait for signal (2).
+      assert(readers == 0 && writers == 0)
+    }
+    writers += 1
+    mutex.up()
+  }
+
+  def writerExit() = {
+    mutex.down()
+    assert(writers == 1 && readers == 0); writers -= 1 
+    if(readersWaiting > 0) readerEnterS.up() // Signal to reader at (1).
+    else if(queue.nonEmpty) queue.dequeue().up() // Signal to writer at (2).
+    else mutex.up()
+  }
+}
+\end{scala}
+\end{answer}

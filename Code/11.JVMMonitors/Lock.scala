@@ -8,6 +8,12 @@ trait LockT{
 
   /** Release the lock.*/
   def release(): Unit
+
+  /** Execute comp under mutual exclusion. */
+  def mutex[A](comp: => A): A = {
+    acquire()
+    try{ comp } finally{ release() }
+  }
 }
  
 /** A simple lock implemented using a JVM monitor. */
@@ -26,7 +32,55 @@ class Lock extends LockT{
     locked = false
     notify() // Signal to an acquire.
   }
+
+  /** Get a Condition associated with this. */
+  def newCondition = new Condition(this)
 }
+
+// =====
+
+/** A Condition, associated with lock.  All operations should be called only
+  * by a thread holding lock. */
+class Condition(lock: Lock){
+  /** An object that allows a single thread to wait to receive a signal. */
+  private class Signal{
+    /** Has there been a signal? */
+    private var done = false
+
+    /** Wait for a signal. */
+    def await() = synchronized{ while(!done) wait() }
+
+    /** Signal to the waiting thread. */
+    def signal() = synchronized{ done = true; notify() }
+  }
+
+  /** Queue of waiting Signal objects, protected by lock. */
+  private val queue = new scala.collection.mutable.Queue[Signal]
+
+  /** Wait for a signal.  Precondition: this thread holds lock. */
+  def await(): Unit = {
+    val mySignal = new Signal; queue.enqueue(mySignal); lock.release()
+    mySignal.await(); lock.acquire()
+  }
+
+  /** Wait for test to be true.  Precondition: this thread holds lock. */
+  def await(test: => Boolean): Unit = while(!test) await()
+
+  /** Signal to a waiting thread.  Precondition: this thread holds lock. */
+  def signal() = {
+    if(queue.nonEmpty){ val sig = queue.dequeue(); sig.signal() }
+  }
+
+  /** Signal to all waiting threads.  Precondition: this thread holds lock. */
+  def signalAll() = {
+    while(queue.nonEmpty){ val sig = queue.dequeue(); sig.signal() }
+  }
+}
+
+
+
+
+
 
 // =======================================================
 
@@ -63,36 +117,3 @@ object SimpleLockTest{
   }
 
 }
-
-// =======================================================
-
-// /** Linearizability testing of the lock. */
-// object LockLinTest{
-//   /** The sequential specification datatype: true represents that the lock is
-//     * held by a thread. */
-//   type SeqLock = Boolean
-
-//   def seqAcquire(l: SeqLock): (Unit, SeqLock) = { require(!l); ((), true) }
-
-//   def seqRelease(l: SeqLock): (Unit, SeqLock) = { assert(l); ((), false) }
-
-//   val iters = 100
-
-//   def worker(me: Int, log: LinearizabilityLog[SeqLock, Lock]) = {
-//     for(i <- 0 until iters){
-//       log(_.acquire(), "acquire", seqAcquire)
-//       log(_.release(), "release", seqRelease)
-//     }
-//   }
-
-//   def doTest() = {
-//     val tester = LinearizabilityTester[SeqLock,Lock](false, new Lock, 8, worker)
-//     if(tester() <= 0) sys.exit()
-//   }
-
-//   def main(args: Array[String]) = {
-//     for(i <- 0 until 5000){ doTest(); if(i%200 == 0) print(".") }
-//     println()
-//   }
-
-// }

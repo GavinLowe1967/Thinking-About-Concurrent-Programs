@@ -101,13 +101,13 @@ linearizability, taking the sequential specification object to be a |Boolean|,
 with |true| representing that the lock is held by a thread, and with
 operations defined as follows.
 %
-\begin{mysamepage}
+%\begin{mysamepage}
 \begin{scala}
   type SeqLock = Boolean
   def seqAcquire(held: SeqLock): (Unit, SeqLock) = { require(!held); ((), true) }
   def seqRelease(held: SeqLock): (Unit, SeqLock) = { assert(held); ((), false) }
 \end{scala}
-\end{mysamepage}
+%\end{mysamepage}
 %
 (We use |assert|, rather than |require|, in |seqRelease|, because the property
 failing would represent an error in the testing system, rather than an attempt
@@ -115,12 +115,116 @@ to linearize an operation at the wrong point: we expect a thread to call
 |release| only when it holds the lock.  If the assertion were to fail, the
 linearizability tester would throw an exception.)
 
-
 Note that, unlike SCL |Lock|s, this implementation of a lock is not
 re-entrant: a thread that holds the lock cannot acquire it for a second time.
 To do so, the implementation would have to record which thread currently holds
 the lock (the SCL implementation stores the relevant |java.lang.Thread|
 object), and how many times that thread holds the lock.  
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Conditions}
+
+Building on the previous section, we now implement a mechanism similar to SCL
+|Condition|s.  The implementation is in Figure~\ref{fig:JVM-Condition}.  Each
+|Condition| is associated with a |Lock| |lock|, which is provided as a
+parameter of the class.  Each of the operations on the |Condition| should be
+called while holding |lock|. 
+
+%%%%%
+
+\begin{figure}
+\begin{scala}
+class Condition(lock: Lock){
+  /** An object that allows a single thread to wait to receive a signal. */
+  private class Signal{
+    /** Has there been a signal? */
+    private var done = false
+
+    /** Wait for a signal. */
+    def await() = synchronized{ while(!done) wait() }
+
+    /** Signal to the waiting thread. */
+    def signal() = synchronized{ done = true; notify() }
+  }
+
+  /** Queue of waiting £Signal£ objects, protected by £lock£. */
+  private val queue = new scala.collection.mutable.Queue[Signal]
+
+  /** Wait for a signal.  Precondition: this thread holds £lock£. */
+  def await(): Unit = {
+    val mySignal = new Signal; queue.enqueue(mySignal); lock.release()
+    mySignal.await(); lock.acquire()
+  }
+
+  /** Signal to a waiting thread.  Precondition: this thread holds £lock£. */
+  def signal() = {
+    if(queue.nonEmpty){ val sig = queue.dequeue(); sig.signal() }
+  }
+
+  /** Signal to all waiting threads.  Precondition: this thread holds £lock£. */
+  def signalAll() = {
+    while(queue.nonEmpty){ val sig = queue.dequeue(); sig.signal() }
+  }
+}
+
+class Lock{
+  // ... As earlier.
+
+  /** Get a £Condition£ associated with this. */
+  def newCondition = new Condition(this)
+}
+\end{scala}
+\caption{A {\scalashape Condition} implemented using a JVM monitor.}
+\label{fig:JVM-Condition}
+\end{figure}
+
+%%%%%
+
+The implementation is based around an inner class |Signal|, which allows a
+single thread to wait to receive a signal.  Each |Signal| object acts as a
+monitor: the uses of |synchronized|, |wait| and |notify| are on that |Signal|
+object, and are independent of |lock|.  The |Signal| contains a boolean
+variable |done| that indicates whether a signal has been sent on the object.
+A waiting thread simply waits for |done| to become true.  A signalling thread
+sets |done| to true, and notifies the waiting thread.
+
+Each |Condition| object encapsulates a queue of |Signal| objects, one for each
+thread that is currently waiting.  Each operation on the queue is done while
+holding |lock|, to avoid races.
+
+A thread performs |await| by creating a new |Signal| and adding it to the
+queue.  It then releases |lock| (to allow other threads to run), and waits on
+the |Signal|.  Finally, it reacquires |lock|.  The |signal| operation simply
+signals on the first |Signal| object in the queue, if there is one.  The
+|signalAll| operation signals on all the |Signal| objects in the queue.
+
+Finally, we add an operation |newCondition| to |Lock|, to obtain a new
+|Condition| associated with that |Lock|.
+
+The |done| variable in each |Signal| serves two purposes.  First, it deals
+with spurious wakeups: if a thread does perform a spurious wakeup, when there
+was no signal, then it will find $\sm{done} = \sm{false}$, and so wait again.
+Second, it protects against a possible race.  Suppose a thread~$t$ in |await|
+enqueues its |Signal|, releases |lock|, but is then suspended.  Then it is
+possible that another thread sends a signal before $t$ is waiting on the
+|Signal|.  But in this case, when $t$ does resume, it will find $\sm{done} =
+\sm{true}$, and immediately continue.
+
+\begin{instruction}
+Study the details of the implementation.  Make sure you understand the
+different orders in which threads can wait or signal on the |Signal|, and
+acquire or release the |Lock|. 
+\end{instruction}
+
+The use of a queue gives an additional benefit: threads receive signals
+in the same order in which they start to wait (although they may reacquire the
+lock in a different order).  This provides a degree of fairness. 
+
+Perhaps the easiest way to test this implementation is to edit one of the
+examples from Chapter~\ref{chap:conditions} to use this implementation of
+locks and conditions in place of the SCL implementation, and then to check
+that it still passes its tests.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

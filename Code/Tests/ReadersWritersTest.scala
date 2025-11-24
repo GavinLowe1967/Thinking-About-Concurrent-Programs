@@ -52,13 +52,14 @@ object ReadersWritersTest{
     }
   }
 
-  val MRW0 = 0; val MRW = 1; val Semaphore = 2
+  val MRW0 = 0; val MRW = 1; val Semaphore = 2; val SemaphoreQueue = 3
 
   def doTest(choice: Int) = {
     val rw: CRW = choice match{
       case MRW0 => new MonitorReadersWriters0
       case MRW => new MonitorReadersWriters
       case Semaphore => new tacp.semaphores.SemaphoreReadersWriters
+      case SemaphoreQueue => new tacp.semaphores.SemaphoreReadersWritersQueueLock
     }
     val seqRW = SRW(0,0)
     val tester = LinearizabilityTester[SRW,CRW](seqRW, rw, p, worker _)
@@ -71,6 +72,7 @@ object ReadersWritersTest{
       case "--monitor0" => choice = MRW0; i += 1
       case "--monitor" => choice = MRW; i += 1
       case "--semaphore" => choice = Semaphore; i += 1
+      case "--semaphoreQueue" => choice = SemaphoreQueue; i += 1
     }
 
     for(i <- 0 until 1000){ doTest(choice); if(i%10 == 0) print(".") }

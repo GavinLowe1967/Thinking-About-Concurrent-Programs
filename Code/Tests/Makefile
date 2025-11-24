@@ -17,7 +17,7 @@ SEM_SRC_DIR = ../12.Semaphores
 
 all: $(DIR)/PartialQueueTest.class $(DIR)/BarrierTest.class	\
   $(DIR)/SyncChanTest.class $(DIR)/LockTest.class		\
-  $(DIR)/ReadersWritersTest.class
+  $(DIR)/ReadersWritersTest.class $(DIR)/ProducerConsumerTest.class
 
 # Partial queues
 

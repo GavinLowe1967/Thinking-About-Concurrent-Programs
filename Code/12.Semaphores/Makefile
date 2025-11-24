@@ -19,7 +19,9 @@ EXAMPLES = $(DIR)/Counter.class $(DTDIR)/SemaphorePartialQueue.class	\
   $(DIR)/SemaphoreBarrier.class $(DIR)/SemaphoreSyncChan.class		\
   $(DIR)/QueueLock.class $(DIR)/SemaphoreReadersWriters.class
 
-all: $(EXAMPLES)
+EXERCISES = $(DIR)/SemaphoreReadersWritersQueueLock.class
+
+all: $(EXAMPLES) $(EXERCISES)
 
 # Partial queues
 
@@ -53,7 +55,7 @@ syncChan: $(DIR)/SemaphoreSyncChan.class
 $(DIR)/QueueLock.class: $(JVM_MON_DIR)/Lock.class
 
 $(JVM_MON_DIR)/Lock.class: $(JVM_MON_SRC_DIR)/Lock.scala
-	cd $(JVM_MON_SRC_DUR); make lock
+	cd $(JVM_MON_SRC_DIR); make lock
 
 lock: $(DIR)/QueueLock.class
 
