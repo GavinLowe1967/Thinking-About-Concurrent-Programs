@@ -1,0 +1,127 @@
+\begin{question}
+Consider the following scenario.  There are two types of threads, type A and
+type B, that share a resource.  Multiple threads of the same type may use the
+resource simultaneously.  However, threads of different types may not.
+
+We want a lock object to control access in this scenario.  The lock should
+have the following interface.
+%
+\begin{scala}
+/** Trait for a disjoint usage lock. */
+trait DisjointLock{
+  /** An A-thread enters the critical section. */
+  def aEnter(): Unit
+  /** An A-thread leaves the critical section. */
+  def aExit(): Unit
+  /** A B-thread enters the critical section. */
+  def bEnter(): Unit
+  /** A B-thread leaves the critical section. */
+  def bExit(): Unit
+}
+\end{scala}
+%
+The |aEnter| and |bEnter| operations should block while a thread of the other
+type is using the resource.  
+
+Implement a class with this interface, using conditions internally.  Your
+implementation should avoid starvation: assuming no single thread uses the
+resource forever, threads of the other type should eventually gain access. 
+
+Test your implementation using linearizability testing. 
+\end{question}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{answer}
+My code is below, explained via comments.  This adapts the tactic from the
+readers and writers example: a new thread does not enter the critical region
+immediately if there are threads of the other type waiting. 
+%
+\begin{scala}
+class MonitorDisjointLock extends DisjointLock{
+  /** The number of threads of the two types using the resource.  Invariant: 
+    * £aIn = 0£ or £bIn = 0£. */
+  private var aIn, bIn = 0
+
+  /** The number of threads of the two types waiting. */
+  private var aWaiting, bWaiting = 0
+
+  private val lock = new Lock
+
+  /** Conditions for signalling to the two types of threads.  A signal on
+    * £aSignal£ indicates £bIn = 0£, and similarly with £bSignal£. */
+  private val aSignal, bSignal = lock.newCondition
+
+  def aEnter() = lock.mutex{
+    if(bIn > 0 || bWaiting > 0){ // Thread has to wait.
+      aWaiting += 1
+      aSignal.await(bIn == 0) // Wait for B£-£threads to leave (1).
+      aWaiting -= 1
+    }
+    aIn += 1
+  }
+
+  def aExit() = lock.mutex{ 
+    aIn -= 1
+    if(aIn == 0) bSignal.signalAll() // Signal to B£-£threads at (2).
+  }
+
+  def bEnter() = lock.mutex{
+    if(aIn > 0 || aWaiting > 0){ // Thread has to wait.
+      bWaiting += 1
+      bSignal.await(aIn == 0) // Wait for A£-£threads to leave (2).
+      bWaiting -= 1
+    }
+    bIn += 1
+  }
+
+  def bExit() = lock.mutex{
+    bIn -= 1
+    if(bIn == 0) aSignal.signalAll() // Signal to A£-£threads at (1).
+  }
+}
+\end{scala}
+
+Note that it is necessary for a thread to recheck the relevant condition when
+it receives a signal.  Consider the following scenario.
+%
+\begin{enumerate}
+\item[1.] An A-thread is using the resource; two B-threads are waiting at (2).
+\item[2.] The A-thread exists and signals to both B-threads.
+\item[3.] One B-thread is scheduled and enters the critical section, but the
+  other is not yet scheduled.
+\item[4.] Another A-thread calls |aEnter| and waits at (1).
+\item[5.] The first B-thread exits and signals to the A-thread.
+\item[6.] The A-thread enters.
+\item[7.] The second B-thread is scheduled.
+\end{enumerate}
+%
+At this point, the second B-thread needs to recheck the condition: if it
+simply enters the critical region, it breaks the intended invariant. 
+
+We can test this lock using linearizability testing, where the abstract state
+is a pair $(a,b)$ indicating $a$ A-threads and $b$ B-threads are using the
+resource, with the invariant $a = 0$ or $b = 0$.  The corresponding sequential
+operations are straightforward; those for entering capture the obvious
+precondition.
+%
+\begin{scala}
+  type S = (Int, Int)
+  def seqAEnter(s: S): (Unit, S) = {
+    val (a,b) = s; require(b == 0); ((), (a+1,b))
+  }
+  def seqAExit(s: S): (Unit, S) = {
+    val (a,b) = s; assert(a > 0 && b == 0); ((), (a-1,b))
+  }
+  def seqBEnter(s: S): (Unit, S) = {
+    val (a,b) = s; require(a == 0); ((), (a,b+1))
+  }
+  def seqBExit(s: S): (Unit, S) = {
+    val (a,b) = s; assert(b > 0 && a == 0); ((), (a,b-1))
+  }
+\end{scala}
+%
+We can then run threads that alternate between entering and leaving, as a
+particular type of thread.  The rest of the linearizability testing is
+standard. 
+\end{answer}

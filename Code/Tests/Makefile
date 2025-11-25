@@ -15,9 +15,10 @@ COND_SRC_DIR = ../10.Conditions
 JVM_MON_SRC_DIR = ../11.JVMMonitors
 SEM_SRC_DIR = ../12.Semaphores
 
-all: $(DIR)/PartialQueueTest.class $(DIR)/BarrierTest.class	\
-  $(DIR)/SyncChanTest.class $(DIR)/LockTest.class		\
-  $(DIR)/ReadersWritersTest.class $(DIR)/ProducerConsumerTest.class
+all: $(DIR)/PartialQueueTest.class $(DIR)/BarrierTest.class		\
+  $(DIR)/SyncChanTest.class $(DIR)/LockTest.class			\
+  $(DIR)/ReadersWritersTest.class $(DIR)/ProducerConsumerTest.class	\
+  $(DIR)/DisjointLockTest.class
 
 # Partial queues
 
@@ -94,6 +95,13 @@ $(MONDIR)/MonitorReadersWriters.class: $(COND_SRC_DIR)/MonitorReadersWriters.sca
 
 $(SEMDIR)/SemaphoreReadersWriters.class: $(SEM_SRC_DIR)/SemaphoreReadersWriters.scala
 	cd $(SEM_SRC_DIR); make readersWriters
+
+# Disjoint Lock
+
+$(DIR)/DisjointLockTest.class: $(MONDIR)/MonitorDisjointLock.class
+
+$(MONDIR)/MonitorDisjointLock.class: $(COND_SRC_DIR)/MonitorDisjointLock.scala
+	cd $(COND_SRC_DIR); make disjointLock
 
 # Standard recipes
 

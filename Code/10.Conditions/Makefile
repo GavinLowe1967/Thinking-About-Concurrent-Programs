@@ -17,7 +17,7 @@ JVM_MON_SRC_DIR = ../11.JVMMonitors
 
 EXERCISES = $(DTDIR)/MonitorBoundedPartialStack.class $(DIR)/MenWomenM.class	\
   $(DIR)/ABC.class $(DIR)/AtomicBroadcast.class					\
-  $(DIR)/MonitorProducerConsumer.class
+  $(DIR)/MonitorProducerConsumer.class $(DIR)/MonitorDisjointLock.class
 
 QUEUES = $(DTDIR)/MonitorPartialQueue.class	\
   $(DTDIR)/BoundedPartialQueueTest.class
@@ -88,6 +88,12 @@ atomicBroadcast: $(DIR)/AtomicBroadcast.class
 $(DIR)/MonitorReadersWriters.class: $(DIR)/ReadersWritersLock.class
 
 readersWriters: $(DIR)/MonitorReadersWriters.class
+
+# Disjoint lock
+
+$(DIR)/MonitorDisjointLock.class: $(DIR)/DisjointLock.class
+
+disjointLock: $(DIR)/MonitorDisjointLock.class
 
 # Standard recipes
 
