@@ -1,0 +1,17 @@
+\begin{questionS}
+Adapt the implementation of the bag-of-tasks object from
+Figure~\ref{fig:BagOfTasksLock} to use a JVM monitor.
+\end{questionS}
+
+\begin{answerS}
+This is straightforward: we replace the |lock.mutex| block by a |synchronized|
+block (and we no longer need the |Lock|):
+%
+\begin{scala}
+  def getTask(): Task = {
+    var myI = -1
+    synchronized.mutex{ myI = i; i += 1} // Get and increment £i£.
+    if(myI < nTasks) getTask(myI) else null
+  }
+\end{scala}
+\end{answerS}

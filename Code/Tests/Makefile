@@ -18,7 +18,7 @@ SEM_SRC_DIR = ../12.Semaphores
 all: $(DIR)/PartialQueueTest.class $(DIR)/BarrierTest.class		\
   $(DIR)/SyncChanTest.class $(DIR)/LockTest.class			\
   $(DIR)/ReadersWritersTest.class $(DIR)/ProducerConsumerTest.class	\
-  $(DIR)/DisjointLockTest.class
+  $(DIR)/DisjointLockTest.class $(DIR)/Mod3Test.class
 
 # Partial queues
 
@@ -102,6 +102,13 @@ $(DIR)/DisjointLockTest.class: $(MONDIR)/MonitorDisjointLock.class
 
 $(MONDIR)/MonitorDisjointLock.class: $(COND_SRC_DIR)/MonitorDisjointLock.scala
 	cd $(COND_SRC_DIR); make disjointLock
+
+# Mod3
+
+$(DIR)/Mod3Test.class: $(JVM_MON_DIR)/Mod3M.class
+
+$(JVM_MON_DIR)/Mod3M.class: $(JVM_MON_SRC_DIR)/Mod3M.scala
+	cd $(JVM_MON_SRC_DIR); make mod3
 
 # Standard recipes
 

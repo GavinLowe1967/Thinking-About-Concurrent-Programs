@@ -1,0 +1,89 @@
+\begin{question}
+Consider the following scenario.  Each thread has an integer-valued identity.
+A particular resource should be accessed according to the following
+constraint: a new thread can start using the resource only if the sum of the
+identities of those threads currently using it is divisible by~3.  Implement a
+JVM monitor that enforces this, extending the following trait.
+\begin{scala}
+trait Mod3{
+  def enter(id: Int): Unit
+  def exit(id: Int): Unit
+}
+\end{scala}
+
+Test your program using the linearizability framework.  \textbf{Hint:} one
+approach is to use an immutable |Set[Int]| as the sequential specification
+object, representing the set of identities of threads currently using the
+resource, and to include a suitable precondition for the sequential version of
+|enter|.
+\end{question}
+
+%%%%%
+
+\begin{answerI}
+Here's my code.
+%
+\begin{scala}
+class Mod3M{
+  /** Sum of identites of threads currently in critical region. */
+  private var current = 0
+
+  /** Enter the critical region. */
+  def enter(id: Int) = synchronized{
+    while(current%3 != 0) wait() 
+    current += id
+    if(current%3 == 0) notify()
+  }
+
+  /** Leave the critical region. */
+  def exit(id: Int) = synchronized{
+    current -= id
+    if(current%3 == 0) notify()
+  }
+}
+\end{scala}
+%
+Note that an exiting thread performs a |notify| only if there is some point in
+doing so, i.e., |current| is divisible by~3.  It would be ok to do a
+|notifyAll| at this point; however, that is quite likely to wake up several
+threads, and often only one of them will be able to enter.  Instead, it's more
+efficient to do a |notify|.  However, this means that the entering thread
+should maybe signal to another waiting thread. 
+
+
+%% Alternatively, one can note that the following is invariant: at most one
+%% thread whose identity is not divisible by 3 is present at any time.
+%% Therefore it would be enough to store a boolean recording whether such a
+%% thread is currently present.
+
+For testing, we can follow the hint and use a |Set[Int]| as the specification
+object.  The sequential operations are then as follows.
+%
+\begin{scala}
+  type S = Set[Int]
+  def seqEnter(id: Int)(current: S): (Unit, S) = {
+    require(current.sum%3 == 0); ((), current+id)
+  }
+  def seqExit(id: Int)(current: S): (Unit, S) = {
+    assert(current.contains(id)); ((), current-id)
+  }
+\end{scala}
+%
+In particular, the |seqEnter| operation captures the precondition.  (The
+|assert| in |seqExit| is simply a sanity check.)  We can then run threads that
+repeatedly enter and exit.  The rest of the tester is standard. 
+
+Alternatively, the testing could be based on a sequential specification object
+that just records the \emph{sum} of the identities of current threads.
+%
+\begin{scala}
+  type S = Int
+  def seqEnter(id: Int)(current: S): (Unit, S) = {
+    require(current%3 == 0); ((), current+id)
+  }
+
+  def seqExit(id: Int)(current: S): (Unit, S) = {
+    assert(id <= current); ((), current-id)
+  }
+\end{scala}
+\end{answerI}

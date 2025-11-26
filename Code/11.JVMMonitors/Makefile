@@ -17,9 +17,11 @@ QUEUES = $(DTDIR)/MonitorTotalQueue.class	\
    $(DTDIR)/JVMMonitorPartialQueue.class	\
    $(DTDIR)/JVMMonitorBoundedPartialQueue.class
 
+EXERCISES = $(DIR)/Mod3M.class
+
 all: $(QUEUES) $(DIR)/Counter.class $(DTDIR)/MonitorShardedSet.class	\
   $(DIR)/JVMMonitorSyncChan.class $(DIR)/Lock.class			\
-  $(DIR)/JVMMonitorBarrier.class $(DIR)/TimeoutExchanger.class
+  $(DIR)/JVMMonitorBarrier.class $(DIR)/TimeoutExchanger.class $(EXERCISES)
 
 # Total queue
 
@@ -68,6 +70,10 @@ barrier: $(DIR)/JVMMonitorBarrier.class
 # Lock
 
 lock: $(DIR)/Lock.class
+
+# Mod3
+
+mod3: $(DIR)/Mod3M.class
 
 # Standard recipes
 
