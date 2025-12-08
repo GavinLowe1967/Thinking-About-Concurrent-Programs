@@ -225,3 +225,8 @@ to capture the operation's precondition, as follows:
   }
 \end{scala}
 \end{mysamepage}
+%
+When testing the implementation, it is best to pick a fairly small value for
+|bound| (on, at least, a good proportion of the runs).  This makes it likely
+that the queue sometimes becomes full, and so ensures that the testing covers
+this case. 

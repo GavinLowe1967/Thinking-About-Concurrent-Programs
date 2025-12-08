@@ -20,7 +20,7 @@ EXERCISES = $(DTDIR)/MonitorBoundedPartialStack.class $(DIR)/MenWomenM.class	\
   $(DIR)/MonitorProducerConsumer.class $(DIR)/MonitorDisjointLock.class
 
 QUEUES = $(DTDIR)/MonitorPartialQueue.class	\
-  $(DTDIR)/BoundedPartialQueueTest.class
+  $(DTDIR)/BoundedMonitorPartialQueue.class
 
 all: $(QUEUES) $(DIR)/MonitorSyncChan.class $(DIR)/MonitorExchanger.class	\
   $(DIR)/ConditionsBarrier.class $(DIR)/BarberC.class				\
@@ -30,10 +30,7 @@ all: $(QUEUES) $(DIR)/MonitorSyncChan.class $(DIR)/MonitorExchanger.class	\
 
 $(DTDIR)/MonitorPartialQueue.class $(DTDIR)/BoundedMonitorPartialQueue.class: $(DTDIR)/PartialQueue.class
 
-$(DTDIR)/BoundedPartialQueueTest.class:  $(DTDIR)/BoundedMonitorPartialQueue.class $(DTDIR)/JVMMonitorBoundedPartialQueue.class
-
-$(DTDIR)/JVMMonitorBoundedPartialQueue.class: $(JVM_MON_SRC_DIR)/JVMMonitorBoundedPartialQueue.scala
-	cd $(JVM_MON_SRC_DIR); make bpQueue
+bpQueue:  $(DTDIR)/BoundedMonitorPartialQueue.class
 
 # Barrier synchronisation
 
@@ -70,10 +67,13 @@ exchanger: $(DIR)/MonitorExchanger.class
 
 # Partial stack
 
-$(DTDIR)/MonitorBoundedPartialStack.class: $(DTDIR)/PartialStack.class $(DTDIR)/ImmutableStack.class 
+$(DTDIR)/MonitorBoundedPartialStack.class: $(DTDIR)/PartialStack.class 
+# $(DTDIR)/ImmutableStack.class 
 
 $(DTDIR)/PartialStack.class $(DTDIR)/ImmutableStack.class: 
 	cd $(DT_SRC_DIR); make
+
+pStack: $(DTDIR)/MonitorBoundedPartialStack.class
 
 # Atomic broadcast
 $(DIR)/AtomicBroadcast.class: $(CSDIR)/AtomicBroadcast.class
@@ -94,6 +94,10 @@ readersWriters: $(DIR)/MonitorReadersWriters.class
 $(DIR)/MonitorDisjointLock.class: $(DIR)/DisjointLock.class
 
 disjointLock: $(DIR)/MonitorDisjointLock.class
+
+# Producer consumer buffer example
+
+producerConsumer: $(DIR)/MonitorProducerConsumer.class
 
 # Standard recipes
 

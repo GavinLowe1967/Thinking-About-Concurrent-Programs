@@ -32,13 +32,6 @@ tQueue: $(DIR)/TotalQueue.class
 
 # Partial queues
 
-# $(DIR)/PartialQueueTest.class: $(DIR)/PartialQueue.class $(DIR)/MonitorPartialQueue.class $(DIR)/JVMMonitorPartialQueue.class
-
-# $(DIR)/MonitorPartialQueue.class: $(COND_SRC_DIR)/MonitorPartialQueue.scala
-# 	cd $(COND_SRC_DIR); make queue
-
-# $(DIR)/JVMMonitorPartialQueue.class: $(JVM_MON_SRC_DIR)/JVMMonitorPartialQueue.scala
-# 	cd $(JVM_MON_SRC_DIR); make pQueue
 
 pQueue: $(DIR)/PartialQueue.class
 
@@ -53,7 +46,10 @@ $(DPDIR)/BFSGraphSearch.class: $(DP_SRC_DIR)/BFSGraphSearch.scala
 
 # Exercises
 
-$(DIR)/TotalStack.class: $(DIR)/ImmutableStack.class
+pStack: $(DIR)/PartialStack.class
+
+tStack: $(DIR)/TotalStack.class
+
 
 # DF search
 

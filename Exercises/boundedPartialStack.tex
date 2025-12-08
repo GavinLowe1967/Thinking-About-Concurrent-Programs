@@ -1,4 +1,5 @@
 \begin{questionS}
+\label{ex:boundedPartialStack}
 Use a monitor to implement a bounded partial stack with signature
 \begin{scala}
 class MonitorBoundedPartialStack[T](bound: Int) extends PartialStack[T]
@@ -66,4 +67,8 @@ specification object needs to capture the precondition:
     require(st.length < bound); ((), st.push(x))
   }
 \end{scala}
+%
+As with the bounded partial queue in the body of the chapter, we should choose
+a fairly small value for |bound|, to ensure coverage of the case when the
+stack becomes full.
 \end{answerS}

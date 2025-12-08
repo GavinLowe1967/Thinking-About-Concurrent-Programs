@@ -8,7 +8,7 @@ MONDIR = $(ROOT)/jvmMonitors
 TRAP_SRC_DIR = ../03.Trapezium
 MON_SRC_DIR = ../11.JVMMonitors
 
-EXERCISES = $(DTDIR)/MapTest.class $(DTDIR)/LinkedListMap.class  $(DTDIR)/ShardedMap.class $(DTDIR)/ConcurrentIterator.class
+EXERCISES = $(DTDIR)/LinkedListMap.class  $(DTDIR)/ShardedMap.class $(DTDIR)/ConcurrentIterator.class
 
 all: $(DIR)/Counter.class $(DTDIR)/LockTotalQueue.class $(TRAPDIR)/BagOfTasksLock.class $(DIR)/CounterArrayTest.class  $(DTDIR)/SetTest.class $(EXERCISES)
 
@@ -18,6 +18,22 @@ $(DIR)/CounterArrayTest.class: $(DIR)/CounterArray.class $(MONDIR)/StripedCounte
 
 $(MONDIR)/StripedCounterArray.class: $(MON_SRC_DIR)/StripedCounterArray.scala
 	cd $(MON_SRC_DIR); make striped
+
+# Trapezium
+
+$(TRAPDIR)/BagOfTasksLock.class: $(TRAPDIR)/BagOfTasks.class
+
+$(TRAPDIR)/BagOfTasks.class: $(TRAP_SRC_DIR)/BagOfTasks.scala
+	cd $(TRAP_SRC_DIR); make bagOfTasks
+
+trapezium:  $(TRAPDIR)/BagOfTasksLock.class
+
+######### Datatypes
+# Sharding
+
+$(DTDIR)/ShardedMap.class $(DTDIR)/ShardedSet.class: $(DTDIR)/Sharding.class
+
+sharding: $(DTDIR)/Sharding.class
 
 # Sets
 
@@ -30,18 +46,13 @@ $(DTDIR)/MonitorShardedSet.class: $(MON_SRC_DIR)/MonitorShardedSet.scala
 
 # Maps
 
-$(DTDIR)/ShardedMap.class: $(DTDIR)/ShardedSet.class
+$(DTDIR)/ShardedMap.class $(DTDIR)/LinkedListMap.class: $(DTDIR)/Map.class
 
-$(DTDIR)/MapTest.class: $(DTDIR)/ShardedMap.class $(DTDIR)/LinkedListMap.class
+# $(DTDIR)/MapTest.class: $(DTDIR)/ShardedMap.class $(DTDIR)/LinkedListMap.class
 
-# Trapezium
+maps: $(DTDIR)/ShardedMap.class $(DTDIR)/LinkedListMap.class
 
-$(TRAPDIR)/BagOfTasksLock.class: $(TRAPDIR)/BagOfTasks.class
-
-$(TRAPDIR)/BagOfTasks.class: $(TRAP_SRC_DIR)/BagOfTasks.scala
-	cd $(TRAP_SRC_DIR); make bagOfTasks
-
-trapezium:  $(TRAPDIR)/BagOfTasksLock.class
+######### Standard recipes
 
 clean:
 	rm $(DIR)/*.class; fsc -shutdown

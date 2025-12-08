@@ -6,7 +6,7 @@ critical region.  Adapt the implementation to overcome this, using the
 technique from Section~\ref{sec:queueLock}. 
 \end{question}
 
-\begin{answer}
+\begin{answerI}
 This is a fairly straightforward combination of the two techniques.  We remove
 the |writerEnterS| semaphore, and instead replace it with a queue of
 semaphores.  Each writer that needs to wait, adds a new semaphore to the
@@ -64,4 +64,4 @@ class SemaphoreReadersWritersQueueLock extends ReadersWritersLock{
   }
 }
 \end{scala}
-\end{answer}
+\end{answerI}

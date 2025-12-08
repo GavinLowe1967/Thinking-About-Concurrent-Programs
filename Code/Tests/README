@@ -1,5 +1,40 @@
+Concurrent datatypes
+====================
+
 PartialQueueTest.scala: Test of the implementations of a partial queue.
+
+MapTest.scala: Test for Maps.	
+
+ImmutableStack.scala: An immutable stack, used in tests for stacks. 
+
+PartialStackTest.scala: Test for partial stacks.
+
+BoundedPartialStackTest.class: Test for bounded partial stacks.
+
+TotalStackTest.scala: Test for total stacks.
+
+BoundedPartialQueueTest.scala: Test for bounded partial queues.
+
+Synchronisation objects
+=======================
 
 BarrierTest.scala: Test of the implementations of a combining barrier.
 
 SyncChanTest.scala: Test of the implementations of a synchronous channel. 
+
+ProducerConsumerTest.scala: Test for the array-based producer-consumer
+examples.
+
+MenWomenTest.scala: Test for solutions to the men and women problem.
+
+Locks
+=====
+
+DisjointLockTest.scala: Test for disjoint locks.
+
+LockTest.scala: Test for a Lock.
+
+Mod3Test.scala: Test for a mod-3 lock. 
+
+ReadersWritersTest.scala: Test for a readers and writers lock.
+

@@ -19,18 +19,22 @@ EXAMPLES = $(DIR)/Counter.class $(DTDIR)/SemaphorePartialQueue.class	\
   $(DIR)/SemaphoreBarrier.class $(DIR)/SemaphoreSyncChan.class		\
   $(DIR)/QueueLock.class $(DIR)/SemaphoreReadersWriters.class
 
-EXERCISES = $(DIR)/SemaphoreReadersWritersQueueLock.class
+EXERCISES = $(DIR)/SemaphoreReadersWritersQueueLock.class	\
+  $(DIR)/SemaphoreProducerConsumer.class $(DIR)/Mod3S.class	\
+  $(DTDIR)/BoundedSemaphorePartialQueue.class $(DIR)/MenWomenSemaphore.class
 
 all: $(EXAMPLES) $(EXERCISES)
 
 # Partial queues
 
-$(DTDIR)/SemaphorePartialQueue.class: $(DTDIR)/PartialQueue.class
+$(DTDIR)/SemaphorePartialQueue.class $(DTDIR)/BoundedSemaphorePartialQueue.class: $(DTDIR)/PartialQueue.class
 
 $(DTDIR)/PartialQueue.class: $(DT_SRC_DIR)/PartialQueue.scala
 	cd $(DT_SRC_DIR); make pQueue
 
 pQueue: $(DTDIR)/SemaphorePartialQueue.class
+
+bpQueue:  $(DTDIR)/BoundedSemaphorePartialQueue.class
 
 # Barrier synchronisation
 
@@ -67,6 +71,18 @@ $(MONDIR)/ReadersWritersLock.class: $(MON_SRC_DIR)/ReadersWritersLock.scala
 	cd $(MON_SRC_DIR); make readersWriters
 
 readersWriters: $(DIR)/SemaphoreReadersWriters.class
+
+# Producer consumer
+
+producerConsumer: $(DIR)/SemaphoreProducerConsumer.class
+
+# Mod 3
+
+mod3: $(DIR)/Mod3S.class
+
+# Men and women
+
+menWomen: $(DIR)/MenWomenSemaphore.class
 
 # Standard recipes
 

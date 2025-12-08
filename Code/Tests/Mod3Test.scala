@@ -2,6 +2,7 @@ package tacp.tests
 
 import ox.scl._
 import tacp.jvmMonitors.{Mod3,Mod3M}
+import tacp.semaphores.{Mod3S, Mod3SA}
 import scala.collection.immutable.Set
 
 object Mod3Test{
@@ -28,8 +29,13 @@ object Mod3Test{
     }
   }
 
-  def doTest() = {
-    val mon: Mod3 = new Mod3M
+  val Monitor = 0; val Semaphore = 1; val SemaphoreA = 2
+
+  def doTest(choice: Int) = {
+    val mon: Mod3 = choice match{
+      case Monitor => new Mod3M; case Semaphore => new tacp.semaphores.Mod3S
+      case SemaphoreA => new Mod3SA
+    }
     val tester = 
       LinearizabilityTester[S, Mod3](Set[Int](), mon, numWorkers, worker _)
     assert(tester() > 0)
@@ -37,7 +43,12 @@ object Mod3Test{
 
   // The main method
   def main(args: Array[String]) = {
-    for(i <- 0 until 5000){ doTest(); if(i%50 == 0) print(".") }
+    var choice = 0; var i = 0
+    while(i < args.length) args(i) match{
+      case "--semaphore" => choice = Semaphore; i += 1
+      case "--semaphoreA" => choice = SemaphoreA; i += 1
+    }
+    for(i <- 0 until 5000){ doTest(choice); if(i%50 == 0) print(".") }
     println()
   }
 }

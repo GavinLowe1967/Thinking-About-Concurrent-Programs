@@ -1,4 +1,4 @@
-\begin{question}
+\begin{questionS}
 Consider the following scenario.  There are two types of threads, type A and
 type B, that share a resource.  Multiple threads of the same type may use the
 resource simultaneously.  However, threads of different types may not.
@@ -28,11 +28,11 @@ implementation should avoid starvation: assuming no single thread uses the
 resource forever, threads of the other type should eventually gain access. 
 
 Test your implementation using linearizability testing. 
-\end{question}
+\end{questionS}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\begin{answer}
+\begin{answerS}
 My code is below, explained via comments.  This adapts the tactic from the
 readers and writers example: a new thread does not enter the critical region
 immediately if there are threads of the other type waiting. 
@@ -124,4 +124,4 @@ precondition.
 We can then run threads that alternate between entering and leaving, as a
 particular type of thread.  The rest of the linearizability testing is
 standard. 
-\end{answer}
+\end{answerS}

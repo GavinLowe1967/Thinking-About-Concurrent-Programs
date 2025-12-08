@@ -1,7 +1,10 @@
-package tacp.datatypes
+package tacp.tests
 
 import scala.collection.immutable.Queue
 import ox.scl._
+import tacp.datatypes.{
+  PartialQueue, BoundedMonitorPartialQueue, JVMMonitorBoundedPartialQueue, 
+  BoundedSemaphorePartialQueue}
 
 /** A linearizability tester for bounded partial queues. */
 object BoundedPartialQueueTest{
@@ -39,6 +42,7 @@ object BoundedPartialQueueTest{
     val concQueue: PartialQueue[Int] = queueType match{
       case "monitor" => new BoundedMonitorPartialQueue[Int](bound)
       case "JVM" => new JVMMonitorBoundedPartialQueue[Int](bound)
+      case "semaphore" => new BoundedSemaphorePartialQueue[Int](bound)
     }
     val seqQueue = Queue[Int]()
     val tester = LinearizabilityTester[SeqQueue,ConcQueue](
@@ -57,6 +61,7 @@ object BoundedPartialQueueTest{
 //      case "--enqueueProb" => enqueueProb = args(i+1).toDouble; i += 2
       case "--monitor" => queueType = "monitor"; i += 1
       case "--JVM" => queueType = "JVM"; i += 1
+      case "--semaphore" => queueType = "semaphore"; i += 1
       case "--bound" => bound = args(i+1).toInt; i += 2
       case arg => println("Unrecognised argument: "+arg); sys.exit()
     }

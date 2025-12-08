@@ -15,7 +15,7 @@ EXERCISES = $(DIR)/ServerCombiningBarrier.class $(DIR)/BarrierLog.class	\
 
 all: $(DIR)/PrefixSumsTest.class $(DIR)/JacobiTest.class	\
   $(DIR)/JacobiExperiment.class $(DIR)/BFSGraphSearch.class	\
-  $(DIR)/Gravity.class $(EXERCISES)
+  $(DIR)/Gravity.class $(EXERCISES) $(DIR)/CombiningBarrierTest.class
 
 # $(DIR)/BarrierTest.class
 
@@ -25,13 +25,21 @@ $(DIR)/JacobiTest.class $(DIR)/JacobiExperiment.class: $(DIR)/Jacobi.class
 
 $(DIR)/BFSGraphSearch.class: $(DTDIR)/GraphSearch.class $(DTDIR)/ConcSet.class $(DTDIR)/TotalQueue.class
 
+# Barriers
+
+$(DIR)/CombiningBarrierTest.class: $(DIR)/ServerCombiningBarrier.class $(DIR)/CombiningBarrierLog.class
+
 $(DIR)/BarrierLog.class: $(DIR)/ServerCombiningBarrier.class $(DIR)/ServerBarrier.class
 
 barrier: $(DIR)/BarrierLog.class
 
+# Prefix sums
+
 $(DIR)/PrefixSumsShared.class: $(DIR)/PrefixSums.class
 
 $(DIR)/PrefixSumsTest.class: $(DIR)/PrefixSumsShared.class
+
+# Smoothing
 
 $(DIR)/SmoothSharedTest.class: $(DIR)/SmoothShared.class
 

@@ -114,7 +114,8 @@ interfering with an exchange: a signal on this condition indicates that that
 thread can now start an exchange (unless $\sm{stage} = \sm{Exchanging}$,
 i.e.~unless it has been preempted by another thread).  The condition |swapped|
 is used by the second thread to signal that it has swapped values.
-Figure~\ref{fig:exchanger-seqDiagram} illustates the sequence of signals.
+Figure~\ref{fig:exchanger-seqDiagram} illustates the sequence of signals: the
+choreography of the exchange.
 
 In the |exchange| operation, a thread starts by waiting, on |canStart|, for
 the previous exchange to finish, i.e.~until $\sm{stage} \ne \sm{Exchanging}$. 

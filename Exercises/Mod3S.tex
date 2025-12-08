@@ -1,0 +1,95 @@
+\begin{question}
+Recall the following synchronisation problem from Exercise~\ref{ex:mod3M}.
+Each thread has an integer-valued identity.  A particular resource should be
+accessed according to the following constraint: a new thread can start using
+the resource only if the sum of the identities of those threads currently
+using it is divisible by~3.  Implement a class to enforce this, using
+semaphores.
+\end{question}
+
+%%%%%
+
+\begin{answerI}
+My code is below.  It uses the technique of passing the baton.  The |entry|
+semaphore is used to signal to a thread waiting in |enter| that the current
+sum is divisible by~3, so the thread can now enter.  In order for the baton
+passing to work, a signalling thread needs to know whether there is a waiting
+thread; the variable |waiting| records the number of such waiting threads.  In
+fact, the baton passing in the two operations is identical, so we factor the
+code out into a private operation |signal|.
+%
+\begin{scala}
+class Mod3S extends Mod3{
+  /** Sum of identites of threads currently in critical region. */
+  private var current = 0
+
+  /** Number of threads waiting. */
+  private var waiting = 0
+
+  /** Semaphore for blocked threads to wait on. 
+    * A signal implies £current\%3 = 0£. */ 
+  private val entry = new SignallingSemaphore
+
+  /** Semaphore for mutual exclusion. */
+  private val mutex = new MutexSemaphore
+    
+  /** Pass the baton, either signalling for another thread to enter, or lifting
+    * the mutex. */
+  private def signal() = 
+    if(current%3 == 0 && waiting > 0) entry.up() else mutex.up()
+
+  def enter(id: Int) = {
+    mutex.down()
+    if(current%3 != 0){
+      waiting += 1; mutex.up(); entry.down() // Wait for a signal.
+      assert(current%3 == 0); waiting -= 1
+    }
+    current += id
+    signal()
+  }
+
+  def exit(id: Int) = {
+    mutex.down()
+    current -= id
+    signal()
+  }
+}
+\end{scala}
+
+Here's another solution\footnote{Due to Dan Wormald.}, which is surprisingly
+short.
+%
+\begin{scala}
+class Mod3SA extends Mod3{
+  private val entry = new MutexSemaphore
+
+  def enter(id: Int) = {
+    entry.down()
+    if(id%3 == 0) entry.up()
+  }
+
+  def exit(id: Int) = if(id%3 != 0) entry.up()
+}
+\end{scala}
+%
+This satisfies the invariant:
+\begin{quote}
+   |entry| is up if and only if the sum of identities of threads in the
+   critical region is divisible by~3.
+\end{quote}
+%
+The semaphore is initially up, so this invariant holds initially.
+
+If the |entry.down()| in |enter| succeeds, then the invariant tells us that
+this thread is allowed to enter the critical region.  If \SCALA{id\%3}$ = 0$,
+the sum remains divisible by~3 subsequently, so the thread does |entry.up()|
+to reestablish the invariant.  Otherwise, the new sum is not divisible by~3,
+so it leaves |entry| down, to maintain the invariant.
+
+To argue for the correctness of the |exit| operation, note that the threads
+currently in the critical region can include at most one whose identity is not
+divisible by~3: once one such enters, other threads are blocked from entering.
+Hence, when $\sm{id\%}3 \ne 0$, all the remaining threads in the critical
+region have identities divisible by~3, so raising |entry| reestablishes the
+invariant.  If ${\sm{id\%}3 = 0}$, then the invariant is preserved trivially.
+\end{answerI}

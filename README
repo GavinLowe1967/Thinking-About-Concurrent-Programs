@@ -23,15 +23,18 @@ Chapter 9: Locks
 Chapter 10: Conditions: 
 - ?? Timed wait operators ??
 - Add diagram of thread states (monitors lecture slides)
-- Add readers & writers example
+- Talk about choreography -- done
 - improve section on other languages
-- more exercises -- could do with more easy-ish exercises. 
+- more exercises 
 
 Chapter 11: JVM Monitors
-- Add exercises.
+- Add more exercises.
 
-Chapter 12: Semaphores -- to write
-
+Chapter 12: Semaphores:
+- Add more exercises.
+- Dan's Solution to mod 3 question: single semaphore, up if current sum is divisible by 3.  -- done
+- Counting semaphore exercise: when testing, use small n. 
+--  Incorrect solution to men & women -- handwritten on tute sheet
 
  
 

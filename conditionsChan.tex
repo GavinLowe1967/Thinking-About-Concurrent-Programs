@@ -72,7 +72,7 @@ class SyncChan[A] extends SyncChanT[A]{
   /** Is the current value of £value£ valid, i.e. ready to be received? */
   private var full = false
 
-  /** Monitor for controlling synchronisations. */
+  /** Lock to ensure mutual exclusion. */
   private val lock = new Lock
 
   /** Condition for signalling to sender that a value has been deposited. */
@@ -161,6 +161,20 @@ this way at the start of an operation.
 Study the details of the implementation.  Make sure you understand why each of
 the signals is necessary.
 \end{instruction}
+
+When designing a synchronisation object like this, it is good to have a clear
+plan as to the order in which different steps happen.  I find it useful to
+draw a sequence diagram, like that in Figure~\ref{fig:syncChan-seqDiagram}:
+this helps to clarify my thinking, and also acts as good documentation.  It is
+normally best to have a rigid plan with a single possible order, rather than
+to allow branching and so multiple different orders: this means there is less
+to think about, and makes it easier to check that the code indeed enforces the
+chosen order.
+%
+I like to compare this process with choreography: a group of dancers needs to
+follow a clear plan of steps, to avoid treading on each other's toes; and a
+group of threads needs to follow a clear plan of steps, to avoid disrupting
+one another.
 
 We can test this implementation by running some threads that perform sends and
 receives, and log the call and return of each operation.  For simplicity, we

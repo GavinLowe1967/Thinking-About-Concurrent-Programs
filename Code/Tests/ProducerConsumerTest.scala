@@ -41,10 +41,14 @@ object ProducerConsumerTest{
   // Note that with the get method, we cast the result to a List, to allow
   // comparison using "==".
 
+  val Monitor = 0; val Semaphore = 1
+
   /** Perform a single test. */
-  def doTest() = {
-    val concBuffer: ProducerConsumer = 
-      new tacp.monitors.MonitorProducerConsumer(n)
+  def doTest(choice: Int) = {
+    val concBuffer: ProducerConsumer = choice match{
+      case Monitor => new tacp.monitors.MonitorProducerConsumer(n)
+      case Semaphore => new tacp.semaphores.SemaphoreProducerConsumer(n)
+    }
     val seqBuffer = List[Int]()
     val tester = LinearizabilityTester[S, ProducerConsumer](
       seqBuffer, concBuffer, 2*n+1, worker _)
@@ -54,7 +58,11 @@ object ProducerConsumerTest{
 
   // The main method
   def main(args: Array[String]) = {
-    for(i <- 0 until 5000){ doTest(); if(i%10 == 0) print(".") }
+    var choice = 0; var i = 0
+    while(i < args.length) args(i) match{
+      case "--semaphore" => choice = Semaphore; i += 1
+    }
+    for(i <- 0 until 5000){ doTest(choice); if(i%10 == 0) print(".") }
     println()
   }
 }

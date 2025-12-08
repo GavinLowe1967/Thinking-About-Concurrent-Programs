@@ -1,18 +1,32 @@
 Counter.scala: A simple example of a counter using synchronized blocks. 
 
-MonitorTotalQueue.scala: A total queue.
-
 StripedCounterArray.scala: An array of counters, protected using striped
 locking.
 
+MonitorTotalQueue.scala: A total queue.
+
 MonitorShardedSet: A sharded set implemented using a monitor.
+
+Lock.scala: An implementation of a lock, with conditions.
 
 JVMMonitorPartialQueue.scala: A partial queue.
 
+JVMMonitorBoundedPartialQueue.scala: A bounded partial queue.
+
 JVMMonitorSyncChan.scala: A synchronous channel. 
 
-TODO:
+JVMMonitorBarrier.scala: Barrier synchronisation.
 
-Stripped locking in array
+TimeoutExchanger.scala: An exchanger with a timeout.
 
-Sharded map
+EXERCISES
+=========
+
+Mod3M.scala: The mod-3 lock.
+
+JVMMonitorShardedMap.scala: A Sharded map.
+
+HeapBarrier.scala: Barrier synchronisation objects, implemented using a heap
+and lightweight signalling objects.
+
+JVMMonitorBoundedPartialStack.scala: A bounded partial stack. 

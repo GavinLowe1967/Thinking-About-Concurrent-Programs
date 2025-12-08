@@ -13,7 +13,7 @@ trait ProducerConsumer{
 /** An implementation using a monitor. */
 class MonitorProducerConsumer(n: Int) extends ProducerConsumer{
   require(n >= 1)
-
+ 
   /** Array to hold the data. */
   private var a = new Array[Int](n)
 

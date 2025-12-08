@@ -1,0 +1,46 @@
+\begin{question}
+Implement a bounded queue, of maximum size~|n|, using two counting
+semaphores: one semaphore should prevent data from being added to the buffer
+when it is full; the other should prevent data from being removed from the
+buffer when it is empty.
+\end{question}
+
+\begin{answerI}
+My code is below.  The semaphore |spaces| records how many spaces there are in
+the queue; equivalently, it represents the number of permits to enqueue.  The
+semaphore |size| represents the current size of the queue; equivalently, it
+represents the number of permits to dequeue.  The code is then a
+straightforward extension of the code in
+Figure~\ref{fig:CountingSemaphorePartialQueue}.
+%
+\begin{scala}
+class BoundedSemaphorePartialQueue[T](n: Int) extends PartialQueue[T]{
+  /** The queue itself. */
+  private val queue = new scala.collection.mutable.Queue[T]
+
+  /** Semaphore for enqueuing.  The state of the semaphore equals the number
+    * of free spaces. */
+  private val spaces = new CountingSemaphore(n)
+
+  /** Semaphore for dequeueing.  The state of the semaphore equals
+    * £queue.length£. */
+  private val size = new CountingSemaphore(0)
+
+  /** Semaphore to provide mutual exclusion. */
+  private val mutex = new MutexSemaphore
+
+  def enqueue(v: T) = {
+    spaces.down(); mutex.down()
+    queue.enqueue(v)
+    size.up(); mutex.up()
+  }
+
+  def dequeue(): T = {
+    size.down(); mutex.down()
+    val result = queue.dequeue()
+    mutex.up(); spaces.up()
+    result
+  }
+}
+\end{scala}
+\end{answerI}

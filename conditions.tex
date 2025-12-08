@@ -39,12 +39,12 @@ good idea to assert the property, as a form of documentation, but also to
 catch any behaviours you hadn't thought about.
 
 Designing synchronisation objects, in particular, can be tricky.  Be clear
-about the order in which steps should be taken, e.g.~the order of reads and
-writes of shared variables, and signals between threads.  It is often best to
-enforce a fixed order, rather than allowing multiple different orders: it
-means less to think about.  It is normally necessary to use shared variables
-to record whether a thread of a particular role is waiting, or how many such
-threads are waiting.  
+about the order in which steps should be taken (the choreography), e.g.~the
+order of reads and writes of shared variables, and signals between threads.
+It is often best to enforce a fixed order, rather than allowing multiple
+different orders: it means less to think about.  It is normally necessary to
+use shared variables to record whether a thread of a particular role is
+waiting, or how many such threads are waiting.
 
 %% \begin{itemize}
 %% \item Conditions and targeted signals;
@@ -94,3 +94,4 @@ Readers and writers -- make it fully fair.
 sleeping tutor.
 
 Extend the Barber Sync object to allow multiple B's
+s

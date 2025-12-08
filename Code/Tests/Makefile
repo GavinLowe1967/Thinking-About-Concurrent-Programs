@@ -1,6 +1,7 @@
 ROOT = ../tacp
 
 DIR = $(ROOT)/tests
+CSDIR = $(ROOT)/clientServer
 DPDIR = $(ROOT)/dataParallel
 DTDIR = $(ROOT)/datatypes
 MONDIR = $(ROOT)/monitors
@@ -9,16 +10,25 @@ SEMDIR = $(ROOT)/semaphores
 
 # Source directories for classes that use tests here.
 
+CS_SRC_DIR = ../05.ClientServer
 DT_SRC_DIR = ../07.ConcurrentDatatypes
 DP_SRC_DIR = ../08.DataParallel
+LOCK_SRC_DIR = ../09.Locks
 COND_SRC_DIR = ../10.Conditions
 JVM_MON_SRC_DIR = ../11.JVMMonitors
 SEM_SRC_DIR = ../12.Semaphores
 
-all: $(DIR)/PartialQueueTest.class $(DIR)/BarrierTest.class		\
-  $(DIR)/SyncChanTest.class $(DIR)/LockTest.class			\
-  $(DIR)/ReadersWritersTest.class $(DIR)/ProducerConsumerTest.class	\
+DATATYPES = $(DIR)/PartialQueueTest.class $(DIR)/MapTest.class		\
+  $(DIR)/PartialStackTest.class $(DIR)/BoundedPartialStackTest.class	\
+  $(DIR)/TotalStackTest.class $(DIR)/BoundedPartialQueueTest.class
+
+LOCKS = $(DIR)/LockTest.class $(DIR)/ReadersWritersTest.class	\
   $(DIR)/DisjointLockTest.class $(DIR)/Mod3Test.class
+
+all: $(DATATYPES) $(LOCKS) $(DIR)/BarrierTest.class $(DIR)/SyncChanTest.class	\
+  $(DIR)/ProducerConsumerTest.class $(DIR)/MenWomenTest.class
+
+######### Concurrent datatypes
 
 # Partial queues
 
@@ -37,6 +47,69 @@ $(DTDIR)/JVMMonitorPartialQueue.class: $(JVM_MON_SRC_DIR)/JVMMonitorPartialQueue
 
 $(DTDIR)/SemaphorePartialQueue.class: $(SEM_SRC_DIR)/SemaphorePartialQueue.scala
 	cd $(SEM_SRC_DIR); make pQueue
+
+# Bounded partial queues
+
+$(DIR)/BoundedPartialQueueTest.class:  $(DTDIR)/BoundedMonitorPartialQueue.class $(DTDIR)/JVMMonitorBoundedPartialQueue.class $(DTDIR)/BoundedSemaphorePartialQueue.class
+
+$(DTDIR)/BoundedMonitorPartialQueue.class: $(COND_SRC_DIR)/BoundedMonitorPartialQueue.scala
+	cd $(COND_SRC_DIR); make bpQueue
+
+$(DTDIR)/JVMMonitorBoundedPartialQueue.class: $(JVM_MON_SRC_DIR)/JVMMonitorBoundedPartialQueue.scala
+	cd $(JVM_MON_SRC_DIR); make bpQueue
+
+$(DTDIR)/BoundedSemaphorePartialQueue.class: $(SEM_SRC_DIR)/BoundedSemaphorePartialQueue.scala
+	cd $(SEM_SRC_DIR); make bpQueue
+
+# Partial stacks
+
+$(DIR)/PartialStackTest.class: $(DIR)/ImmutableStack.class $(DTDIR)/PartialStack.class
+
+$(DTDIR)/PartialStack.class: $(DT_SRC_DIR)/PartialStack.scala
+	cd $(DT_SRC_DIR); make pStack
+
+# Bounded partial stacks
+
+$(DIR)/BoundedPartialStackTest.class: $(DIR)/ImmutableStack.class $(DTDIR)/PartialStack.class $(DTDIR)/MonitorBoundedPartialStack.class $(DTDIR)/JVMMonitorBoundedPartialStack.class
+
+$(DTDIR)/MonitorBoundedPartialStack.class: $(COND_SRC_DIR)/MonitorBoundedPartialStack.scala
+	cd $(COND_SRC_DIR); make pStack
+
+$(DTDIR)/JVMMonitorBoundedPartialStack.class: $(JVM_MON_SRC_DIR)/JVMMonitorBoundedPartialStack.scala
+	cd $(JVM_MON_SRC_DIR); make
+
+# Total stacks
+
+$(DIR)/TotalStackTest.class: $(DIR)/ImmutableStack.class $(DTDIR)/TotalStack.class
+
+$(DTDIR)/TotalStack.class: $(DT_SRC_DIR)/TotalStack.scala
+	cd $(DT_SRC_DIR); make tStack
+
+
+# Maps
+
+$(DIR)/MapTest.class: $(DTDIR)/ShardedMap.class $(DTDIR)/LinkedListMap.class  $(DTDIR)/JVMMonitorShardedMap.class
+
+$(DTDIR)/ShardedMap.class: $(LOCK_SRC_DIR)/ShardedMap.scala
+	cd $(LOCK_SRC_DIR); make maps
+
+$(DTDIR)/LinkedListMap.class:  $(LOCK_SRC_DIR)/LinkedListMap.scala
+	cd $(LOCK_SRC_DIR); make maps
+
+$(DTDIR)/JVMMonitorShardedMap.class: $(JVM_MON_SRC_DIR)/JVMMonitorShardedMap.scala
+	cd $(JVM_MON_SRC_DIR); make maps
+
+# Producer-consumer buffer example
+
+$(DIR)/ProducerConsumerTest.class: $(MONDIR)/MonitorProducerConsumer.class $(SEMDIR)/SemaphoreProducerConsumer.class
+
+$(MONDIR)/MonitorProducerConsumer.class: $(COND_SRC_DIR)/MonitorProducerConsumer.scala
+	cd $(COND_SRC_DIR); make producerConsumer
+
+$(SEMDIR)/SemaphoreProducerConsumer.class: $(SEM_SRC_DIR)/SemaphoreProducerConsumer.scala
+	cd $(SEM_SRC_DIR); make producerConsumer
+
+######### Synchronisation objects
 
 # Barrier synchronisation objects
 
@@ -76,6 +149,7 @@ $(JVM_MON_DIR)/JVMMonitorSyncChan.class: $(JVM_MON_SRC_DIR)/JVMMonitorSyncChan.s
 $(SEMDIR)/SemaphoreSyncChan.class: $(SEM_SRC_DIR)/SemaphoreSyncChan.scala
 	cd $(SEM_SRC_DIR); make syncChan
 
+######### Locks
 # Lock
 
 $(DIR)/LockTest.class: $(JVM_MON_DIR)/Lock.class $(SEMDIR)/QueueLock.class
@@ -105,12 +179,30 @@ $(MONDIR)/MonitorDisjointLock.class: $(COND_SRC_DIR)/MonitorDisjointLock.scala
 
 # Mod3
 
-$(DIR)/Mod3Test.class: $(JVM_MON_DIR)/Mod3M.class
+$(DIR)/Mod3Test.class: $(JVM_MON_DIR)/Mod3M.class $(SEMDIR)/Mod3S.class
 
 $(JVM_MON_DIR)/Mod3M.class: $(JVM_MON_SRC_DIR)/Mod3M.scala
 	cd $(JVM_MON_SRC_DIR); make mod3
 
-# Standard recipes
+$(SEM_DIR)/Mod3S.class: $(SEM_SRC_DIR)/Mod3S.scala
+	cd $(SEM_SRC_DIR)/; make mod3
+
+######### Standalone programs
+
+# Men and women
+
+$(DIR)/MenWomenTest.class: $(CSDIR)/MenWomen.class $(MONDIR)/MenWomenM.class $(SEMDIR)/MenWomenSemaphore.class
+
+$(CSDIR)/MenWomen.class: $(CS_SRC_DIR)/MenWomen.scala
+	cd $(CS_SRC_DIR); make menWomen
+
+$(MONDIR)/MenWomenM.class: $(COND_SRC_DIR)/MenWomenM.scala
+	cd $(COND_SRC_DIR); make menWomen
+
+$(SEMDIR)/MenWomenSemaphore.class: $(SEM_SRC_DIR)/MenWomenSemaphore.scala
+	cd $(SEM_SRC_DIR); make menWomen
+
+########## Standard recipes
 
 clean:
 	rm $(DIR)/*.class; fsc -shutdown

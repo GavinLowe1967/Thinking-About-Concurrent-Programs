@@ -1,0 +1,20 @@
+\begin{questionS}
+Implement a sharded map, as in Exercise~\ref{ex:sharded-map}, using JVM
+monitors. 
+\end{questionS}
+
+%%%%%
+
+\begin{answerS}
+This is a straightforward adaptation of the solution to
+Exercise~\ref{ex:sharded-map}, using each |HashMap| as a monitor to protect
+operations on that |HashMap|, much as in Figure~\ref{fig:MonitorShardedSet}.
+For example, the |put| operation can be defined by
+\begin{scala}
+  def put(k: K, v: V): Option[V] = {
+    val s = shardFor(k); maps(s).synchronized{ maps(s).put(k, v) }
+  }
+\end{scala}
+%
+Other operations can be defined in the same style. 
+\end{answerS}

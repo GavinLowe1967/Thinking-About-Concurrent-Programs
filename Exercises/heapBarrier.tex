@@ -1,0 +1,101 @@
+\begin{questionS}
+A particular synchronisation object is to be used by two threads, which we
+call the \emph{parent} and the \emph{child}.  The child repeatedly calls an
+operation |signalUpAndWait|, while the parent alternates between calling
+operations {\scalastyle wait}\-|For|\-|Signal|\-|Up| and |signalDown|.  The
+|waitForSignalUp| operation blocks until the child calls
+|signal|\-|Up|\-|And|\-|Wait|.  The |signalUpAndWait| operation blocks until
+the parent calls |signal|\-|Down|.  Thus such an object can be used to
+repeatedly send two signals, one in each direction.  Implement a class of such
+objects with the following signature.
+%
+\begin{scala}
+class Signal{
+  /** Signal to the parent, and wait for a signal back. */
+  def signalUpAndWait(): Unit = ...
+
+  /** Wait for a signal from the child. */
+  def waitForSignalUp(): Unit = ...
+
+  /** Signal to the child. */
+  def signalDown(): Unit = ...
+} 
+\end{scala}
+
+Now implement a barrier synchronisation object that uses multiple |Signal|
+objects internally.  Each synchronisation of $n$~threads should run in
+time~$O(n)$.
+\end{questionS}
+
+% =======================================================
+
+\begin{answerS}
+In the |Signal| objects, it is enough to maintain a boolean that is true if the
+child has signalled to the parent, but not yet received a signal back.  Each
+signal can then be straightforwardly implemented using a |wait| and a |notify|.
+%
+\begin{scala}
+class Signal{
+  /** The state of this object.  £true£ represents that the child has signalled,
+    * but not yet received a signal back. */
+  private var state = false
+
+  /** Signal to the parent, and wait for a signal back. */
+  def signalUpAndWait() = synchronized{
+    require(!state); state = true; notify()
+    while(state) wait()
+  }
+
+  /** Wait for a signal from the child. */
+  def waitForSignalUp() = synchronized{ while(!state) wait() }
+
+  /** Signal to the child. */
+  def signalDown() = synchronized{ state = false; notify() }
+}
+\end{scala}
+
+We build the barrier object by arranging threads into a heap, with a |Signal|
+object between each child and parent.  The implementation is then very similar
+to that for Exercise~\ref{ex:barrierLog}, except replacing channel
+communications with operations on the |Signal|s.
+%
+\begin{scala}
+class HeapBarrier(n: Int){
+  /** The objects used for signalling.  £signals(i)£ is used for signalling between 
+    * thread £i£ and its parent. */
+  private val signals = Array.fill(n)(new Signal)
+
+  /** Perform a barrier synchronisation.
+    * @param me the unique identity of this thread. */
+  def sync(me: Int) = {
+    require(0 <= me && me < n)
+    val child1 = 2*me+1; val child2 = 2*me+2
+    // Wait for children
+    if(child1 < n) signals(child1).waitForSignalUp()
+    if(child2 < n) signals(child2).waitForSignalUp()
+    // Signal to parent and wait for signal back
+    if(me != 0) signals(me).signalUpAndWait()
+    // Signal to children
+    if(child1 < n) signals(child1).signalDown()
+    if(child2 < n) signals(child2).signalDown()
+  }
+}
+\end{scala}
+
+This is basically the same as the implementation of barriers in SCL.  (The SCL
+implementation gives better feedback when one of the preconditions fails; this
+indicates that the client code isn't using thread identities correctly.)  The
+operations on |Signal|s are lighter weight than channel communications, so
+this version is likely to be more efficient. 
+
+We could adapt this to implement a combining barrier by arranging for each
+signal to pass a piece of data, by giving operations the following types.
+%
+\begin{scala}
+class Signal[A]{
+  def signalUpAndWait(x: A): A = ...
+  def waitForSignalUp(): A = ...
+  def signalDown(): A = ...
+} 
+\end{scala}
+\end{answerS}

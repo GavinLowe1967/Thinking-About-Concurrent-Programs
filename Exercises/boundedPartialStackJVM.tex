@@ -1,0 +1,34 @@
+\begin{questionS}
+Implement a bounded partial stack, as in
+Exercise~\ref{ex:boundedPartialStack}, except using a JVM monitor.
+\end{questionS}
+
+%%%%%
+
+\begin{answerS}
+My code is below.  Each of the operations has to perform a |notifyAll|,
+because there is no guarantee that the signal is received at the right place:
+this probably makes it less efficient than the version using conditions.
+%
+\begin{scala}
+class JVMMonitorBoundedPartialStack[T](bound: Int) extends PartialStack[T]{
+  /** The current state of the stack. */
+  private val stack = new scala.collection.mutable.Stack[T]
+
+  /** Push x. */
+  def push(x: T) = synchronized{ 
+    while(stack.length == bound) wait() // Wait for a space (1).
+    stack.push(x)
+    notifyAll() // Signal to a waiting pop at (2).
+  }
+
+  /** Try to pop, blocking while the stack is empty.  */
+  def pop(): T = synchronized{ 
+    while(stack.isEmpty) wait() // Wait for a value (2).
+    val result = stack.pop()
+    notifyAll() // Signal to a waiting push at (1).
+    result
+  }
+}
+\end{scala}
+\end{answerS}

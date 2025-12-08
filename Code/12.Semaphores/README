@@ -13,3 +13,18 @@ first-served access.
 
 SemaphoreReadersWriters.scala: A readers and writers lock
 
+Exercises
+=========
+
+SemaphoreReadersWritersQueueLock.scala: Readers and writers, treating writers
+in a first-come, first-served way.
+
+SemaphoreProducerConsumer.scala: Producer-consumer example, where the consumer
+receives an array.
+
+Mod3S.scala: The mod-3 example.
+
+BoundedSemaphorePartialQueue.scala: A bounded partial queue, implemented using
+counting semaphores.
+
+MenWomenSemaphore.scala: The men and women problem.
