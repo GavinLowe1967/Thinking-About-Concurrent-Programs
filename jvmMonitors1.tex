@@ -31,7 +31,7 @@ used to ensure that executions of code within |synchronized| blocks do not
 interfere with one another.
 
 Note that the monitor must be a \emph{reference} object (a subclass of
-|AnyRef|; see Scala box~\ref{sb:reference-types}), not, for example, an |Int|.
+|AnyRef|; see Section~\ref{sec:scala-types}), not, for example, an |Int|.
 
 The expression |synchronized{e}| is shorthand for |this.synchronized{e}|,
 i.e.~where the current object is used for the monitor.

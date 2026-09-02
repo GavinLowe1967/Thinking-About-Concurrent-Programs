@@ -2,9 +2,9 @@
 \addcontentsline{toc}{section}{Preface}
 \markboth{Preface}{} % Else it says "list of Scala boxes!"
 
-A concurrent program is a program with two or more threads of control that
-cooperate together for some purpose.  Each has its own state.  The threads of
-control might run in parallel, i.e.~at the same time, on separate hardware; or
+A concurrent program is a program with two or more \emph{threads of control}
+that cooperate together for some purpose.  Each thread has its own state.  The
+threads might run in parallel, i.e.~at the same time, on separate hardware; or
 they might share hardware, with execution interleaved between them.
 
 There are several reasons why we might want to write a concurrent program.  It
@@ -15,23 +15,105 @@ physically distributed.
 However, using concurrency introduces difficulties beyond those present with
 sequential programs.  In a poorly designed concurrent program, different
 threads might interfere with one another, leading to logical errors that are
-hard to track down.  Instead, we need reliable techniques to produce a correct
+hard to track down.  
+
+For example, if two threads try to write to the same variable at the same
+time, the order those writes occur in will affect the final value; likewise,
+if one thread tries to a write a variable, and another tries to read the same
+variable, the latter may or may not obtain the value written.  We call these
+\emph{race conditions}.  In each case, the race condition makes the program
+unpredictable, and might lead to an error.  We describe these and other
+challenges in more detail in Chapter~\ref{chap:intro}. 
+
+Instead, we need reliable techniques to produce a correct
 concurrent program that coordinates threads correctly.  The aim
 of this book is to explore and understand such techniques.
 
-\framebox{Overview:} message passing, monitors, semaphores. 
+Writing a correct concurrent program requires some concurrency primitives
+provided by the programming language or a concurrency library.  We will study
+four such concurrency primitives, or paradigms, in this book: \emph{message
+  passing}, \emph{synchronous parallel programming}, \emph{monitors}, and
+\emph{semaphores}.
+
+We start with message passing because it is, in my opinion, the most
+intuitive paradigm.  The idea is simple: one thread can send a message to
+another thread.  We will see how we can use this technique to build concurrent
+programs, where the threads cooperate together correctly and effectively.  If
+threads each have their own private variables, then this automatically
+prevents race conditions.  Alternatively, the messages may be used to
+coordinate access to shared variables.  We describe this paradigm, and use it
+in various applications, in
+Chapters~\ref{chap:channels}--\ref{chap:interacting-peers}. 
+
+One theme of the book is modularisation.  Often, we encapsulate design
+decisions concerning concurrency within an object, which we refer to as a
+\emph{concurrent object}.  Operations on that object should be thread-safe,
+i.e.,~different threads do not interfere with one another.  Client code can
+use that object without knowing how the concurrency is implemented.
+
+A common example of a concurrent object is a \emph{concurrent datatype}.  A
+concurrent datatype is simply a datatype, such as a stack, queue, set or
+mapping, that is thread-safe.  The operations appear to take place in a
+one-at-a-time order.  Client code can use the concurrent datatype much as in a
+corresponding sequential datatype.  My experience is that this is a very
+effective and easy-to-use paradigm.
+
+Of course, we  need to reason about concurrency when we implement the
+concurrent object itself: but that reasoning will be local, which is much
+easier than global reasoning.  Further, we can experiment with different
+techniques for implementing the concurrent object.  We use message passing to
+implement concurrent datatypes in Chapter~\ref{chap:datatypes}.  In later
+chapters, we also implement them using monitors and semaphores.
+
+%%  A concurrent datatype is simply a datatype,
+%% such as a stack, queue, set or mapping, that is thread-safe.  Different
+%% threads can perform operations on the datatype without interference: the
+%% operations appear to take place in a one-at-a-time order.  My experience is
+%% that this is a very effective and easy-to-use paradigm: threads mostly operate
+%% the same as they would in a corresponding sequential program.
+
+We study \emph{synchronous concurrent programming} in
+Chapter~\ref{chap:dataParallel}.  The idea is that a parallel computation
+proceeds in rounds.  On each round, each thread operates on some of the data.
+However, a mechanism, known as a \emph{barrier synchronisation}, is needed to
+synchronise the threads: at the end of each round, each thread should wait
+until all threads have finished that round before proceeding to the next.
+
+We study \emph{monitors} in Chapters~\ref{chap:locks}--\ref{chap:JVMMonitors}.  
+Part of the role of a monitor is to allow some data (for example, an object)
+to be locked while one thread is operating on it.  Other threads have to wait
+until that thread has finished.  This can be used to prevent race conditions.
+
+The other role of a monitor is to provide a wait/signal mechanism, allowing a
+thread to wait until it receives a signal from another thread.  For example,
+this can be used so that a thread waits until a relevant condition is true.
+
+A \emph{semaphore} is modelled on the railway signalling technique of the same
+name.  A semaphore can be thought of as a flag, which is either up or down.
+One operation on a semaphore is to wait until the flag is up, and then to put
+the flag down again; the other operation is to put the flag up.  We will see
+how semaphores can be used both to protect shared data, and to provide a
+signalling mechanism, in Chapter~\ref{chap:semaphores}.
+
+A theme that runs throughout the book is \emph{testing}.  How can we test
+concurrent programs?  How can we perform unit testing on concurrent object?
+Often this requires different techniques from those for sequential programs or
+modules.
+
+%%%%%
+
+\medskip
 
 This book will assume that the reader has some programming experience,
 including a basic understanding of object-oriented programming.  We will use
 Scala as our programming language, because it suits our purposes well.  It has
 a clean syntax, with intuitive semantics, backed up by an extensive
-Application Programming Interface.
+Application Programming Interface (API).
 
 Appendix~\ref{app:scala} gives an overview of the parts of Scala that we use.
 If you have used Scala before, or are an experienced programmer, you will
 probably find that you can understand the code without reading the appendix,
 or by just referring to relevant parts.  
-
 
 In particular, we will use a library of concurrency primitives, \emph{Scala
   Concurrency Library (SCL)}, which I have developed.  This library allows us
@@ -40,10 +122,12 @@ to write concise yet clear concurrent programs, without the tedious
 
 The book will also assume some familiarity with standard techniques for
 reasoning about (sequential) programs, such as using pre- and post-conditions
-to describe the intended effect of an operation, and loop invariants to
-capture properties that are maintained by loops.  Many of these techniques map
-across to concurrent programs.  But we will also need additional reasoning
-techniques to deal with the challenges of concurrency.
+to describe the intended effect of an operation, loop invariants to capture
+properties that are maintained by each iteration of a loop, and datatype
+invariants that capture properties that are maintained by each operation on a
+datatype.  Many of these techniques map across to concurrent programs.  But we
+will also need additional reasoning techniques to deal with the challenges of
+concurrency.
 
 %% \begin{instruction}
 %% I will sometimes leave you to study some details of programs for yourself.  A
@@ -51,26 +135,8 @@ techniques to deal with the challenges of concurrency.
 %% to do that.
 %% \end{instruction}
 
-A major theme of the book will be modularisation.  Often, we will encapsulate
-design decisions concerning concurrency within an object, which we will refer
-to as a \emph{concurrent object}.  Operations on that object will be
-thread-safe, i.e.,~different threads will not interfere with one another.
-Client code can use that object without knowing how the concurrency is
-implemented.  
 
-A common example of a concurrent object is a concurrent datatype.  This
-will correspond to a standard sequential datatype, such as a queue or a
-mapping, but will be thread-safe.  Client code can use the concurrent datatype
-much as they would a corresponding sequential datatype.
 
-Of course, we will need to reason about concurrency when we implement the
-concurrent object itself: but that reasoning will be local, which is much
-easier than global reasoning.  Further, we can experiment with different
-techniques for implementing the concurrent object.
-
-Another major theme will be testing.  How can we test concurrent programs?
-How can we perform unit testing on concurrent object?  Often this requires
-different techniques from those for sequential programs or modules.
 
 \framebox{Code availability}
 
@@ -109,7 +175,7 @@ labelled with ``$\dag$'' are in an appendix.
 
 \subsection*{Acknowledgements}
 
-A owe a debt of gratitude to Bernard Sufrin.  I first became interested in
+I owe a debt of gratitude to Bernard Sufrin.  I first became interested in
 concurrent programming when I taught some classes for a course on concurrent
 programming that Bernard designed and lectured.  In subsequent years, we took
 turns to run the course, building on one another's ideas.  Most of the
@@ -120,9 +186,13 @@ In particular, the library SCL that we use in this book is heavily based on
 Bernard's own library, CSO (Communicating Scala Objects): SCL inherits most of
 its syntax concerning message passing from CSO.
 
-Others: 
+I have also benefited from discussions on the subject with
 Vincent Cheval, 
 Tom Gibson-Robinson, 
-Karel Hruda, 
-Jonathan Lawrence, 
-\framebox{\ldots}
+Karel Hruda,
+Jonathan Lawrence, and
+Dan Marsden. 
+\framebox{\ldots}  
+
+Finally, I must thank my students, who helped me to find better ways to
+explain this material. 

@@ -27,11 +27,11 @@ If a thread tries to send or receive on a channel that has been closed, it
 throws a |Closed| exception, a subclass of the |Stopped| exception class.
 (We will see another subclass of |Stopped| in Chapter~\ref{chap:alts}.)
 
-Threads should normally catch such exceptions (see Scala
-box~\ref{sb:try-catch}), and then do the right thing.  For a receiver, if the
-closing represents the end of the data stream, then typically the thread
-should terminate.  But if the thread is part of a larger network, such as a
-pipeline, then typically the thread should first close channels to other
+Threads should normally catch such exceptions (see
+Section~\ref{sec:scala-misc}), and then do the right thing.  For a receiver,
+if the closing represents the end of the data stream, then typically the
+thread should terminate.  But if the thread is part of a larger network, such
+as a pipeline, then typically the thread should first close channels to other
 components, to signal to the next component in line that the stream is closed.
 
 %% If such closing is possible, the thread should handle it appropriately,
@@ -178,8 +178,8 @@ object BoundedMults4{
 In fact, the new component is an instance of a more general pattern.  The
 function |takeWhile(p, in, out)| copies data from~|in| to~|out| while all
 values satisfy the predicate~|p| (the type \protect\SCALA{A => Boolean}
-represents functions from~{\scalashape A} to~{\scalashape Boolean}; see Scala
-box~\ref{sb:function-types}); it then closes the channels.
+represents functions from~{\scalashape A} to~{\scalashape Boolean}; see
+Section~\ref{sec:scala-types}); it then closes the channels.
 
 The other components are adapted to handle the closing of channels, using
 |repeat|.  The |alts| components also close their channels, to indicate to
@@ -190,9 +190,9 @@ network is closing in an upstream direction).
 The function |system| creates the channels and puts the components together in
 parallel.  (In the first parameter of |takeWhile|, the notation \SCALA{(x:
   Int) => (x <= max)} represents the function that takes an |Int|
-argument~|x|, and returns the result of the test |(x <= max)|; see Scala
-box~\ref{sb:anon-function}.  In fact, the
-parentheses around that test aren't necessary.)
+argument~|x|, and returns the result of the test |(x <= max)|; see
+Section~\ref{sec:scala-misc}.  In fact, the parentheses around that test
+aren't necessary.)
 
 \begin{instruction}
 Make sure you understand how the termination signal is propagated through the

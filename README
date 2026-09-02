@@ -2,6 +2,7 @@ Chapter 1: Introduction
 - reasons for concurrency.  TO DO
 - concurrent architectures: TO DO
 - correctness properties: TO DO
+https://ourworldindata.org/scaling-up-ai has AI stats
 
 Chaper 2: Message passing using channels.
 
@@ -14,11 +15,14 @@ Chaper 5: Clients and Servers
 Chapter 6: Interacting Peers
 
 Chapter 7: Concurrent Datatypes
+- Proof of NP completeness of lin testing (Anish Athalye?).
 
 Chapter 8: Data Parallel
 
 Chapter 9: Locks
+- Talk about scaling, maybe related to Amdahl's law.
 - Add work stealing example, 2023 exam, workStealing.tex
+- local linearisable queue (array of one-enqueuer, multiple-dequeuer queues)?
 
 Chapter 10: Conditions: 
 - ?? Timed wait operators ??
@@ -36,12 +40,15 @@ Chapter 12: Semaphores:
 - Counting semaphore exercise: when testing, use small n. 
 --  Incorrect solution to men & women -- handwritten on tute sheet
 
- 
+?? Final chapter ??
+- Lock-free datatypes, CAS. 
 
 Appendices
 
 - Scala -- TODO: improve; change to free-form text, with subsections.
 - Experiments -- improve
+
+- Add SCL summary?
 
 --------------
 

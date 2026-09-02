@@ -8,7 +8,9 @@ MONDIR = $(ROOT)/jvmMonitors
 TRAP_SRC_DIR = ../03.Trapezium
 MON_SRC_DIR = ../11.JVMMonitors
 
-EXERCISES = $(DTDIR)/LinkedListMap.class  $(DTDIR)/ShardedMap.class $(DTDIR)/ConcurrentIterator.class
+EXERCISES = $(DTDIR)/LinkedListMap.class  $(DTDIR)/ShardedMap.class $(DTDIR)/ConcurrentIterator.class $(DTDIR)/QueueArray.class 
+
+# $(DTDIR)/TerminatingQueueArray.class
 
 all: $(DIR)/Counter.class $(DTDIR)/LockTotalQueue.class $(TRAPDIR)/BagOfTasksLock.class $(DIR)/CounterArrayTest.class  $(DTDIR)/SetTest.class $(EXERCISES)
 
@@ -51,6 +53,10 @@ $(DTDIR)/ShardedMap.class $(DTDIR)/LinkedListMap.class: $(DTDIR)/Map.class
 # $(DTDIR)/MapTest.class: $(DTDIR)/ShardedMap.class $(DTDIR)/LinkedListMap.class
 
 maps: $(DTDIR)/ShardedMap.class $(DTDIR)/LinkedListMap.class
+
+# QueueArray example
+
+$(DTDIR)/QueueArray.class $(DTDIR)/TerminatingQueueArray.class: $(DIR)/LocalLinearizabilityTester.class
 
 ######### Standard recipes
 

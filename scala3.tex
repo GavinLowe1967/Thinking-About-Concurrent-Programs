@@ -1,28 +1,29 @@
 \section{Types}
 \label{sec:scala-types}
 
-All Scala types are either value types (Scala box~\ref{sb:types}) or reference
-types (Scala box~\ref{sb:reference-types}).  Scala supports parametric
-polymorphism (Scala box~\ref{sb:polymorphic}) and function types (Scala
-box~\ref{sb:function-types}).
+%%  or reference types (Scala
+%% box~\ref{sb:reference-types}).  Scala supports parametric polymorphism (Scala
+%% box~\ref{sb:polymorphic}) and function types (Scala
+%% box~\ref{sb:function-types}).
 
 %%%%%
 
-\begin{scalaBox}{Reference types}
-\label{sb:reference-types}
-Each class defines a type with the same name, which is a \emph{reference
-  type}.  Each variable of that type actually holds a reference to the object,
-i.e.~the address in memory where the object is stored.  
+%% \begin{scalaBox}{Reference types}
+%% \label{sb:reference-types}
+We described value types in Section~\ref{sec:scala-core}).  By contrast, each
+class defines a type with the same name, which is a \emph{reference type}.
+Each variable of that type actually holds a reference to the object, i.e.~the
+address in memory where the object is stored.
 %% References are sometimes called \emph{pointers}.
 Likewise, when a function takes a parameter
 of a reference type, the value that is actually passed is the object's
 reference.
-\end{scalaBox}
+%% \end{scalaBox}
 
 %%%%%
 
-\begin{scalaBox}{Parametric polymorphism}
-\label{sb:polymorphic}
+%% \begin{scalaBox}{Parametric polymorphism}
+%% \label{sb:polymorphic}
 Scala classes can be defined to be polymorphic, i.e.~their definition takes a
 type parameter~|A|, and the class is defined for all values of~|A|.  For
 example, the type |Array[A]| is the type of arrays that hold data of type~|A|:
@@ -36,27 +37,28 @@ Functions can also be defined in a polymorphic way, for example:
 %
 Here, the initial ``|[A]|'' introduces~|A| as a polymorphic type parameter.
 The function is defined for all types~|A|. 
-\end{scalaBox}
+%% \end{scalaBox}
 
 %%%%%
 
-\begin{scalaBox}{Function types}
-\label{sb:function-types}
+%% \begin{scalaBox}{Function types}
+%% \label{sb:function-types}
 If |A| and |B| are types, then \SCALA{A => B} is the type of functions
 from~|A| to~|B|, i.e.~that take an argument of type~|A| and return a result of
 type~|B|.  For example, \SCALA{Int => Boolean} is the type of functions from
-|Int| to |Boolean|.
-\end{scalaBox}
+|Int| to |Boolean|.  (In fact, each such function is implemented as a
+Scala object, implementing a trait |Function|.)
+%% \end{scalaBox}
 
 %%%%%
 
-\pagebreak[3]
+%\pagebreak[3]
 
-Scala provides for the definition of type synonyms (Scala
-box~\ref{sb:type-synonym}). 
+%% Scala provides for the definition of type synonyms (Scala
+%% box~\ref{sb:type-synonym}). 
 
-\begin{scalaBox}{Type synonyms}
-\label{sb:type-synonym}
+%% \begin{scalaBox}{Type synonyms}
+%% \label{sb:type-synonym}
 Type synonyms can be defined using the keyword |type|, for example
 \begin{scala}
   type Price = Int
@@ -64,23 +66,20 @@ Type synonyms can be defined using the keyword |type|, for example
 \end{scala}
 Such type synonyms can help to distinguish between different uses of a common
 type, or to provide brevity. 
-\end{scalaBox}
+%% \end{scalaBox}
 
 \pagebreak[3]
 
 The Application Programming Interface (API) contains a large number of useful
-types, including arrays (Scala box~\ref{sb:arrays}), strings (Scala
-box~\ref{sb:strings}), lists (Scala box~\ref{sb:lists}), and |Option| types
-(Scala box~\ref{sb:option-type}).  For other API classes, you should refer to
-the online documentation (e.g.~by searching for ``Scala
-API''; recall that this book uses Scala~2.13).
+types, including arrays and strings (each described in
+Section~\ref{sec:scala-core}).  We describe two more such types here.
 
 
-\begin{scalaBox}{Lists}
-\label{sb:lists}
+%% \begin{scalaBox}{Lists}
+%% \label{sb:lists}
 The type |List[A]| represents the type of immutable lists containing data of
 type~|A|.
-
+%
 A list containing values~|x|, |y| and~|z| can be defined as \SCALA{List[A](x,
   y, z)}; the type parameter~|A| can normally be omitted, as the compiler can
 infer it.
@@ -93,12 +92,12 @@ from~0) can be obtained as |xs(k)|; this traverses the list, so takes
 time~$O(\sm k)$.  If |xs| is not empty, then |xs.head| gives its first
 element, and |xs.tail| gives the list containing all of~|xs| except the first
 element.  The expression |xs ++ ys| gives the concatenation of~|xs| and~|ys|. 
-\end{scalaBox}
+%% \end{scalaBox}
 
 %%%%%
 
-\begin{scalaBox}{The {\scalashape Option} type}
-\label{sb:option-type}
+%% \begin{scalaBox}{The {\scalashape Option} type}
+%% \label{sb:option-type}
 The type |Option[A]| contains values of two subtypes:
 %
 \begin{itemize}
@@ -106,17 +105,20 @@ The type |Option[A]| contains values of two subtypes:
 
 \item the value~|None|.
 \end{itemize}
-
+%
 The |Option| type is useful in cases where a function might or might not be
 able to return a proper result: it can return a result |Some(x)| to indicate
 that it succeeded, with result~|x|; or it can return |None| to indicate that
 it was unsuccessful.
 
-|Some(x)| and |None| can be used as patterns in pattern matching (Scala
-box~\ref{sb:pattern-matching}).  The pattern ``|Some(x)|'' (where |x| is a
+|Some(x)| and |None| can be used as patterns in pattern matching (see
+Section~\ref{sec:scala-misc}).  The pattern ``|Some(x)|'' (where |x| is a
 variable) matches any value of the form |Some(v)|, and binds the variable~|x|
 to the value~|v|.  The pattern ``|None|'' matches just the value~|None|.
-\end{scalaBox}
+%% \end{scalaBox}
+
+For other API classes, you should refer to the online documentation (e.g.~by
+searching for ``Scala API''; recall that this book uses Scala~2.13).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

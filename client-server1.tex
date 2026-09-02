@@ -228,8 +228,8 @@ Above, we chose to use different channels for acquiring and returning a
 resource or shutting down the server.  An alternative is to use a single
 channel that can pass different types of request.  Such an approach seems more
 natural in a networked application.  In the resource allocation module, we
-could define the following (Scala box~\ref{sb:case-classes} describes case
-classes):
+could define the following (Section~\ref{sec:scala-encapsulation} describes
+case classes):
 %
 \begin{scala}
   private trait Request
@@ -240,7 +240,7 @@ classes):
 \end{scala}
 %
 The server would then receive on |requestChan|, and pattern match on the value
-received (see Scala box~\ref{sb:pattern-matching}):
+received (see Section~\ref{sec:scala-misc}):
 %
 \begin{scala}
   requestChan?() match{

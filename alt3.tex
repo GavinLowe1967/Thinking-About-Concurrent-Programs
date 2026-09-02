@@ -101,8 +101,8 @@ the send was successful.  Likewise there is an operation
 \end{scala}
 %
 that tries to receive a value for up to |millis| milliseconds.  The operation
-returns a result of type |Option[A]| (see Scala box~\ref{sb:option-type}): if it
-successfully receives a value~|x|, it returns~|Some(x)|; otherwise it
+returns a result of type |Option[A]| (see Section~\ref{sec:scala-types}): if
+it successfully receives a value~|x|, it returns~|Some(x)|; otherwise it
 returns~|None| to indicate a timeout.  There are also operations
 |sendWithinNanos| and |receiveWithinNanos| where the time is given in
 nanoseconds.

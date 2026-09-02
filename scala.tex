@@ -45,14 +45,14 @@ Section~\ref{sec:scala-misc} describes further language features.
 \section{Further Language Features}
 \label{sec:scala-misc}
 
-We describe pattern matching (Scala box~\ref{sb:pattern-matching}), anonymous
-functions (Scala box~\ref{sb:anon-function}), |for| expressions (Scala
-box~\ref{sb:for-expressions}), and how to catch
-exceptions~\ref{sb:try-catch}). 
+%% We describe pattern matching (Scala box~\ref{sb:pattern-matching}), anonymous
+%% functions (Scala box~\ref{sb:anon-function}), |for| expressions (Scala
+%% box~\ref{sb:for-expressions}), and how to catch
+%% exceptions~\ref{sb:try-catch}). 
 
-\begin{scalaBox}{Pattern matching}
-\label{sb:pattern-matching}
-The Scala operator |match| performs pattern matching.  The command
+%% \begin{scalaBox}{Pattern matching}
+%% \label{sb:pattern-matching}
+The Scala operator |match| performs \emph{pattern matching}.  The command
 %
 \begin{scala}
   £$v$£ match{
@@ -83,33 +83,33 @@ of type~|A|, and binds the name~|x| to the value.  The wildcard pattern
   obvious way.
 \end{itemize}
 %
-Case classes (Scala box~\ref{sb:case-classes}), such as the |Option| type
-(Scala box~\ref{sb:option-type}), also allow for pattern matching.
-\end{scalaBox}
+Case classes (Section~\ref{sec:scala-encapsulation}), such as the |Option| type
+(Section~\ref{sec:scala-types}), also allow for pattern matching.
+%% \end{scalaBox}
 
 %%%%%
 
-\begin{scalaBox}{Anonymous functions}
-\label{sb:anon-function}
-Anonymous functions can be defined in Scala in a couple of ways.  The notation
-\SCALA{(x: A) => exp} represents a function that takes an argument~|x| of
-type~|A|, and returns the value of~|exp|.  For example, \SCALA{(x: Int) =>
-  x+1} is a function that increments an |Int|.  The typing ``\SCALA{: A}'' can
-often be omitted, when the Scala compiler can deduce the type; for example, in
-\SCALA{List(1,2,3).map(x => x+1)}, the compiler can deduce that |x| must be an
-|Int|.
+%% \begin{scalaBox}{Anonymous functions}
+%% \label{sb:anon-function}
+An \emph{anonymous function} can be defined in Scala in a couple of ways.  The
+notation \SCALA{(x: A) => exp} represents a function that takes an
+argument~|x| of type~|A|, and returns the value of~|exp|.  For example,
+\SCALA{(x: Int) => x+1} is a function that increments an |Int|.  The typing
+``\SCALA{: A}'' can often be omitted, when the Scala compiler can deduce the
+type; for example, in \SCALA{List(1,2,3).map(x => x+1)}, the compiler can
+deduce that |x| must be an |Int|.
 
 An anonymous functions can also be defined using an underscore, ``\SCALA{_}'' to
 represent a ``hole'' into which the argument is put.  For example,
 \SCALA{((_:Int)+1)} again increments an |Int|.  Again, the type of the
 argument can often be omitted. 
-\end{scalaBox}
+%% \end{scalaBox}
 
 %%%%%
 
-\begin{scalaBox}{\protect\SCALAKW{for} expressions}
-\label{sb:for-expressions}
-|for| expressions provide a convenient way of building sequences.  The
+%% \begin{scalaBox}{\protect\SCALAKW{for} expressions}
+%% \label{sb:for-expressions}
+A \emph{\SCALA{for} expression} provides a convenient way of building sequences.  The
 simplest form of |for| expression is of the form
 \begin{scala}
   for(x <- xs) yield f(x)
@@ -145,11 +145,11 @@ only calculates |x*y| for even values of~|x|, so produces
 %% \begin{scala}
 %%   (for(x <- 1 to 3) yield x*x).toList
 %% \end{scala}
-\end{scalaBox}
+%% \end{scalaBox}
 
 
-\begin{scalaBox}{Catching exceptions}
-\label{sb:try-catch}
+%% \begin{scalaBox}{Catching exceptions}
+%% \label{sb:try-catch}
 Exceptions can be caught using a |try ... catch| construct as follows. 
 \begin{scala}
 try{ prog }catch{ handler }
@@ -157,26 +157,26 @@ try{ prog }catch{ handler }
 %
 Here |prog| is a program fragment, and |handler| is a partial function
 describing how to handle any exception thrown by |prog|.  The exception
-handler is normally written using pattern matching syntax (Scala
-box~\ref{sb:pattern-matching}), for example
+handler is normally written using pattern matching syntax (described above),
+for example
 \begin{scala}
   try{ prog } catch{
     case st: Stopped => ...
     case ae: AssertionError => ...
   }
 \end{scala}
-\end{scalaBox}
+%% \end{scalaBox}
 
 
-\begin{scalaBox}{{\scalashape apply} functions}
-\label{sb:apply}
+%% \begin{scalaBox}{{\scalashape apply} functions}
+%% \label{sb:apply}
 If an object~|o| has an operation called |apply| as follows:
 \begin{scala}
   def apply(x: A) = ...
 \end{scala}
 then it can be invoked as |o(e)| where  |e| is an expression of type~|A|.
 This generalises to different numbers of parameters, including none.  
-\end{scalaBox}
+%% \end{scalaBox}
 
 \framebox{TODO:}  equality and hash codes
 (from datatypes3).

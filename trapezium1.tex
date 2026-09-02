@@ -85,10 +85,10 @@ Summing over all intervals then gives us the following approximation:
 Figure~\ref{fig:trapezium-sequential} gives straightforward sequential code to
 implement the trapezium rule\footnote{The type {\scalashape
 Double \protect\SCALA{=>} Double} represents functions from {\scalashape
-Double} to {\scalashape Double}; see Scala box~\ref{sb:function-types}.}.  (We
+Double} to {\scalashape Double}; see Section~\ref{sec:scala-types}.}.  (We
 will see several implementations of the trapezium rule, so we factor out some
-common code into an abstract class |TrapeziumT|; see Scala
-boxes~\ref{sb:abstract-class} and~\ref{sb:protected}.)
+common code into an abstract class |TrapeziumT|; see
+Section~\ref{sec:scala-encapsulation}.)
 
 %%%%%
 
@@ -130,10 +130,10 @@ Make sure you understand the sequential implementation.
 \end{instruction}
 
 Incidentally, if |o| is an object with a function |apply(args)|, then Scala
-allows us to write |o(args)| as a shorthand for |o.apply(args)|; see Scala
-box~\ref{sb:apply}.  This is conventionally used for function-like objects, so
-that the call of |apply| looks like a function application.  We follow this
-convention here and later in the book.
+allows us to write |o(args)| as a shorthand for |o.apply(args)|; see
+Section~\ref{sec:scala-misc}.  This is conventionally used for function-like
+objects, so that the call of |apply| looks like a function application.  We
+follow this convention here and later in the book.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -180,11 +180,11 @@ subresults from all the workers.  Hence, the in-port of |toWorkers| is shared
 between the workers, as is the out-port of |toController|.  
 
 Figure~\ref{fig:trapezium-1} gives some of the code.  The companion object
-|Trapezium| (see Scala box~\ref{sb:companion}) factors out some definitions
-that we will reuse in a later implementation.  (We take the parameter |n| of
-|Trapezium|,the number of intervals, to be a |Long|---see Scala
-box~\ref{sb:types}---because we want to experiment with large arguments; in
-practice, an |Int| would be large enough.)
+|Trapezium| (see Section~\ref{sec:scala-encapsulation}) factors out some
+definitions that we will reuse in a later implementation.  (We take the
+parameter |n| of |Trapezium|,the number of intervals, to be a |Long|---see
+Section~\ref{sec:scala-core}---because we want to experiment with large
+arguments; in practice, an |Int| would be large enough.)
 
 %%%%%
 
@@ -247,24 +247,24 @@ The controller needs to tell each worker the range \SCALA{[l,r]} to work on,
 the number \SCALA{taskSize} of intervals in its range, and the size
 \SCALA{delta} of each interval (so $\sm{taskSize} \times \sm{delta} \approx
 \sm{r} - \sm{l}$).  We can pass this information as a 4-tuple \SCALA{(l, r,
-  taskSize, delta)}.  We define a type |Task| (see Scala
-box~\ref{sb:type-synonym}) to represent such 4-tuples, and create a channel
-|toWorkers| to pass |Task|s.
+  taskSize, delta)}.  We define a type |Task| (see
+Section~\ref{sec:scala-types}) to represent such 4-tuples, and create a
+channel |toWorkers| to pass |Task|s.
 
 Each worker returns a \SCALA{Double} to the controller, so we create a channel
 |toController| to pass such values.
 
-Note that the channels are \emph{private} (see Scala box~\ref{sb:private}): we
-want to ensure that only the threads we define in the |Trapezium| class can
-send and receive on them.
+Note that the channels are \emph{private} (see
+Section~\ref{sec:scala-encapsulation}): we want to ensure that only the
+threads we define in the |Trapezium| class can send and receive on them.
 
 The definition of a worker is then straightforward: it receives a task on the
 |toWorkers| channel, calculates the approximation to the integral, and sends
 the result back on the |toController| channel.
 
 In earlier chapters, we used channels to pass only simple values, such as
-|Int|s.  However, |Task|s (like all tuples) are reference objects (see Scala
-box~\ref{sb:reference-types}).  When a reference object is sent on a channel,
+|Int|s.  However, |Task|s (like all tuples) are reference objects (see
+Section~\ref{sec:scala-types}).  When a reference object is sent on a channel,
 the value that is actually passed is a reference to the object (i.e.~its
 address in memory): the object itself is not copied.  This means that even if
 an object encapsulates a lot of data, it is not expensive to send on a
@@ -327,8 +327,8 @@ The second loop in the controller receives subresults from the workers,
 and accumulates them into the object variable |result|.
 
 The function |system| constructs the system.  The definition of |workers|
-builds a sequence of workers using a |for| expression (see Scala
-box~\ref{sb:for-expressions}).  It then combines them together in parallel
+builds a sequence of workers using a |for| expression (see
+Section~\ref{sec:scala-misc}).  It then combines them together in parallel
 using an indexed form of parallel composition: if |ts| is a sequence of
 |ThreadGroup|s, then \SCALA{\|\| ts} represents their parallel composition,
 and is itself a |ThreadGroup|.

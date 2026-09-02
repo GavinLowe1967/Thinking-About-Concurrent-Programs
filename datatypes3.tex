@@ -113,7 +113,7 @@ dequeue.
 
 The worker takes a log object |log| as a parameter; each operation is
 performed and logged via a call to |log| (more precisely, the |apply| function
-of~|log|; see Scala box~\ref{sb:apply}), taking three parameters:
+of~|log|; see Section~\ref{sec:scala-misc}), taking three parameters:
 %
 \begin{itemize}
 \item
@@ -137,7 +137,7 @@ concurrent queue, and associates it with the function |seqEnqueue(x)| on the
 specification object.  Line~\ref{line:queue-lin-tester-worker-dequeue}
 performs |dequeue()| on the concurrent queue, and associates it with the
 function |seqDequeue| on the specification object.  Each uses an anonymous
-function (see Scala box~\ref{sb:anon-function}) to define the operation on the
+function (see Section~\ref{sec:scala-misc}) to define the operation on the
 concurrent queue: each underscore (``\SCALA{_}'') represents a hole into which
 the concurrent queue is placed.
 
@@ -259,3 +259,41 @@ assumes such distinct strings (the tester records the effect of each
 sequential operation on the specification object, using the string as a key;
 this avoids repeating the same operation on the same specification object).
 
+We mentioned above that the problem of deciding whether a given history is
+linearizable is NP-complete in general.  Let's prove that fact, as it's quite
+easy.  (We assume here at least a passing familiarity with NP-completeness.)
+Clearly the problem is in NP: given an interleaving of the history~$h$ with a
+corresponding history~$h_s$ of the specification object, we can check that
+$h_s$ is indeed a linearization of~$h$ in polynomial time.  To show the
+problem is NP-hard, we perform a reduction from the subset-sum problem, which
+is as follows:
+\begin{quote}
+\textbf{Subset-sum problem:} Given a set $S \subseteq \sm{Int}$, and an
+|Int|~$t$, determine whether there is a subset of~$S$ whose sum is~$t$. 
+\end{quote}
+%
+This problem is known to be NP-complete.  We will use the following sequential
+specification object.
+\begin{scala}
+object Spec{
+  private var sum = 0
+  def add(x: Int): Unit = sum += x
+  def get: Int = sum 
+}
+\end{scala}
+So, given an instance $S = \set{x_1,\ldots,x_n}$ and~$t$ of the subset-sum
+problem, build the history
+\begin{eqnarray*}
+h & = & \langle\,
+  \begin{align}
+  \call.\sm{add}^1(x_1),\, \ldots,\, \call.\sm{add}^n(x_n),\, \call.\sm{get}^0, \\
+  \return.\sm{add}^1\::(),\, \ldots,\, 
+     \return.\sm{add}^n\::(),\,  \return.\sm{get}^0\::t \, \rangle
+  \end{align}
+\end{eqnarray*}
+%
+Then $h$ is linearisable with respect to~|Spec| precisely if the subset-sum
+problem should return |true|: if $h$ is linearisable, then $t$ equals the sum
+of the $x_i$ values whose |add| operation is linearised before the |get|.  If
+we could decide linearisability in polynomial time, we could also decide the
+subset-sum problem in polynomial time. 

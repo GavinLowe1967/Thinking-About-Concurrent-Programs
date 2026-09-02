@@ -109,11 +109,11 @@ Again, we can use an immutable queue as the sequential specification object.
 %%%%%
 
 One difference from the tester for the total queue is that the |dequeue|
-operation now has a nontrivial precondition, namely that the queue is nonempty.
-We need to arrange that the linearizability tester does not linearize such an
-operation when the precondition does not hold.  The way to do this is to
-include a |require| statement (see Scala box~\ref{sb:assertions}) in the
-corresponding sequential operation~|seqDequeue|.  This will throw an
+operation now has a nontrivial precondition, namely that the queue is
+nonempty.  We need to arrange that the linearizability tester does not
+linearize such an operation when the precondition does not hold.  The way to
+do this is to include a |require| statement (see Section~\ref{sec:scala-core})
+in the corresponding sequential operation~|seqDequeue|.  This will throw an
 |IllegalArgumentException| when the precondition does not hold.  Internally,
 the linearizability tester catches this exception, but does not allow the
 |dequeue| to be linearized at this point.

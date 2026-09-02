@@ -88,8 +88,8 @@ an operation to get the overall total.
 It is straightforward to adapt the definition of a worker to use such objects:
 see Figure~\ref{fig:BOT-using-objects}.  The definition is parameterised by
 the |BagOfTasks| and |Collector|.  It calls the |getTask| operation on the
-|BagOfTasks| to get a task, and pattern matches on it (see Scala
-box~\ref{sb:pattern-matching}), exiting its main loop when it receives |null|.
+|BagOfTasks| to get a task, and pattern matches on it (see
+Section~\ref{sec:scala-misc}), exiting its main loop when it receives |null|.
 At the end, it then uses the |add| operation on the |Collector| to return its
 subtotal.
 

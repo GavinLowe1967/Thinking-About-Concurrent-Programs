@@ -1,7 +1,7 @@
-A concurrent program is any program consisting of multiple units of execution
-that work together towards some common goal.  Each unit of execution has its
-own thread of control: it has its own local state.  The different units might
-also have some shared state, such as shared variables.  
+A concurrent program is any program that uses multiple units of execution that
+work together towards some common goal.  Each unit of execution has its own
+thread of control: it has its own local state.  The different units might also
+have some shared state, such as shared variables.
 
 The units of execution might all execute on the same processor, sharing
 processor time.  Or they might operate on several close-coupled processors,
@@ -11,7 +11,7 @@ We will see various patterns for how the units work together.  For example,
 they might be performing different operations, as part of a pipeline; or they
 might be performing the same operation, but on different parts of the data.
 %
-The key concern in each case is coordinating the different units tasks, to ensure
+The key concern in each case is coordinating the different units, to ensure
 correct sequencing of interactions or communications between them.
 
 %%%%%%\heading{Processes and threads}
@@ -61,6 +61,8 @@ include scientific computations (e.g.~modelling the climate, the evolution of
 a galaxy, or the effects of new drugs), graphics and image processing, and
 combinatorial or optimisation problems (e.g.~scheduling problems, or
 game-playing algorithms).  \framebox{Improve -- ``AI''}
+
+% Tens of millions of GPU hours.
 
 Often these programs employ \emph{data parallelism}: each thread or process
 works on part of the data, with all working in the same way; perhaps there

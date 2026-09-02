@@ -159,7 +159,7 @@ barrier for |p| threads, associated with function~|f|.  In the Jacobi
 iteration example, we want the combining barrier to calculate the conjunction
 of the workers' |myDone| variables, so we can define the combining barrier
 by\footnote{The notation {\scalashape \_ \&\& \_} uses placeholder notation;
-  see Scala box~\ref{sb:anon-function}.  It represents a function that takes
+  see Section~\ref{sec:scala-misc}.  It represents a function that takes
   two arguments, \SCALA{x} and~{\scalashape y}, and returns {\scalashape x
     \&\& y}.}:
 %

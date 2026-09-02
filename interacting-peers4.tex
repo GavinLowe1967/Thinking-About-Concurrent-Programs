@@ -178,7 +178,7 @@ other than its predecessor (line~\ref{line:sending}).
 
 Next, the node waits (from line~\ref{line:receiving}) to receive |Finished|
 messages from those nodes.  It accumulates the edges of the subtree in the
-list~|edges| (see Scala box~\ref{sb:lists}).  As discussed above, if it
+list~|edges| (see Section~\ref{sec:scala-types}).  As discussed above, if it
 receives a |Start| message during this phase, it ignores it.  It uses a bitmap
 |pending| to record the indices of neighbours from which |Finished| (or
 |Start|) messages are pending.  The |serve| loop terminates when all entries

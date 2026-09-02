@@ -53,8 +53,8 @@ the other end.
 %%%%%
 
 In SCL, \SCALA{Chan[A]} is the type of channels that pass data of
-type~\SCALA{A}.  (The type is polymorphic in~|A|: see Scala
-box~\ref{sb:polymorphic}.)  This type has subtypes |SyncChan[A]|, of
+type~\SCALA{A}.  (The type is polymorphic in~|A|: see
+Section~\ref{sec:scala-types}.)  This type has subtypes |SyncChan[A]|, of
 synchronous channels, and |BuffChanT[A]|, of buffered (or asynchronous)
 channels.  We will start by describing synchronous channels, and later
 describe buffered channels.
@@ -122,10 +122,10 @@ of \emph{threads}, not channels: a thread receives values in on an in-port,
 and sends values out on an out-port; however, a value is put into a channel on
 an out-port, and passed out on an in-port.
 
-Figure~\ref{fig:channel-types} outlines the relevant types (see Scala
-boxes~\ref{sb:classes}, \ref{sb:traits} and~\ref{sb:extends}).  (The
-definition of |Chan[A]| uses multiple inheritance: it inherits definitions
-from both |InPort[A]| and |OutPort[A]|.)  The types \SCALA{InPort[A]} and
+Figure~\ref{fig:channel-types} outlines the relevant types (see
+Section~\ref{sec:scala-encapsulation}).  (The definition of |Chan[A]| uses
+multiple inheritance: it inherits definitions from both |InPort[A]| and
+|OutPort[A]|.)  The types \SCALA{InPort[A]} and
 \SCALA{OutPort[A]} can be abbreviated as \SCALA{??[A]} and~\SCALA{!![A]},
 respectively.
 
