@@ -105,9 +105,10 @@ It would be better for |pop| to have a signature such as
 \end{scala}
 either returning a result of the form~|Some(x)|, where |x| is the value
 popped, or a result~|None| to indicate that the stack is empty.  (The type
-|Option[Int]| contains the union of such values.)  This combines the |isEmpty|
-and |pop| operations from the given class.  Client code can treat the result
-appropriately in each case.  
+|Option[Int]| contains the union of such values; see
+Section~\ref{sec:scala-types}.)  This combines the |isEmpty| and |pop|
+operations from the given class.  Client code can treat the result
+appropriately in each case.
 
 \item (This item is somewhat related to the previous.)  Suppose a thread calls
   |pop| when the stack is non-empty, and the subsequent |require| statement

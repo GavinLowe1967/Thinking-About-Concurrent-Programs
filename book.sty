@@ -3,15 +3,15 @@
 \def\heading#1{\subsection{#1}}
 
 %%% Boxes explaining syntax.  
-\usepackage{newfloat,tocloft,caption}
-\usepackage[framemethod=TikZ]{mdframed}
-\newlistof{sib}{sib}{List of Scala  boxes}
-\DeclareFloatingEnvironment[
-  fileext = sib, placement = {phtb}, name = Scala box, within = none]{myfloat} 
-\captionsetup[myfloat]{labelfont=bf}
+%% \usepackage{newfloat,tocloft,caption}
+%% \usepackage[framemethod=TikZ]{mdframed}
+%% \newlistof{sib}{sib}{List of Scala  boxes}
+%% \DeclareFloatingEnvironment[
+%%   fileext = sib, placement = {phtb}, name = Scala box, within = none]{myfloat} 
+%% \captionsetup[myfloat]{labelfont=bf}
 
 
-\newlistof{scalaboxes}{sbb}{List of Scala boxes}
+%% \newlistof{scalaboxes}{sbb}{List of Scala boxes}
 
 % myequation takes in its display name
 %\newcommand{\myequations}[1]{
@@ -27,20 +27,20 @@
 %%   \item[]
 %% }{ \hfill $\Box$ \end{trivlist}\pagebreak[3] }
 
-\newenvironment{scalaBox}[1]
-{\begin{myfloat}[!phtb]
-   \begin{mdframed}[roundcorner=10pt,backgroundcolor=blue!8]
-   \setlength{\parindent}{4mm}
-   \caption{#1}
-} {
-  \end{mdframed}\end{myfloat}
-}
+%% \newenvironment{scalaBox}[1]
+%% {\begin{myfloat}[!phtb]
+%%    \begin{mdframed}[roundcorner=10pt,backgroundcolor=blue!8]
+%%    \setlength{\parindent}{4mm}
+%%    \caption{#1}
+%% } {
+%%   \end{mdframed}\end{myfloat}
+%% }
 
 %%% Annotation rule
-\newenvironment{Rule}[2][]
-{\begin{myfloat}[#1]\begin{mdframed}[roundcorner=10pt,backgroundcolor=blue!8]
-\setlength{\parindent}{4mm}{\textbf{#2}}}
-{\end{mdframed}\end{myfloat}}
+%% \newenvironment{Rule}[2][]
+%% {\begin{myfloat}[#1]\begin{mdframed}[roundcorner=10pt,backgroundcolor=blue!8]
+%% \setlength{\parindent}{4mm}{\textbf{#2}}}
+%% {\end{mdframed}\end{myfloat}}
   
 %%% Strict same-page environment
 \newenvironment{mysamepage}
@@ -58,6 +58,20 @@
 
 %%% Section headings for exercises
 \def\exercises{\section*{Exercises}\markright{EXERCISES}}
+
+%%% SCL index entries.
+
+\def\ignoreX#1{}
+% SCL index entry for #2, but where sorting will be on #1.  In most cases, #1
+% will be the same as #2.  If #2 starts with a capital letter, #1 should
+% normally replace that with the corresponding lower case letter,
+% e.g. \SCLIndex{inPort}{InPort}.  However, if that creates an extension of
+% another index entry, some hacking is required,
+% e.g. \SCLIndexX{threae}{ThreadGroup}, to appear after the entry for
+% "thread".
+\def\SCLIndexX#1#2{\index[SCL]{\protect\ignoreX{{#1}}\protect\SCALA{#2}}}
+% SCL index entry for #1, using the natural sort.
+\def\SCLIndex#1{\SCLIndexX{#1}{#1}} 
 
 %%% Alignment
 \def\align{\begin{array}[t]{@{}l@{}}}

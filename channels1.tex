@@ -18,16 +18,16 @@ concurrent programs.
 The basic idea is that programs are composed of components, which might be
 either threads (i.e.~sharing an address space) or processes (with distinct
 address spaces, possibly on different computers).  These threads or processes
-communicate only by sending and receiving messages over \emph{channels}.  In
-this book, we will be dealing with threads; but the same techniques can be
-used with processes.
+communicate only by sending and receiving messages
+over \emph{channels}.  In this book, we will be dealing with
+threads; but the same techniques can be used with processes.
 
 %%%%%
 
 \section{Defining and Using Channels}
 
-Think of a channel as a wire.  Messages are sent at one end, and received at
-the other end.
+Think of a channel\index{channel} as a wire.  Messages are sent at one end,
+and received at the other end.
 
 %% \item At one end there is an output port, at the other an input port.
 %% %
@@ -52,23 +52,30 @@ the other end.
 
 %%%%%
 
-In SCL, \SCALA{Chan[A]} is the type of channels that pass data of
-type~\SCALA{A}.  (The type is polymorphic in~|A|: see
-Section~\ref{sec:scala-types}.)  This type has subtypes |SyncChan[A]|, of
-synchronous channels, and |BuffChanT[A]|, of buffered (or asynchronous)
-channels.  We will start by describing synchronous channels, and later
-describe buffered channels.
+In SCL, \SCALA{Chan[A]}\SCLIndexX{chan}{Chan} is the type of channels that pass data
+of type~\SCALA{A}.  (The type is polymorphic in~|A|: see
+Section~\ref{sec:scala-types}.)  This type has subtypes
+|SyncChan[A]|\SCLIndexX{syncChan}{SyncChan}, of synchronous channels, and
+|BuffChanT[A]|\SCLIndexX{buffChan}{BuffChan}, of buffered (or asynchronous) channels.  We
+will start by describing synchronous channels, and later describe buffered
+channels.
 
+% Hack, because indexing uses "!" as a special character.  Note: the order of
+% the index depends on the name of the macro!
+\def\Ashriek{\SCALA{!}}
 The command
 \begin{scala}
   val chan = new SyncChan[A]
 \end{scala}
-defines |chan| to be a synchronous channel passing data of type~|A|.  Given
-such a channel, the command
+defines |chan| to be a synchronous channel\index{channel!synchronous} passing
+data of type~|A|.  Given such a channel, the
+command\index[SCL]{\Ashriek}
 \begin{scala}
   chan!v
 \end{scala}
-sends the value \SCALA{v} (of type~|A|) on \SCALA{chan}.  The expression
+sends the value \SCALA{v} (of type~|A|) on \SCALA{chan}.  The
+expression\SCLIndexX{? }{?} 
+%%% Note: the index command for ? ensures the entry comes after that for ??.
 \begin{scala}
   chan?()
 \end{scala}
@@ -115,19 +122,24 @@ actions.
 
 %%%%%
 
-A channel is comprised of an \emph{in-port} (something from which threads can
-receive) and an \emph{out-port} (something on which threads can send).  Note
-that the terminology ``in-port'' and ``out-port'' refer to the point of view
-of \emph{threads}, not channels: a thread receives values in on an in-port,
-and sends values out on an out-port; however, a value is put into a channel on
-an out-port, and passed out on an in-port.
+A channel is comprised of an \emph{in-port}\index{in-port} (something from
+which threads can receive) and an \emph{out-port}\index{out-port} (something
+on which threads can send).  Note that the terminology ``in-port'' and
+``out-port'' refer to the point of view of \emph{threads}, not channels: a
+thread receives values in on an in-port, and sends values out on an out-port;
+however, a value is put into a channel on an out-port, and passed out on an
+in-port.
 
 Figure~\ref{fig:channel-types} outlines the relevant types (see
 Section~\ref{sec:scala-encapsulation}).  (The definition of |Chan[A]| uses
 multiple inheritance: it inherits definitions from both |InPort[A]| and
-|OutPort[A]|.)  The types \SCALA{InPort[A]} and
-\SCALA{OutPort[A]} can be abbreviated as \SCALA{??[A]} and~\SCALA{!![A]},
-respectively.
+|OutPort[A]|.)  The types \SCALA{InPort[A]}\SCLIndexX{inPort}{InPort} and
+\SCALA{OutPort[A]}\SCLIndexX{outPort}{OutPort} can be abbreviated
+as \SCALA{??[A]}\SCLIndex{??}
+and~\SCALA{!![A]},\index[SCL]{\Ashriek\Ashriek} respectively.
+%%% Note: the index command for ?? ensures the entry comes after that for ?.
+
+\SCLIndex{test}
 
 %%%%%%
 

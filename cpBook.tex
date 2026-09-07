@@ -1,5 +1,9 @@
 \documentclass[12pt,a4paper]{book}
 %\documentclass[times]{acm-book}%%%
+\usepackage{imakeidx}
+\makeindex
+\makeindex[name=SCL, title=Index of SCL Notation]
+%\usepackage{comment}
 
 %% \usepackage{amsmath}    % Package for AMS math extensions.
 \usepackage{amssymb}
@@ -46,7 +50,7 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%\includeonly{intro,scala}
+\includeonly{intro}
 
 \begin{document}
 \maketitle
@@ -57,8 +61,8 @@
 \tableofcontents
 \newpage %% To get \label below correct
 %\listofscalaboxes
-\label{listofsib}
-\listofsib
+%% \label{listofsib}
+%% \listofsib
 
 \include{preface}
 
@@ -103,4 +107,10 @@
 %%%%%
 
 \input{answers}
+
+
+\printindex[SCL]
+\printindex
+
+% Scala Concurrency Library, see SCL
 \end{document}

@@ -2,7 +2,7 @@
 Consider a web browser that supports multiple tabs (i.e.~different
 tabs for different web pages).  Why might it be beneficial to use
 concurrency in the implementation of such a web browser?  Would this
-still make sense on a uni-processor computer?  What problems might
+still make sense on a uniprocessor computer?  What problems might
 arise from such a design?
 \end{questionS}
 
@@ -23,22 +23,22 @@ higher throughput); of these, the former seems more important.
 
 As an example of why a sequential implementation might be unsatisfactory,
 consider a user who has two tabs open, one viewing a page that automatically
-re-loads every few minutes, and another that the user is actively reading.
+reloads every few minutes, and another that the user is actively reading.
 Suppose the user tries to scroll down in the second page just after the first
-page starts a re-load; then the user has to wait until the re-load completes
+page starts a reload; then the user has to wait until the reload completes
 before the second page scrolls; this could take several seconds, and so annoy
-the user.  (Some browsers used to act in this way in the past.)  If the different
+the user.  (In the past, some browsers acted in this way.)  If the different
 tabs used different threads, then they could run concurrently so the user
-wouldn't see this delay.  
+wouldn't see this delay.
 
-This would still be the case on a uni-processor machine.  However, the fact
+This would still be the case on a uniprocessor machine.  However, the fact
 that multiple threads are competing for the processor would slow things down a
 bit.  Web browsers and web pages seem to have become more bloated over the
-years, because it's assumed that they will run on a multi-processor machine,
-so I suspect a uni-processor machine would struggle in some cases.
+years, because it's assumed that they will run on a multiprocessor machine,
+so I suspect a uniprocessor machine would struggle in some cases.
 
-The problem is, of course, that two threads might try to access some shared
-data (e.g.~the history list) simultaneously, leading to race conditions.
-These race conditions can be avoided by careful programming: see the rest of
-the book!
+The main problem is, of course, that two threads might try to access some
+shared data (e.g.~the history list) simultaneously, leading to race
+conditions.  These race conditions can be avoided by careful programming: see
+the rest of the book!
 \end{answerS}

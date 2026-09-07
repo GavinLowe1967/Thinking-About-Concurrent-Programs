@@ -50,7 +50,7 @@ The obvious way to avoid this problem is to combine the \SCALA{canDebit} and
 class.  Something like
 %
 \begin{scala}
-  /** Attempt to debit value.  Return true if successful. */
+  /** Attempt to debit value.  Return £true£ if successful. */
   def tryDebit(value: Int): Boolean = atomically{
     if(balance >= value){ balance -= value; true } else false
   }

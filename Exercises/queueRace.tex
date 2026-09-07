@@ -30,7 +30,11 @@ class Queue[A]{
 \end{figure}
 
 Figure~\ref{fig:queue} gives the implementation of a queue based on a linked
-list.  The implementation is correct when the queue is used sequentially.
+list.  The implementation uses a dummy header node, referenced by |head|; when
+the queue is non-empty, the first element is stored in |head.next|.  It also
+maintains a reference |last| to the last node in the list.
+
+The implementation is correct when the queue is used sequentially.
 However, if the queue is used concurrently (i.e.~with two or more threads
 calling the operations concurrently), then it can go wrong in a number of
 different ways.  
@@ -106,9 +110,9 @@ that returns |None| when the queue is empty, or |Some(x)| if |x| is dequeued.
   Then if $t_1$ and~$t_2$ each updates |last.next| to point to their node, in
   that order, the latter will overwrite the former, so $n_1$ isn't connected
   to the list (so the~$x_1$ is lost).  Further, if $t_2$ then updates |last|
-  before~$t_1$, then it will end up pointing to~$n_1$, so |last| will no
-  longer be reachable from |head|; this means that the results of all
-  subsequent enqueues will be lost.
+  before~$t_1$, then |last| will end up pointing to~$n_1$, so |last| will no
+  longer be reachable from |head|, breaking an intended invariant; this means
+  that the results of all subsequent enqueues will be lost.
 
 %%%%%
 
@@ -121,7 +125,7 @@ that returns |None| when the queue is empty, or |Some(x)| if |x| is dequeued.
 
 \item Suppose thread $t_1$ calls |dequeue|, and advances |head| to node~$n_1$,
   but stalls before reading |head.datum|.  Suppose now thread~$t_2$ calls
-  dequeue, advances |head| to $n_2 = n_1$|.next|, and returns $n_2$|.datum|.
+  |dequeue|, advances |head| to $n_2 = n_1$|.next|, and returns $n_2$|.datum|.
   Then thread~$t_1$ can resume, read |head = |$n_2$, and
   return $n_2$|.datum|.  This value has been returned twice, but the value
   in~$n_1$ was lost. 

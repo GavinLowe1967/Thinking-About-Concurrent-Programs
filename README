@@ -1,6 +1,6 @@
 Chapter 1: Introduction
-- reasons for concurrency.  TO DO
-- concurrent architectures: TO DO
+- reasons for concurrency.  
+- concurrent architectures: TO DO: GPUs
 - correctness properties: TO DO
 https://ourworldindata.org/scaling-up-ai has AI stats
 
@@ -45,10 +45,11 @@ Chapter 12: Semaphores:
 
 Appendices
 
-- Scala -- TODO: improve; change to free-form text, with subsections.
+- Scala -- TODO: import, equality, hash codes.
+
 - Experiments -- improve
 
-- Add SCL summary?
+- Add SCL summary?  Or just index.
 
 --------------
 

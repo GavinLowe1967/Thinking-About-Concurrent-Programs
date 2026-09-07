@@ -2,8 +2,8 @@
 
 The main challenge of concurrent programming is ensuring disciplined
 interaction between threads.  Without this, even very simple concurrent
-programs can act in unexpected ways.  In particular, it is necessary to ensure
-disciplined access to shared variables.
+programs can act in unexpected and undesirable ways.  In particular, it is
+necessary to ensure disciplined access to shared variables.
 
 Figure~\ref{fig:race} gives an example that shows what can happen if you allow
 undisciplined access to variables.  Such programs are very hard to reason
@@ -40,29 +40,38 @@ object Race{
 
 %%%%%
 
-We use the Scala Concurrency Library (SCL) in this book.  It provides a number
-of convenient concurrency primitives.  Line~\ref{line:input} of
-Figure~\ref{fig:race} imports this library, so the main primitives can be used
-directly; for example, ``|thread|'' is shorthand for ``|ox.scl.thread|''.  (In
-later programs, we will tend to omit this |import| statement, for brevity.)
+We use the Scala Concurrency Library (SCL)\index{SCL} in this book.  It
+provides a number of convenient concurrency primitives\index{concurrency
+  primitive}.  An index at the end of the book lists the SCL primitives we
+use.  
 
-A definition of the form \SCALA{thread\{<code>\}} defines a thread that when
-executed will execute \SCALA{<code>}.  For example, line~\ref{line:p} defines
-|t1| to be a thread that when executed will increment the shared variable~|x|
-1000 times, and line~\ref{line:q} defines |t2| to be a thread that when
-executed will decrement |x| 1000 times.  Each thread is of type
-|ThreadGroup|\footnote{This type is not the same as the type {\scalashape
-    java.lang.ThreadGroup}.}.
+Line~\ref{line:input} of Figure~\ref{fig:race} imports the SCL library, so
+the main primitives can be used directly; for example, ``|thread|'' is
+shorthand for ``|ox.scl.thread|''.  (In later programs, we will tend to omit
+this |import| statement, for brevity.)
 
+A definition of the form \SCALA{thread\{<code>\}}\SCLIndex{thread} defines a
+thread that when executed will execute \SCALA{<code>}.  For example,
+line~\ref{line:p} defines |t1| to be a thread that when executed will
+increment the shared variable~|x| 1000 times, and line~\ref{line:q} defines
+|t2| to be a thread that when executed will decrement |x| 1000 times.  Each
+thread is of type |ThreadGroup|\SCLIndexX{threae}{ThreadGroup}\footnote{This
+  type is not the same as the type {\scalashape java.lang.ThreadGroup}.}.
+%% Note: the index entry for ThreadGroup will appear after that for thread. 
+
+%% Hack here to get the indexing to accept ||.  Note: the order of the index
+%% depends on the name of the macro!
+\def\App{\protect\SCALA{\|\|}}
 If |p| and |q| are |ThreadGroup|s, then \SCALA{p || q} represents their
-parallel composition, also of type |ThreadGroup|.  For example,
+parallel composition\index[SCL]{\App}, also of type |ThreadGroup|.  For example,
 line~\ref{line:system} defines |system| to be the parallel composition of~|t1|
-and~|t2|. 
+and~|t2|.
 
-If |p| is a |ThreadGroup|, then |run(p)| or |p.run| runs~|p|.  A parallel
-composition terminates when all components have terminated.  Thus the |main|
-function at line~\ref{line:main} runs |system|, i.e.,~it runs |t1| and~|t2| in
-parallel, and when both have terminated, prints the final value of~|x|.
+If |p| is a |ThreadGroup|, then |run(p)| or |p.run|\SCLIndex{run} runs~|p|.  A
+parallel composition terminates when all components have terminated.  Thus the
+|main| function at line~\ref{line:main} runs |system|, i.e.,~it runs |t1|
+and~|t2| in parallel; when both have terminated, it prints the final value
+of~|x|.
 
 You might expect that the increments and decrements cancel out, so that the
 program always prints~|0|.  In fact, the program can give any result between
@@ -71,10 +80,14 @@ $-1000$ and $+1000$.
 To understand why, we need to understand how a concurrent program is
 executed. 
  
-Certain actions can be considered \emph{atomic}; for example a single machine
-instruction, or, in the case of a Scala program, a single instruction of the
-Java Virtual Machine.  Typical actions include loading the value of a variable
-into a register, incrementing or decrementing it, or storing a register into a
+Certain actions can be considered \emph{atomic}\index{atomic action}; for
+example a single machine instruction; a Scala program runs on the Java Virtual
+Machine (JVM)\index{JVM}, so we can consider each JVM instruction to be
+atomic.
+%%   or, in the case of a Scala program, a single instruction of the
+%% Java Virtual Machine (JVM)\index{JVM} on which the program runs.
+Example actions include loading the value of a variable into a
+register, incrementing or decrementing it, or storing a register into a
 variable.
 
 A sequential program, or a single thread, executes a sequence of atomic
@@ -126,25 +139,27 @@ with $\sm x = 1$.  All other interleavings give one of these three values.
 Returning to the program in Figure~\ref{fig:race}, it should now be clear how
 different interleavings can produce any result between $-1000$ and~$1000$.
 
-More generally, two actions are \emph{independent} if their order may be
-reversed without changing the overall effect.  For example, two actions
-concerning distinct variables are independent, as are two reads of the same
-variable.  Likewise, the |INC| and |DEC| actions by the above threads affect
-only thread-local registers, so are independent of any other actions.
-Interleaving of independent atomic actions is not problematic.
+More generally, two actions are \emph{independent}\index{independent actions}
+if their order may be reversed without changing the overall effect.  For
+example, two actions concerning distinct variables are independent, as are two
+reads of the same variable.  Likewise, the |INC| and |DEC| actions by the
+above threads affect only thread-local registers, so are independent of any
+other actions.  Interleaving of independent atomic actions is not problematic.
 
 However, some actions are non-independent, for example two writes of the same
-variable, or a read and a write of the same variable.  Interleaving of
-non-independent atomic actions can be problematic, as it means that the
-program can produce different results on different runs.
+variable, or a read and a write of the same variable: different orders for
+such actions lead to different outcomes.  Interleaving of non-independent
+atomic actions can be problematic, as it means that the program can produce
+different results on different runs.
 
-We say that a program contains a \emph{race} if two non-independent actions
-can be interleaved, and one of the interleavings leads to an incorrect result.
-In particular, where those actions are reads or writes of shared variables, we
-say that it is a \emph{memory race}.  The program in Figure~\ref{fig:race}
-contains memory races: the writes by the two threads can happen in different
-orders, leading to different results, as in the second and third interleavings
-above.
+We say that a program contains a \emph{race}\index{race} if two
+non-independent actions can be interleaved, and one of the interleavings leads
+to an incorrect result.  In particular, where those actions are reads or
+writes of shared variables, we say that it is a \emph{memory
+  race}\index{race!memory race}.  The
+program in Figure~\ref{fig:race} contains memory races: the writes by the two
+threads can happen in different orders, leading to different results, as in
+the second and third interleavings above.
 
 Different threads can run at different rates: threads can be descheduled and
 only later rescheduled; threads may be delayed in memory actions because of
@@ -157,9 +172,9 @@ unpredictable.
 However, there are other reasons why programs with memory races can be
 unpredictable.  
 %
-As described earlier, multiprocessor machines may cache variables.  Caching
-can make a program much faster; but it can create problems with concurrent
-programs.
+As described earlier, multiprocessor machines may cache variables\index{cache
+  memory}.  Caching can make a program much faster; but it can create problems
+with concurrent programs.
 
 When a thread~$t$ first needs the value of a variable~|x|, it will read it
 from shared memory, and store a copy in its cache.  If it later needs the
@@ -181,15 +196,15 @@ fact, on some architectures this seems to happen on most runs of the program.
 %%%%% \heading{Compiler optimisations}
 
 Another reason why programs with memory optimisations can be unpredictable
-concerns memory optimisations.  The compiler may optimise code, according to
-certain rules, to something that is equivalent when run sequentially.
-Compiler optimisations are certainly useful, and often produce faster code.
-However, the resulting code might not be equivalent when run as part of a
-concurrent program.
+concerns \emph{compiler optimisations}\index{compiler optimisation}.  The
+compiler may optimise code, according to certain rules, to something that is
+equivalent when run sequentially.  Compiler optimisations are certainly
+useful, and often produce faster code.  However, the resulting code might not
+be equivalent when run as part of a concurrent program.
 
 Consider the code in Figure~\ref{fig:busyWait}.  This uses a variant of the
-|thread| function: the construct |thread(name){<code>}| acts like
-|thread{<code>}|  but gives the name |name| to the thread; we will see how
+|thread|\SCLIndex{thread} function: the construct |thread(name){<code>}| acts
+like |thread{<code>}| but gives the name |name| to the thread; we will see how
 this is useful shortly.
 
 In Figure~\ref{fig:busyWait}, it appears that |t1| sets |answer| to |42|, and
@@ -242,42 +257,42 @@ Likewise, it would be valid to rewrite the body of~|t2| to
 \end{scala}
 and again the logic around the signal doesn't hold.  
 
-\pagebreak[3]
+%\pagebreak[3]
 
 Alternatively, it would be valid for the compiler to rewrite the body of~|t2|
 to
 % 
-\begin{mysamepage}
+%\begin{mysamepage}
 \begin{scala}
   if(!done){ while(true){ } }
   val myAnswer = answer; assert(myAnswer == 42)
 \end{scala}
-\end{mysamepage}
+%\end{mysamepage}
 This is a fairly standard form of rewrite: it avoids rereading the variable
-|done|.  Now, this thread can read |done = false| and loop forever, so the
-program gets stuck.  In fact, on my machine, the program runs for a few
-hundred iterations and then gets stuck: I think the just-in-time compiler
-(which optimises Java bytecode to native machine code, while the program is
-running) performs an optimisation equivalent to the one above.
+|done| on each iteration.  Now, this thread can read |done = false| and loop
+forever: the program gets stuck!  In fact, on my machine, the program runs for
+a few hundred iterations and then gets stuck: I think the just-in-time
+compiler (which optimises Java bytecode to native machine code, while the
+program is running) performs an optimisation equivalent to the one above.
 
 When a program does get stuck in this way, typing \texttt{Ctrl}+$\backslash$
 (i.e.~holding down the \texttt{Ctrl} key, and pressing the backslash key) in
-the terminal produces a thread dump.  This lists information about all the
-running threads, such as giving their current line number in the code.  (This
-normally includes several threads that are part of the runtime, rather than
-the program in question; these can normally be ignored.)  In particular, this
-thread dump uses names given to threads by the |thread(name){...}| construct.
-In the example of the previous paragraph, |t1| is not listed, because it has
-terminated; however, |t2| is still at the line corresponding to the |while|
-loop.
+the terminal produces a thread dump\index{thread dump}.  This lists
+information about all the running threads, such as giving their current line
+number in the code.  (This normally includes several threads that are part of
+the runtime, rather than the program in question; these can normally be
+ignored.)  In particular, this thread dump uses names given to threads by the
+|thread(name){...}| construct.  In the example of the previous paragraph, |t1|
+is not listed, because it has terminated; however, |t2| is still at the line
+corresponding to the |while| loop.
 
 The style of the loop in~|t2|, where the thread spins, waiting for a condition
-to become true, is known as \emph{busy waiting}.  This is normally considered
-bad style.  As the above example shows, it often doesn't work!  And even if it
-did work, the spinning thread would be consuming computational resources that
-might be better used elsewhere.  It would be better for the thread to suspend
-until the condition becomes true: we will see in later chapters how to do
-this.  
+to become true, is known as \emph{busy waiting}\index{busy waiting}.  This is
+normally considered bad style.  As the above example shows, it often doesn't
+work!  And even if it did work, the spinning thread would be consuming
+computational resources that might be better used elsewhere.  It would be
+better for the thread to suspend until the condition becomes true: we will see
+in later chapters how to do this.
 
 We have seen that programs that contain race conditions are likely to be very
 hard to reason about, unpredictable, and simply wrong!  However, we want the
@@ -291,11 +306,12 @@ introduced by caching or compiler optimisations.
 
 The above discussion has illustrated two different ways in which a program can
 go wrong, and hence two different classes of desirable properties.
-\emph{Safety properties} specify that the results produced by a program are
-correct; informally, nothing bad happens.  By contrast, \emph{liveness
-  properties} specify that the program does actually make progress and produce
-results, and doesn't get stuck; informally, something good happens.  We will
-be interested in both safety and liveness properties. 
+\emph{Safety properties}\index{safety} specify that the results produced by a
+program are correct; informally, nothing bad happens.  By contrast,
+\emph{liveness properties}\index{liveness} specify that the program does
+actually make progress and produce results, and doesn't get stuck; informally,
+something good happens.  We will be interested in both safety and liveness
+properties.
 
 %% NSA have issued a report saying that race conditions are the eighth most
 %% dangerous programming error.
