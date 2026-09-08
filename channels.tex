@@ -14,7 +14,7 @@ idea is straightforward: threads can send messages to one another.  The
 technique originated with the work of Tony Hoare~\cite{Hoare78}.
 
 We have arranged that threads have no shared variables.  This means that we
-avoid any memory races, of the form that we saw in Chapter~\ref{chap:intro}.
+avoid any memory races of the form that we saw in Chapter~\ref{chap:intro}.
 In later chapters, we will relax this condition, and allow some shared
 variables.  However, we will still need to ensure disciplined access to those
 variables: message passing will be one technique that we can use to
@@ -41,12 +41,13 @@ the ``happens-before'' relation ($\preceq$).
 
 \paragraph{Object-oriented versus thread-oriented programming}
 
-An important part of programming is \emph{modularisation}: splitting a large
-program up into manageable chunks.  The most common modularisation technique
-is object orientation, where objects encapsulate some data and operations on
-that data.  However, concurrency is also a form of modularisation, where each
-thread holds some data, and communicates the results of operations on that
-data with other threads.
+An important part of programming is
+\emph{modularisation}\index{modularisation}: splitting a large program up into
+manageable chunks.  The most common modularisation technique is object
+orientation, where objects encapsulate some data and operations on that data.
+However, concurrency is also a form of modularisation, where each thread holds
+some data, and communicates the results of operations on that data with other
+threads.
 
 In object-oriented systems, many objects can exist simultaneously, each with
 its own state.  Normally, a single one is active at a time.  They communicate
@@ -88,7 +89,7 @@ Rust~\cite{rust} supports concurrency in a number of styles, including message
 Erlang~\cite{erlang} uses similar ideas, in a functional setting.
 
 Message-passing libraries are available for a number of other languages.  For
-example, JCSP\footnote{\url{http://www.cs.kent.ac.uk/projects/ofa/jcsp/}} is
+example, JCSP\footnote{\url{http://www.cs.kent.ac.uk/projects/ofa/jcsp/}.} is
 an implementation  for Java.
 
 % \item Eclectic

@@ -1,9 +1,9 @@
 We saw in the last chapter that we need some way to achieve
 \emph{disciplined} interaction between threads, to avoid race conditions, and
-to ensure threads do not interfere with one another.  In this book, we will see
-three basic ways to achieve this: message passing, monitors and semaphores.
-At a higher level of abstraction, we will also see how to use concurrent
-datatypes.
+to ensure threads do not interfere with one another.  In this book, we will
+see four basic ways to achieve this: message passing, barrier
+synchronisations, monitors and semaphores.  At a higher level of abstraction,
+we will also see how to use concurrent datatypes.
 
 We start, in this chapter, with message passing.  In my opinion, it is the
 most intuitive approach: threads send messages to one another.  In addition,
@@ -18,9 +18,9 @@ concurrent programs.
 The basic idea is that programs are composed of components, which might be
 either threads (i.e.~sharing an address space) or processes (with distinct
 address spaces, possibly on different computers).  These threads or processes
-communicate only by sending and receiving messages
-over \emph{channels}.  In this book, we will be dealing with
-threads; but the same techniques can be used with processes.
+communicate only by sending and receiving messages over \emph{channels}.  In
+this book, we will be dealing with threads; but the same techniques can be
+used with processes.
 
 %%%%%
 
@@ -52,13 +52,13 @@ and received at the other end.
 
 %%%%%
 
-In SCL, \SCALA{Chan[A]}\SCLIndexX{chan}{Chan} is the type of channels that pass data
-of type~\SCALA{A}.  (The type is polymorphic in~|A|: see
+In SCL, \SCALA{Chan[A]}\SCLIndexX{chan}{Chan} is the type of channels that
+pass data of type~\SCALA{A}.  (The type is polymorphic in~|A|: see
 Section~\ref{sec:scala-types}.)  This type has subtypes
 |SyncChan[A]|\SCLIndexX{syncChan}{SyncChan}, of synchronous channels, and
-|BuffChanT[A]|\SCLIndexX{buffChan}{BuffChan}, of buffered (or asynchronous) channels.  We
-will start by describing synchronous channels, and later describe buffered
-channels.
+|BuffChanT[A]|\SCLIndexX{buffChan }{BuffChan}, of buffered (or asynchronous)
+channels.  We  start by describing synchronous channels, and later
+describe buffered channels.
 
 % Hack, because indexing uses "!" as a special character.  Note: the order of
 % the index depends on the name of the macro!
@@ -75,7 +75,7 @@ command\index[SCL]{\Ashriek}
 \end{scala}
 sends the value \SCALA{v} (of type~|A|) on \SCALA{chan}.  The
 expression\SCLIndexX{? }{?} 
-%%% Note: the index command for ? ensures the entry comes after that for ??.
+%%% Note: the index command for ? ensures the entry comes before that for ??.
 \begin{scala}
   chan?()
 \end{scala}
@@ -101,7 +101,7 @@ thread receives a value on the channel, and prints it.
 
 As another example, here's a function that produces a thread that repeatedly
 receives a value from the channel \SCALA{in}, and output it on the
-channel~\SCALA{out}:
+channel~\SCALA{out}:%
 %
 \begin{scala}
   def copy[A](in: SyncChan[A], out: SyncChan[A]) = thread("copy"){
@@ -131,15 +131,17 @@ however, a value is put into a channel on an out-port, and passed out on an
 in-port.
 
 Figure~\ref{fig:channel-types} outlines the relevant types (see
-Section~\ref{sec:scala-encapsulation}).  (The definition of |Chan[A]| uses
-multiple inheritance: it inherits definitions from both |InPort[A]| and
-|OutPort[A]|.)  The types \SCALA{InPort[A]}\SCLIndexX{inPort}{InPort} and
-\SCALA{OutPort[A]}\SCLIndexX{outPort}{OutPort} can be abbreviated
-as \SCALA{??[A]}\SCLIndex{??}
-and~\SCALA{!![A]},\index[SCL]{\Ashriek\Ashriek} respectively.
+Section~\ref{sec:scala-encapsulation}).  An |InPort|\SCLIndexX{inPort}{InPort}
+provides the operation~|?|, and an |OutPort|\SCLIndexX{outPort}{OutPort}
+provides the operation~|!|.  The definition of |Chan[A]| uses multiple
+inheritance: it inherits definitions from both |InPort[A]| and |OutPort[A]|,
+so a |Chan| must provide implementations of both~|?| and~|!|.  The
+types \SCALA{InPort[A]} and \SCALA{OutPort[A]} can be abbreviated
+as \SCALA{??[A]}\SCLIndex{??}  and~\SCALA{!![A]},\index[SCL]{\Ashriek\Ashriek}
+respectively.
 %%% Note: the index command for ?? ensures the entry comes after that for ?.
 
-\SCLIndex{test}
+
 
 %%%%%%
 
@@ -188,13 +190,13 @@ not use any sharing of ports in this chapter, but we will in later chapters.
 \section{Example: Printing Multiples of Four}
 
 We now consider a slightly larger example, which is an instance of a paradigm
-known as \emph{fine-grained concurrency}: the system is built from several
-small components which are composed in parallel.  It is not a very
-efficient--- or even sensible---way to create real programs.  We include such
-examples here as they are a good way to get used to thinking about
-concurrency---where multiple components work together---while keeping the
-quantity of code small.  Also, such a program could be thought of as a model
-of an electronic circuit, with components implemented in hardware and wired
+known as \emph{fine-grained concurrency}\index{fine-grained concurrency}: the
+system is built from several small components which are composed in parallel.
+It is not a very efficient--- or even sensible---way to create real programs.
+We include such examples here as they are a good way to get used to thinking
+about concurrency---where multiple components work together---while keeping
+the quantity of code small.  Such a program could be thought of as a model of
+an electronic circuit, with components implemented in hardware and wired
 together.
 
 The program appears in Figure~\ref{fig:Mults4}. The overall effect is to print
@@ -293,19 +295,21 @@ sender and receiver \emph{synchronise} on the communication.
 Using synchronous channels can make programs easier to understand: it helps us
 to relate the states in different components.
 
-By contrast, buffered channels normally allow a send to happen, even if there
-is no thread ready to receive: the sender can return immediately, and the
-channel stores the values until a receiver is ready to receive them.  In
-particular, the channel ensures the messages are received in the same order in
-which they are sent: the channel acts as a first-in first-out buffer.
+By contrast, buffered channels\index{channel!buffered} normally allow a
+send to happen, even if there is no thread ready to receive: the sender can
+return immediately, and the channel stores the values until a receiver is
+ready to receive them.  In particular, the channel ensures the messages are
+received in the same order in which they are sent: the channel acts as a
+first-in first-out buffer.
 
 There are various types of buffered channels in SCL, collected in the trait
-|BuffChanT|: 
+|BuffChanT|:\SCLIndexX{buffChanT}{BuffChanT} 
 \begin{scala}
 trait BuffChanT[A] extends Chan[A]
 \end{scala}
 %
-One class of buffered channels is defined as follows. 
+One class of buffered channels is defined as
+follows.\SCLIndexX{unboundedBuffChan}{UnboundedBuffChan} 
 %
 \begin{scala}
 class UnboundedBuffChan[A] extends BuffChanT[A]
@@ -337,7 +341,9 @@ can hold a bounded number of values.  Once the bound is reached, the sender is
 blocked until the receiver receives one of the earlier messages, and so makes
 space in the channel.
 %
-The two types of bounded buffered channel are defined as:
+The two types of bounded buffered channel are defined
+as:\SCLIndexX{onePlaceBuffChan}{OnePlaceBuffChan}% 
+\SCLIndexX{buffChan }{BuffChan}
 %
 \begin{scala}
 class OnePlaceBuffChan[A] extends BuffChanT[A]

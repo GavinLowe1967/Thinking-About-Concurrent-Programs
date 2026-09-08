@@ -123,7 +123,7 @@ components.  There's no harm in allowing buffering elsewhere.
 To achieve termination, I inserted a |takeWhile| component just before the
 |prefix| component---but it could have been inserted pretty much anywhere.
 Also, each component is adapted to close its output channels when its main
-loop terminates.  Also the |takeWhile| and |merge| components close their
+loop terminates.  Further, the |takeWhile| and |merge| components close their
 input channels when they terminate; the latter is necessary, or else we can
 get into a situation where one of those components is trying to send to
 another, but the latter has terminated, so the network is deadlocked.  There's

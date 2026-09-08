@@ -124,11 +124,12 @@ the body of the chapter.
 %% }
 %% \end{scala}
 
-The network would actually sort~$n+1$ values.\footnote{Thanks to Alfonso Bueno
-  Orovio for this observation.}  After $n$ inputs, we can get to a state where
-every node is holding a value; but no value will be output until either the
-input channel is closed, or another value is input; if another value is then
-input, it will be treated correctly.
+The network would actually sort~$n+1$ values.
+%% \footnote{Thanks to Alfonso Bueno Orovio for this observation.}
+After $n$ inputs, we can get to a state where every node is holding a value;
+but no value will be output until either the input channel is closed, or
+another value is input; if another value is then input, it will be treated
+correctly.
 
 However, the network can't handle more than $n+1$ inputs in general.  Consider
 $n+2$ inputs where the final input is the smallest.  The first output will be

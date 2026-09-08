@@ -21,11 +21,10 @@ object Mergesort{
   /** Peform mergesort on the stream of data received on `in`, outputting the
     * sorted stream on `out`. */
   def mergesort(in: ??[Int], out: !![Int]): ThreadGroup = thread("mergesort"){
-    var x1 = -1; var x2 = -1
     attempt{ 
-      x1 = in?()
+      var x1 = in?()
       attempt{
-        x2 = in?()
+        var x2 = in?()
         val to1, to2, from1, from2 = new UnboundedBuffChan[Int]
         def controller = thread("controller"){
           to1!x1; to2!x2
@@ -46,7 +45,7 @@ object Mergesort{
 
   /** Run a single test.  Generate random inputs.  Pass them in to a
     * sorter.  Receive outputs.  Check result is as expected. */
-  def doTest = {
+  def doTest() = {
     val size = Random.nextInt(MaxSize)
     val xs = Array.fill(size)(Random.nextInt(Max))
     val ys = new Array[Int](size)
@@ -61,7 +60,7 @@ object Mergesort{
 
   def main(args: Array[String]) = {
     for(i <- 0 until 1000){
-      doTest; if(i%10 == 0) print(".")
+      doTest(); if(i%10 == 0) print(".")
     }
     println()
   }

@@ -1,12 +1,14 @@
 \section{Example: Mergesort}
 \label{sec:mergesort}
 
-We now consider another example of fine-grained concurrency, and build a
-circuit to sort a stream of integers, based on the Mergesort algorithm.  The
-circuit inputs a steam of |Int|s (with the end of stream signalled by the
-channel closing), and then outputs a sorted version of that stream (and closes
-the channel to indicate the end of the stream).  The circuit is not the most
-practical way to sort numbers, but it illustrates various ideas.
+We now consider another example of fine-grained 
+concurrency\index{fine-grained concurrency}.  We build a circuit to sort a
+stream of integers, based on the 
+Mergesort algorithm\index{Mergesort}.  The circuit inputs a steam of |Int|s
+(with the end of stream signalled by the channel closing), and then outputs a
+sorted version of that stream (and closes the channel to indicate the end of
+the stream).  The circuit is not the most practical way to sort numbers, but
+it illustrates various ideas.
 
 More precisely, we will write a  definition with the following signature
 %
@@ -27,11 +29,10 @@ outline:
 \begin{mysamepage}
 \begin{scala}
   def mergesort(in: ??[Int], out: !![Int]): ThreadGroup = thread("mergesort"){
-    var x1 = -1; var x2 = -1
     attempt{ 
-      x1 = in?()
+      var x1 = in?()
       attempt{
-        x2 = in?()
+        var x2 = in?()
         ...   // Sort stream starting with £x1£ and £x2£.
       }{ out!x1; out.endOfStream() } // Received only £x1£.
     }{ out.endOfStream() } // Received empty stream.
@@ -39,11 +40,11 @@ outline:
 \end{scala}
 \end{mysamepage}
 %
-The command |attempt{p}{q}| acts like~|p|, but if that throws a |Stopped|
-exception, it executes~|q|.  Thus if the initial attempt to input |x1| on |in|
-fails, the function signals |endOfStream| on |out|; and if the attempt to
-input~|x2| on~|in| fails, the function outputs~|x1| and then signals
-|endOfStream| on |out|.
+The command |attempt{p}{q}|\SCLIndex{attempt} acts like~|p|, but if that
+throws a |Stopped| exception\SCLIndexX{stopped}{Stopped}, it executes~|q|.
+Thus if the initial attempt to input |x1| on |in| fails, the function signals
+|endOfStream| on |out|; and if the attempt to input~|x2| on~|in| fails, the
+function outputs~|x1| and then signals |endOfStream| on |out|.
 
 We now consider the case where the input stream contains at least two values,
 starting with~|x1| and~|x2|.  We create two recursive |mergesort|
@@ -121,11 +122,10 @@ results of two recursive calls to |mergesort|.
   }
 
   def mergesort(in: ??[Int], out: !![Int]): ThreadGroup = thread("mergesort"){
-    var x1 = -1; var x2 = -1
     attempt{ 
-      x1 = in?()
+      var x1 = in?()
       attempt{
-        x2 = in?()
+        var x2 = in?()
         val to1, to2, from1, from2 = new UnboundedBuffChan[Int]
         def controller = thread("controller"){
           to1!x1; to2!x2
@@ -161,9 +161,9 @@ Make sure you understand the code in Figure~\ref{fig:mergesort}.
 
 %%%%%  
 
-We now consider testing.  Testing is an important part of programming.  But
-testing is particularly important for concurrent programs, because they tend
-to be somewhat harder than sequential ones.
+We now consider testing\index{testing}.  Testing is an important part of
+programming.  But testing is particularly important for concurrent programs,
+because they tend to be somewhat harder than sequential ones.
 
 A fairly general strategy for testing a concurrent program is to generate some
 random data, run the concurrent program on it, run a corresponding sequential
@@ -178,7 +178,7 @@ but we want to test a more sophisticated implementation against it.
 \begin{scala}
   import scala.util.Random
   val MaxSize = 100; val Max = 100
-  def doTest = {
+  def doTest() = {
     val size = Random.nextInt(MaxSize)
     val xs = Array.fill(size)(Random.nextInt(Max)); val ys = new Array[Int](size)
     val in, out = new SyncChan[Int]
@@ -193,7 +193,7 @@ but we want to test a more sophisticated implementation against it.
   }
 
   def main(args: Array[String]) = {
-    for(i <- 0 until 1000){ doTest; if(i%10 == 0) print(".") }
+    for(i <- 0 until 1000){ doTest(); if(i%10 == 0) print(".") }
     println()
   }
 \end{scala}
@@ -240,9 +240,11 @@ actions---such as memory reads and writes, and sends and receives of
 messages---occur.
 
 Consider a particular execution of a program.  We will write $a \prec a'$, to
-mean that $a$ necessarily happens before~$a'$.  For example, $a$ and~$a'$
-might be events performed by the same thread in that order; or they might,
-respectively, be a send and receive on a buffered channel.
+mean that $a$ necessarily happens 
+before\index{happens before ($\preceq$)}~$a'$.  For example, $a$ and~$a'$ might
+be events performed by 
+the same thread in that order; or they might, respectively, be a send and
+receive on a buffered channel.
 
 We will write $a \preceq a'$ to mean that $a$ happens before, or
 simultaneously with, $a'$.  
