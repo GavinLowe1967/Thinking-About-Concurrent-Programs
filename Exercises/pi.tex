@@ -89,16 +89,16 @@ We could have split the controller between two threads, and encapsulated each
 into a separate object.
 
 The above code gives each worker its own random number generator (RNG).  An
-alternative is for the workers to share a single RNG.  However, my informal
-experiments showed that the latter approach is about 20 times slower!  I think
-the reason for this is that, when sharing, the state of the RNG has to be
+alternative is for the workers to share a single RNG\@.  However, my informal
+experiments showed that the latter approach is about 20 times slower!  The
+reason for this is that the RNG executes operations in a one-at-a-time manner,
+so as to be thread-safe.  This means that it acts as a bottleneck: each thread
+has to wait its turn to use it.  Further, the state of the RNG has to be
 copied to the cache of the relevant worker for each random number, and this is
-slow.  When each worker has its own RNG, the state of that RNG will reside in
-the worker's cache, and does not need to be reread from main memory.  
-
-In fact, we should worry about whether sharing an RNG might constitute a race,
-since the state of the RNG is updated for each random number.  However, it
-turns out that the implementation does this in a thread-safe way.
+slow.  When each worker has its own RNG, this bottleneck no longer exists.
+%% In fact, we should worry about whether sharing an RNG might constitute a race,
+%% since the state of the RNG is updated for each random number.  However, it
+%% turns out that the implementation does this in a thread-safe way.
 \end{answerS}
 
 

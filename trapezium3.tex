@@ -9,7 +9,8 @@ tasks, and it's possible to identify what an equal distribution is.
 %
 But in many cases, not all of these things will be true.
 
-An alternative is to use smaller tasks, with more tasks than workers.  
+An alternative is to use smaller tasks, with more tasks than
+workers\index{task}.
 %
 In the numerical integration example, each task will be to estimate the
 integral over some subrange.   We use \SCALA{nTasks} tasks, where
@@ -18,11 +19,11 @@ $\sm{nTasks} \ge \sm{nWorkers}$.
 The tasks are distributed between the workers, each receiving a new task when
 it has finished the previous one.  In this way, the faster workers will
 complete more tasks than the slower ones, which provides for a form of load
-balancing.
+balancing\index{load balancing}.
 
-This pattern is known as \emph{bag of tasks}: the controller holds a bag of
-tasks, which it distributes to workers.  (Sometimes workers return sub-tasks
-to the controller, but that's not the case here.)
+This pattern is known as \emph{bag of tasks}\index{bag of tasks}: the
+controller holds a bag of tasks, which it distributes to workers.  (Sometimes
+workers return sub-tasks to the controller, but that's not the case here.)
 
 %%%%%
 
@@ -106,8 +107,14 @@ to use two concurrent threads, one for each aspect.  In some examples, this
 might also give better performance, if the controller acts as a bottleneck.
 
 We therefore build the controller as the composition of a distributor and a
-collector, communicating with the workers as illustrated below.
+collector, communicating with the workers as illustrated in
+Figure~\ref{fig:trapezium-bag-system}. 
 %
+The code for distributing the tasks is almost identical to earlier, except now
+the distributor sends out |nTasks| tasks.  And the code for the collector is
+identical to the relevant part of the previous controller. 
+
+\begin{figure}
 \begin{center}
 \begin{tikzpicture}
 \draw (0,0) node[draw, minimum height = 10mm](d){\scalashape distributor};
@@ -122,14 +129,15 @@ collector, communicating with the workers as illustrated below.
 \draw[->] ([xshift = 1mm] w.east) -- node[above]{\scalashape toController} (c);
 \end{tikzpicture}
 \end{center}
+\caption{The system for the bag-of-tasks  example.}
+\label{fig:trapezium-bag-system}
+\end{figure}
 
 %%%%%
 
-The code for distributing the tasks is almost identical to earlier, except now
-the distributor sends out |nTasks| tasks.  And the code for the collector is
-identical to the relevant part of the previous controller. 
 
-We then construct the system as illustrated above.  The resulting program can
+We then construct the system as   in
+Figure~\ref{fig:trapezium-bag-system}.   The resulting program can
 be tested in the same way as for the previous implementation. 
 
 \begin{instruction}

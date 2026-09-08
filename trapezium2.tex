@@ -1,9 +1,9 @@
 \section{Tuning}
 \label{sec:trapezium-tuning}
 
-We want to tune the program so that it runs quickly.  The main question we
-want to consider is how many worker threads to use in order to minimise the
-running time.
+We want to tune\index{tuning} the program so that it runs quickly.  The main
+question we want to consider is how many worker threads to use in order to
+minimise the running time.
 %%  A secondary question is
 %% whether we should use buffered channels. 
 We can run some experiments to try to obtain  a partial answer to
@@ -20,9 +20,9 @@ Most of the experiments in this section were run on an eight-core machine, with
 two 2.40GHz Intel(R) Xeon(R) E5620 CPUs.
 %
 I'll also briefly mention similar experiments on a a 32-core server, with two
-2.1GHz Intel(R) Xeon(R) E5-2683 CPUs with hyperthreading enabled
-(hyperthreading is a hardware technique that allows a single physical core to
-act like two logical cores, executing two threads concurrently).
+2.1GHz Intel(R) Xeon(R) E5-2683 CPUs with hyperthreading\index{hyperthreading}
+enabled (hyperthreading is a hardware technique that allows a single physical
+core to act like two logical cores, executing two threads concurrently).
 %
 In each case, the program calculated approximations to the integral 
 $\int_{-100000}^{+100000} x^2 \cos x \, \mbox{d}x$.
@@ -37,10 +37,11 @@ Each plot considers a particular value for |n|, given in the key.
 The x-axis gives the number of workers used, and the y-axis gives the time
 taken.  
 
-Each \emph{observation} of the program evaluated the integral $2^{28}/\sm n$
-times; that means that each observation used $2^{28}$ intervals, so the
-different plots correspond to about the same amount of computation (and so fit
-nicely in the same axes).  Unbounded buffered channels were used in each case.
+Each \emph{observation}\index{observation} of the program evaluated the
+integral $2^{28}/\sm n$ times; that means that each observation used $2^{28}$
+intervals, so the different plots correspond to about the same amount of
+computation (and so fit nicely in the same axes).  Unbounded buffered channels
+were used in each case.
 
 Each data point corresponds to multiple observations of the program.  The
 graph displays the mean of those observations, and a 95\% confidence interval
@@ -78,15 +79,15 @@ and beyond that it gets much slower.  A similar phenomenon occurs with $\sm n
 = 2^{16}$ and $\sm n = 2^{18}$, where the program is fastest with four
 threads, but slower beyond that.  
 
-The reason for this is that each channel is acting as a bottleneck.
-Profiling, in the case of eight workers with $\sm n = 2^{14}$, shows that the
-threads spend about 99\% of their time trying to send or receive values, and
-only about 1\% of their time actually performing useful computation.  There is
-a limit to how quickly values can be sent on the channels; the worker threads
-compete with one another to send and receive.  Decreasing the number of
-workers means fewer messages are sent, so the channels become less of a
-bottleneck; this means that each task is larger and so takes longer, but the
-benefits outweigh the disadvantages.  
+The reason for this is that each channel is acting as a
+bottleneck\index{bottleneck}.  Profiling, in the case of eight workers with
+$\sm n = 2^{14}$, shows that the threads spend about 99\% of their time trying
+to send or receive values, and only about 1\% of their time actually
+performing useful computation.  There is a limit to how quickly values can be
+sent on the channels; the worker threads compete with one another to send and
+receive.  Decreasing the number of workers means fewer messages are sent, so
+the channels become less of a bottleneck; this means that each task is larger
+and so takes longer, but the benefits outweigh the disadvantages.
 
 The behaviour for $\sm n = 2^{20}$ and $\sm n = 2^{24}$ is much better, with
 performance improving up to eight worker threads.  Profiling shows that, with

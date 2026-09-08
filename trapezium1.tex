@@ -9,9 +9,9 @@ integral:
 
 \section{The Trapezium Rule}
 
-The trapezium rule is a standard numerical technique to approximate the value
-of an integral.  It splits the integral's range $[a,b]$ into $n \ge 1$
-intervals:
+The trapezium rule\index{trapezium rule} is a standard numerical technique to
+approximate the value of an integral.  It splits the integral's range $[a,b]$
+into $n \ge 1$ intervals:
 \[\mstyle
 \begin{align}
 [{a+i\delta}, a+(i+1)\delta], 
@@ -140,15 +140,16 @@ follow this convention here and later in the book.
 \section{A Parallel Implementation}
 
 Here is the idea of a parallel implementation.  We use some number |nWorkers|
-of \emph{worker threads}.  We then split the interval $[a,b]$ into the same
-number of equal-size subranges, so each worker works on one subrange.  A
-\emph{controller} thread tells each worker which subrange to work on.  Each
-worker sends its subresult back to the controller, which adds them up to give
-the overall result.
+of \emph{worker threads}\index{worker thread}.  We then split the interval
+$[a,b]$ into the same number of equal-size subranges, so each worker works on
+one subrange.  A \emph{controller}\index{controller} thread tells each worker
+which subrange to work on.  Each worker sends its subresult back to the
+controller, which adds them up to give the overall result.
 
-This is a form of \emph{data parallelism}.  We split the data (the value
-of~$f$ over the relevant range) between the workers.  Each worker calculates a
-subresult on its part of the data, and then we combine the subresults. 
+This is a form of \emph{data parallelism}\index{data parallel}.  We split
+the data (the value of~$f$ over the relevant range) between the workers.  Each
+worker calculates a subresult on its part of the data, and then we combine the
+subresults.
 
 %%%%%
 
@@ -176,13 +177,14 @@ In examples so far, each channel has had one sender and one receiver.
 However, an in-port or out-port may be shared between any number of receivers
 or senders.  Here, it is useful for the controller to use a single channel to
 send to all the workers, and likewise to use a single channel to receive
-subresults from all the workers.  Hence, the in-port of |toWorkers| is shared
-between the workers, as is the out-port of |toController|.  
+subresults from all the workers.  Hence, the in-port of |toWorkers| is
+shared\index{channel!shared} between the workers, as is the out-port of
+|toController|.
 
 Figure~\ref{fig:trapezium-1} gives some of the code.  The companion object
 |Trapezium| (see Section~\ref{sec:scala-encapsulation}) factors out some
 definitions that we will reuse in a later implementation.  (We take the
-parameter |n| of |Trapezium|,the number of intervals, to be a |Long|---see
+parameter |n| of |Trapezium|, the number of intervals, to be a |Long|---see
 Section~\ref{sec:scala-core}---because we want to experiment with large
 arguments; in practice, an |Int| would be large enough.)
 
@@ -247,7 +249,7 @@ The controller needs to tell each worker the range \SCALA{[l,r]} to work on,
 the number \SCALA{taskSize} of intervals in its range, and the size
 \SCALA{delta} of each interval (so $\sm{taskSize} \times \sm{delta} \approx
 \sm{r} - \sm{l}$).  We can pass this information as a 4-tuple \SCALA{(l, r,
-  taskSize, delta)}.  We define a type |Task| (see
+  taskSize, delta)}.  We define a type |Task|\index{task} (see
 Section~\ref{sec:scala-types}) to represent such 4-tuples, and create a
 channel |toWorkers| to pass |Task|s.
 
@@ -330,8 +332,8 @@ The function |system| constructs the system.  The definition of |workers|
 builds a sequence of workers using a |for| expression (see
 Section~\ref{sec:scala-misc}).  It then combines them together in parallel
 using an indexed form of parallel composition: if |ts| is a sequence of
-|ThreadGroup|s, then \SCALA{\|\| ts} represents their parallel composition,
-and is itself a |ThreadGroup|.
+|ThreadGroup|s, then \SCALA{\|\| ts}\index[SCL]{\App} represents their
+parallel composition, and is itself a |ThreadGroup|.
 
 Finally, the |apply| function runs the system and returns the final result
 from the |result| variable. 
@@ -340,12 +342,12 @@ from the |result| variable.
 
 \section{Testing}
 
-We now consider how to test the concurrent implementation.  The obvious
-approach is to run both the sequential and concurrent implementations on the
-same integral, and test whether they give the same result.  In particular, my
-approach was to generate random polynomials for the function~|f|,
-and random values for |a|, |b|, |n| and |numWorkers| (within sensible ranges).
-We can then run many such tests.
+We now consider how to test\index{testing} the concurrent implementation.  The
+obvious approach is to run both the sequential and concurrent implementations
+on the same integral, and test whether they give the same result.  In
+particular, my approach is to generate random polynomials for the
+function~|f|, and random values for |a|, |b|, |n| and |numWorkers| (within
+sensible ranges).  We can then run many such tests.
 
 However, it turns out that this approach doesn't quite work.  If we use both
 implementations to approximate $\int_0^3 x^2 \mbox{d}x$ using $100$ intervals,
@@ -375,8 +377,8 @@ In the sequential algorithm, the values for the intervals are added up from
 left to right.  But in the concurrent algorithm, they are added up in a
 different order, giving a different result.  Further, in different runs of the
 concurrent algorithm, the subresults are returned to the controller in
-different orders, and so added up in different orders, giving different
-results.
+different orders, and so added up in different orders, sometimes giving
+different results.
 
 %%%%%
 

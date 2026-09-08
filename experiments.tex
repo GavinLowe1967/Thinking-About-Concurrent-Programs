@@ -31,8 +31,8 @@ running at the same time.
 
 Nevertheless, it will not be possible to eliminate noise completely.
 Therefore, for each choice of parameters, we should make multiple
-\emph{observations} (i.e.,~perform multiple runs), and then perform a
-statistical analysis of the results.
+\emph{observations}\index{observation} (i.e.,~perform multiple runs), and then
+perform a statistical analysis of the results.
 
 We want different observations to be independent.  However, different
 observations performed on the same instance of the Java Virtual Machine (JVM)
@@ -110,10 +110,11 @@ We would like to identify an interval around~$m$ such that we can be
 reasonably confident that $\mu$ is in that interval.
 %
 More precisely, we pick a value~$\alpha \in [0,1]$ which we call the
-\emph{significance level}.  The value $1-\alpha$ is known as the
-\emph{confidence level}, often expressed as a percentage.  In the experiments
-described in the body of the book, we took $\alpha = 0.05$, so the confidence
-level was $95\%$.  We want a \emph{confidence interval} $[m-s, m+s]$ such that
+\emph{significance level}\index{significance level}.  The value $1-\alpha$ is
+known as the \emph{confidence level}\index{confidence level}, often expressed
+as a percentage.  In the experiments described in the body of the book, we
+took $\alpha = 0.05$, so the confidence level was $95\%$.  We want a
+\emph{confidence interval}\index{confidence interval} $[m-s, m+s]$ such that
 $\mu$ is in this interval with probability~$1-\alpha$.
 %
 More precisely, if we repeat this procedure multiple times, the calculated

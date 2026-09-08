@@ -42,7 +42,7 @@ object Race{
 
 We use the Scala Concurrency Library (SCL)\index{SCL} in this book.  It
 provides a number of convenient concurrency primitives\index{concurrency
-  primitive}.  An index at the end of the book lists the SCL primitives we
+primitive}.  An index at the end of the book lists the SCL primitives we
 use.  
 
 Line~\ref{line:input} of Figure~\ref{fig:race} imports the SCL library, so
@@ -61,7 +61,6 @@ thread is of type |ThreadGroup|\SCLIndexX{threae}{ThreadGroup}\footnote{This
 
 %% Hack here to get the indexing to accept ||.  Note: the order of the index
 %% depends on the name of the macro!
-\def\App{\protect\SCALA{\|\|}}
 If |p| and |q| are |ThreadGroup|s, then \SCALA{p || q} represents their
 parallel composition\index[SCL]{\App}, also of type |ThreadGroup|.  For example,
 line~\ref{line:system} defines |system| to be the parallel composition of~|t1|

@@ -1,8 +1,8 @@
 Chapter 1: Introduction
 - reasons for concurrency.  
 - concurrent architectures: TO DO: GPUs
-- correctness properties: TO DO
-https://ourworldindata.org/scaling-up-ai has AI stats
+- correctness properties
+- races
 
 Chaper 2: Message passing using channels.
 

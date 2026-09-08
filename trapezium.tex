@@ -11,12 +11,12 @@
 
 \section{Summary}
 
-In this chapter we have studied a data parallel problem.  The approach to such
-problems is to split the input data between different worker threads, and to
-combine the results together.  Many compute-intensive problems fall into this
-class, so it is a very useful pattern.  It  requires that there are
-meaningful ways to split the data between workers, and to combine the results
-efficiently.
+In this chapter we have studied a data parallel problem\index{data
+parallel}.  The approach to such problems is to split the input data
+between different worker threads, and to combine the results together.  Many
+compute-intensive problems fall into this class, so it is a very useful
+pattern.  It requires that there are meaningful ways to split the data between
+workers, and to combine the results efficiently.
 
 We arranged for a controller thread to distribute tasks to workers, using two
 different approaches.  In the first approach, the controller sent each worker
@@ -85,9 +85,9 @@ Chapter~\ref{chap:alts}.
 
 \input{Exercises/matrix} % Matrix multiplication Q (sheet 1.5)
 
-\framebox{?} Count \# common values (sheet 1.6) --- I think the best way to
-solve this problem is to use a shared hash table; but that will appear later
-in the book. 
+%% \framebox{?} Count \# common values (sheet 1.6) --- I think the best way to
+%% solve this problem is to use a shared hash table; but that will appear later
+%% in the book. 
 
 \framebox{?} Maximum in array.
 

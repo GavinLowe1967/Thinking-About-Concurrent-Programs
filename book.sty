@@ -72,7 +72,9 @@
 \def\SCLIndexX#1#2{\index[SCL]{\protect\ignoreX{{#1}}\protect\SCALA{#2}}}
 % SCL index entry for #1, using the natural sort.
 \def\SCLIndex#1{\SCLIndexX{#1}{#1}} 
+% Indexing macro for "||"
 
+\def\App{\protect\SCALA{\|\|}}
 %%% Alignment
 \def\align{\begin{array}[t]{@{}l@{}}}
 \def\endalign{\end{array}}

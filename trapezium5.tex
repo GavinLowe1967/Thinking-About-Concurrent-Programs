@@ -8,14 +8,17 @@ use one of the techniques we'll see later in the book---we would have to
 change the code in several different places.  This is a very small program, so
 it doesn't matter too much here; but it would be an issue in bigger programs.
 %
-It would be better to encapsulate each relevant design decision within a
-single object, so that changes will involve just that object. 
+It would be better to encapsulate\index{encapsulation} each relevant design
+decision within a single object, so that changes to a design decision will
+involve just that object.
 
-Further, reasoning about correctness will (mostly) involve reasoning about a
-single object at a time.  Each such object will be designed to allow
-concurrent calls of its methods, and to avoid race conditions; we can persuade
-ourselves that that is true by considering that object in isolation.  Code
-outside that object can use it without worrying about how it is implemented.
+Each such object will be designed to allow concurrent calls of its methods,
+and to avoid race conditions; we call it a \emph{concurrent
+  object}\index{concurrent object}.  Reasoning about correctness will (mostly)
+involve reasoning about a single concurrent object at a time: we can persuade
+ourselves that a concurrent object is correct by considering it in isolation.
+Code outside that object can use it without worrying about how it is
+implemented.
 
 We will see this idea of encapsulation a lot later in the book.  We will
 encapsulate a datatype---such as a queue or a mapping---inside an object that
@@ -90,13 +93,15 @@ see Figure~\ref{fig:BOT-using-objects}.  The definition is parameterised by
 the |BagOfTasks| and |Collector|.  It calls the |getTask| operation on the
 |BagOfTasks| to get a task, and pattern matches on it (see
 Section~\ref{sec:scala-misc}), exiting its main loop when it receives |null|.
-At the end, it then uses the |add| operation on the |Collector| to return its
+Finally, it uses the |add| operation on the |Collector| to return its
 subtotal.
 
 Below we will define an implementation |BagOfTasksChannels| of |BagOfTasks|,
 and an implementation |CollectorChannels| of |Collector|.  The main |apply|
 method (Figure~\ref{fig:BOT-using-objects}) creates the two objects, runs the
-workers, and then gets the final result from the collector.
+workers, and then gets the final result from the collector.  In later
+chapters, we will see other implementations of the two traits; adapting the
+code to use these is  trivial.
 
 %%%%%
 
@@ -144,10 +149,10 @@ class BagOfTasksChannels(
 The server is started by the command |fork(server)|, which is executed as part
 of the construction of the |BagOfTasksChannels| object.
 %
-More generally, if |t| is a |ThreadGroup|, then |fork(t)| (or |t.fork()|)
-starts a new thread (or threads) running which executes~|t|.  However---unlike
-with |run(t)|---the new thread runs in parallel to the current thread.  In
-Figure~\ref{fig:bagOfTasksObject}, the construction of the
+More generally, if |t| is a |ThreadGroup|, then |fork(t)|\SCLIndex{fork} (or
+|t.fork()|) starts a new thread (or threads) running which executes~|t|.
+However---unlike with |run(t)|---the new thread runs in parallel to the
+current thread.  In Figure~\ref{fig:bagOfTasksObject}, the construction of the
 |BagOfTasksChannels| object returns after the |fork(server)|, but leaves a
 thread running the |server| code.
 

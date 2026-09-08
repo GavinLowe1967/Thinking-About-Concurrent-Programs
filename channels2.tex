@@ -15,8 +15,8 @@ The way we deal with each of these scenarios is for the relevant thread to
 close the channel\index{channel!closing}. 
 %
 In SCL, if |in| is an |InPort| (e.g.~a channel), then
-|in.close()|\SCLIndex{close} closes it.
-%
+|in.close()|\SCLIndexX{close }{close} closes it.
+% Index entry for "close" should be before that for "Closed".
 If |out| is an |OutPort| (e.g.~a channel), then
 |out.endOfStream()|\SCLIndex{endOfStream} closes it for sending.  For a
 synchronous channel, this also closes it for receiving.  However, for a

@@ -133,10 +133,11 @@ To the left, the program gets slower, as the communication cost dominates.
 This is less of an issue when $\sm n = 1024$, because the computational cost
 of each task is still quite large.
 
-To the right, for most values of~|n|, the program gets slower as the number of
-tasks is less than the number of workers!  However, for $\sm n = 64$, there is
-little difference, as the savings on communication costs roughly balance the
-extra computational cost for the workers that receive a task. 
+To the right, for most values of~|n|, the program gets slower when $\sm n^2 /
+\sm{taskSize} < 8$, because the number of tasks is less than the number of
+workers.  However, for $\sm n = 64$, there is little difference, as the
+savings on communication costs roughly balance the extra computational cost
+for the workers that receive a task.
 \end{answerI}
 
 %% It makes sense to define a \emph{task} to be the creation of several rows of
