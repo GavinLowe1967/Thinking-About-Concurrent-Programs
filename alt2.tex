@@ -1,10 +1,10 @@
 \section{Example: The Dining Philosophers}
 
-The Dining Philosophers problem is an example formulated by Edsger Dijkstra to
-illustrate some of the problems that can arise in concurrent
-programming~\cite{dining-phils}.  It is presented in terms of interactions
-between people; but it is an analogy for concurrent threads or processes
-sharing resources.
+The Dining Philosophers\index{Dining Philosophers problem} problem is an
+example formulated by Edsger Dijkstra to illustrate some of the problems that
+can arise in concurrent programming~\cite{dining-phils}.  It is presented in
+terms of interactions between people; but it is an analogy for concurrent
+threads or processes sharing resources.
 
 Five philosophers spend most of their lives thinking; but sometimes they need
 to eat.  They share a common dining room, which has a circular table with five
@@ -15,9 +15,10 @@ table; a philosopher needs two forks in order to eat the spaghetti.
 When a philosopher gets hungry, they sit down.  They pick up the fork to their
 left as soon as it's available (they might need to wait for their left-hand
 neighbour to finish with the fork).  Then they pick up the fork to their right
-as soon as it's available.  Once the philosopher has two forks, they serve
-themself and spend some time eating.  The philosopher then puts the forks
-down, leaves the table, and does some more thinking.
+as soon as it's available (again, they might need to wait).  Once the
+philosopher has two forks, they serve themself and spend some time eating.
+The philosopher then puts the forks down, leaves the table, and does some more
+thinking.
 
 However, there is a problem with this protocol.  If all five philosophers get
 hungry at about the same time and pick up their left fork, then they are
@@ -97,13 +98,13 @@ should initially be willing to receive a message on \emph{either} of its
 in-ports.  Modelling this requires an alternation, in this case via a |serve|
 construct.  The value it receives should be a |Pick|.  It then waits to
 receive a second message on the same in-port, which should be a |Drop|.  The
-|assert| statements check the correct messages are received.  Using assertions
-like this is good practice.  If nothing else, it acts as good documentation.
-But such assertions can also help to catch mistakes.  (I have found lots of
-mistakes in my own code by including assertions like these.  If I had omitted
-those assertions, it would probably have led to errors arising later in the
-program, but it would have been much harder to identify the cause of the
-problem.)
+|assert| statements check the correct messages are received.  Using
+assertions\index{assertion} like this is good practice.  If nothing else, it
+acts as good documentation.  But such assertions can also help to catch
+mistakes.  (I have found lots of mistakes in my own code by including
+assertions like these.  If I had omitted those assertions, it would probably
+have led to errors arising later in the program, but it would have been much
+harder to identify the cause of the problem.)
 
 We connect the philosophers and forks together as depicted in the top half of
 Figure~\ref{fig:dining-philosophers-2}, with the corresponding code in the
@@ -183,8 +184,8 @@ philosopher and fork to synchronise on relevant actions.
 Study the details of the implementation.
 \end{instruction}
 
-When we run the system, sometimes it deadlocks almost immediately.  A~typical
-deadlocking trace is:
+When we run the system, sometimes it deadlocks\index{deadlock} almost
+immediately.  A~typical deadlocking trace is:
 %
 \begin{scala}
 1 sits,  0 sits,  4 sits,  2 sits,  1 picks up left fork, 3 sits,  0 picks up left fork,  
@@ -192,9 +193,9 @@ deadlocking trace is:
 \end{scala}
 %
 Each philosopher sits down and picks up their left fork (in some order).  At
-this point, each philosopher is trying to pick up its right fork, i.e.~to send
-a |Pick| message on its |right| channel; however, the corresponding fork is
-not willing to receive that message.  This means that the system is
+this point, each philosopher is trying to pick up their right fork, i.e.~to
+send a |Pick| message on their |right| channel; however, the corresponding
+fork is not willing to receive that message.  This means that the system is
 deadlocked.
 
 Recall that typing \texttt{Ctrl}+$\backslash$ (control and backslash) produces
@@ -215,9 +216,9 @@ that it would occur only when the system is deployed.
 
 In the above simulation, we used |println| statements so that we could
 understand what happened.  However, this style is often not convenient when
-tracking down bugs.  Normally, a better way to is to use logging.
+tracking down bugs.  Normally, a better way to is to use logging.\index{logging}
 
-The SCL class |Log| provides log objects.
+The SCL class |Log|\SCLIndexX{log}{Log} provides log objects.
 %
 A new log storing events of type~|A|, suitable for |p| threads,
 can be defined by
@@ -284,11 +285,11 @@ is a wrinkle concerning its usage.
 %
 Internally, each thread uses its own thread-local log, to avoid race
 conditions, and for efficiency.  This is why the |log| operation takes the
-thread's identity as a parameter: different threads should use different
-identities, in the relevant range.  Each logged value is stored in the
-relevant thread-local log, together with a timestamp (more precisely, the
-time elapsed since the |Log| object was created, to avoid problems with
-timestamp wrap-around).
+thread's identity as a parameter: to identify the relevant thread-local log to
+use.  Different threads should use different identities, in the relevant
+range.  Each logged value is stored in the relevant thread-local log, together
+with a timestamp (more precisely, the time elapsed since the |Log| object was
+created, to avoid problems with timestamp wrap-around).
 %
 The |get| operation merges the thread-local logs according to
 timestamps.
@@ -299,11 +300,12 @@ that if one |add| event logically happens before another (i.e.~according to
 the~$\prec$ relation), the former receives a strictly smaller timestamp.
 
 The above assumption seems to be sound in Linux, but not in Windows.  If you
-must use Windows, the class |SharedLog| provides the same interface.  However,
-it will give worse performance.  Further, it might affect the likelihood of
-detecting bugs: I have experienced bugs that would appear when no logging was
-performed, or when the timestamp-based log was used; but logging with
-something equivalent to |SharedLog| affected the speed of threads sufficiently
-that the bug no longer appeared in a reasonable time!
+must use Windows, the class |SharedLog|\SCLIndexX{sharedLog}{SharedLog}
+provides the same interface.  However, it will give worse performance.
+Further, it might affect the likelihood of detecting bugs: I have experienced
+bugs that would appear when no logging was performed, or when the
+timestamp-based log was used; but logging with something equivalent to
+|SharedLog| affected the speed of threads sufficiently that the bug no longer
+appeared in a reasonable time!
 
 

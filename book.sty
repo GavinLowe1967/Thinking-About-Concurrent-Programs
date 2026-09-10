@@ -67,14 +67,18 @@
 % normally replace that with the corresponding lower case letter,
 % e.g. \SCLIndex{inPort}{InPort}.  However, if that creates an extension of
 % another index entry, some hacking is required,
-% e.g. \SCLIndexX{threae}{ThreadGroup}, to appear after the entry for
-% "thread".
+% e.g. \SCLIndexX{threae}{ThreadGroup} or \SCLIndexX{threadé}{ThreadGroup},
+% to appear after the entry for "thread".
 \def\SCLIndexX#1#2{\index[SCL]{\protect\ignoreX{{#1}}\protect\SCALA{#2}}}
 % SCL index entry for #1, using the natural sort.
 \def\SCLIndex#1{\SCLIndexX{#1}{#1}} 
 % Indexing macro for "||"
-
 \def\App{\protect\SCALA{\|\|}}
+% Hack, because indexing uses "!" as a special character.  Note: the order of
+% the index depends on the name of the macro!
+\def\Ashriek{\SCALA{!}}
+
+
 %%% Alignment
 \def\align{\begin{array}[t]{@{}l@{}}}
 \def\endalign{\end{array}}

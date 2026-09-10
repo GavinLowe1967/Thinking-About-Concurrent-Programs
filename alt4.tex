@@ -1,16 +1,16 @@
 \section{Example: Bag of Tasks with Replacement}
 \label{sec:quicksort-bag}
 
-In Chapter~\ref{chap:trapezium} we say the bag-of-tasks pattern, where workers
-repeatedly obtain a task, and perform it.  We now consider a variant, where
-workers can return subtasks to the bag.  Thus, if a worker obtains a
-task~$t$, it will perform some work itself, and (maybe) return some subtasks to
-the bag; these together must equate to completing~$t$.
+In Chapter~\ref{chap:trapezium} we saw the bag-of-tasks\index{bag of tasks}
+pattern, where workers repeatedly obtain a task, and perform it.  We now
+consider a variant, where workers can return subtasks to the bag.  Thus, if a
+worker obtains a task~$t$, it will perform some work itself, and (maybe)
+return some subtasks to the bag; these together must equate to completing~$t$.
 
 In particular, we will use the bag-of-tasks with replacement pattern to
-produce a concurrent implementation of the Quicksort sorting algorithm.
-Figure~\ref{fig:quicksort-seq} gives a sequential implementation of the
-algorithm.  
+produce a concurrent implementation of the Quicksort\index{Quicksort} sorting
+algorithm.  Figure~\ref{fig:quicksort-seq} gives a sequential implementation
+of the algorithm.
 
 %%%%%
 
@@ -136,11 +136,11 @@ the count when a worker returns two subtasks.  However, when a worker receives
 a task containing at most one element, the worker will return no subtasks, so
 it needs a different way to indicate that the task is complete.
 
-We encapsulate the bag of tasks in an object~|Bag|, as in
-Figure~\ref{fig:quicksort-bag-1}.   The operation |get| allows a worker to get
+We encapsulate\index{encapsulation} the bag of tasks in an object~|Bag|, as in
+Figure~\ref{fig:quicksort-bag-1}.  The operation |get| allows a worker to get
 a task.  The operation |add| allows a worker to return two subtasks to the
 bag.  The operation |done| allows a worker to signal that it has completed a
-task (without returning subtasks).  
+task (without returning subtasks).
 
 %%%%%%%%%%
 
@@ -186,9 +186,9 @@ task (without returning subtasks).
 
 The |Bag| object encapsulates a server thread.  Each operation is implemented
 by a single communication between the worker and the server.  Note, in
-particular, that the |add| operation sends both subtasks in a single message,
-rather than two separate messages: this roughly halves the cost of the
-operation. 
+particular, that the |add| operation sends \emph{both} subtasks in a single
+message, rather than two separate messages: this roughly halves the cost of
+the operation.
 
 The server itself stores the pending tasks in a queue (although we could have
 used a different collection class, such as a stack).  It also uses a variable
@@ -196,9 +196,10 @@ used a different collection class, such as a stack).  It also uses a variable
 Most of the implementation is then fairly straightforward.  
 
 The main loop is defined using an extension of the |serve| construct.  The
-command |serve(guard)(bs)| acts like |serve(bs)| (with branches~|bs|), but
-will repeat only while |guard| is true.  Thus it terminates either when
-|guard| becomes false, or the body throws a |StoppedException|. 
+command |serve(guard)(bs)|\SCLIndex{serve} acts like |serve(bs)| (with
+branches~|bs|), but will repeat only while |guard| is true.  Thus it
+terminates either when |guard| becomes false, or the body throws a
+|StoppedException|.
 
 In this case, the main |serve| loop terminates when its guard
 \SCALA{queue.nonEmpty \|\| busyWorkers > 0} is false,
@@ -269,11 +270,11 @@ class ConcurrentQuicksort1(protected val a: Array[Int], numWorkers: Int)
 
 %%%%%
 
-The implementation can be tested by checking that it produces the same results
-as the sequential implementation from Figure~\ref{fig:quicksort-seq}.  We can
-create a random array of |Int|s, clone it, run the two algorithms on the two
-copies, and check the two results contain the same elements.  This can be
-repeated many times.
+The implementation can be tested\index{testing} by checking that it produces
+the same results as the sequential implementation from
+Figure~\ref{fig:quicksort-seq}.  We can create a random array of |Int|s, clone
+it, run the two algorithms on the two copies, and check the two results
+contain the same elements.  This can be repeated many times.
 
 Unfortunately, this implementation performs poorly.  On an array containing a
 million values, it is about 100 times slower than the sequential algorithm!

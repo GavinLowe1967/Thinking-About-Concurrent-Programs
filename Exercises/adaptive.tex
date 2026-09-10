@@ -57,7 +57,10 @@ My code is below.  The bag of tasks is encapsulated into an object |Bag|, and
 the summation of subresults is done via an object |Adder|.  The former is very
 like the bag of tasks in Section~\ref{sec:quicksort-bag}.  The latter is very
 like the collector in Section~\ref{sec:bag-of-tasks-encapsulation}. 
-%
+
+In the recursive case, a worker returns one subtask to the bag, and continues
+working on the other. 
+
 \begin{scala}
 class Adaptive(
     f: Double => Double, a: Double, b: Double, Epsilon: Double, nWorkers: Int){

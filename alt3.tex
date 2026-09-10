@@ -3,12 +3,12 @@
 
 \def\waitingFor{\vdash}
 
-The deadlock in the Dining Philosophers example corresponds to a cycle of
-waiting.  Each philosopher is trying to pick up their right-hand fork, and is
-waiting for that fork.  Each fork is waiting for their right-hand philosopher
-to put it down.  Let's write $t_1 \waitingFor t_2$ to signify that thread
-$t_1$ is blocked, waiting for thread~$t_2$.  Then we have the following cycle
-of waiting:
+The deadlock\index{deadlock} in the Dining Philosophers example corresponds to
+a cycle of waiting.  Each philosopher is trying to pick up their right-hand
+fork, and is waiting for that fork.  Each fork is waiting for their right-hand
+philosopher to put it down.  Let's write $t_1 \waitingFor t_2$ to signify that
+thread $t_1$ is blocked, waiting for thread~$t_2$.  Then we have the following
+cycle of waiting:
 \[\mstyle
 \sm{phil}(0) \waitingFor \sm{fork}(4) \waitingFor \sm{phil}(4) \waitingFor
   \sm{fork}(3) \waitingFor \ldots \waitingFor \sm{fork}(0) \waitingFor
@@ -18,8 +18,8 @@ This corresponds to an anti-clockwise cycle in
 Figure~\ref{fig:dining-philosophers-2}.
 
 In fact, deadlocks correspond to cycles of waiting more generally.  Consider a
-system based on message passing.  Suppose that for every channel~$c$, there
-is some thread that sometimes sends on~$c$, and some thread that sometimes
+system based on message passing.  Suppose that for every channel~$c$, there is
+some thread that sometimes sends on~$c$, and some thread that sometimes
 receives on~$c$ (or else the system is badly configured).  Consider a
 deadlocked state, and suppose no thread has terminated or is performing an
 infinite amount of internal computation.  Then necessarily every thread is
@@ -30,8 +30,8 @@ $t_1$ is waiting for~$t_2$, i.e.~$t_1 \waitingFor t_2$.  By the same argument,
 there is some thread $t_3$ such that $t_2 \waitingFor t_3$.  Continuing in
 this way, we can construct an infinite sequence of threads such that each is
 waiting on the next.  However, there are necessarily finitely many threads, so
-this infinite sequence must contain the same thread twice, and so contains a
-waiting cycle.
+this infinite sequence must contain the same thread twice.  Thus this sequence
+contains a waiting cycle.
 
 If the system uses an alt, then a thread may be waiting for either of two or
 more threads.  For example, in the dining philosophers example, a fork in its
@@ -84,8 +84,8 @@ example, if a philosopher holds one fork, but is unable to pick up their
 second fork, they could drop their first fork, and try again later (this is
 probably how real philosophers would act).
 
-Within SCL, this could be achieved using a timeout.  Each channel has an
-operation
+Within SCL, this could be achieved using a timeout\index{timeout}.  Each
+channel has an operation\SCLIndexX{sendWithin }{sendWithin}
 %
 \begin{scala}
   def sendWithin(millis: Long)(x: A): Boolean 
@@ -94,7 +94,8 @@ operation
 This tries to send~|x| for up to |millis| milliseconds; but if no receiver is
 ready within that time (or no space is available, in the case of a buffered
 channel), it times out.  The operation returns a |Boolean| to indicate whether
-the send was successful.  Likewise there is an operation
+the send was successful.  Likewise there is an
+operation\SCLIndexX{receiveWithin }{receiveWithin}
 %
 \begin{scala}
   def receiveWithin(millis: Long): Option[A] =
@@ -104,7 +105,8 @@ that tries to receive a value for up to |millis| milliseconds.  The operation
 returns a result of type |Option[A]| (see Section~\ref{sec:scala-types}): if
 it successfully receives a value~|x|, it returns~|Some(x)|; otherwise it
 returns~|None| to indicate a timeout.  There are also operations
-|sendWithinNanos| and |receiveWithinNanos| where the time is given in
+|sendWithinNanos|\SCLIndex{sendWithinNanos} and
+|receiveWithinNanos|\SCLIndex{receiveWithinNanos} where the time is given in
 nanoseconds.
 
 The last part of Exercise~\ref{ex:diningPhils} asks you to implement this
@@ -116,7 +118,9 @@ technique of timing out, dropping the fork, and trying again later.
 
 So far, we have only seen alts that provide a choice between in-ports.
 However, it is also possible to use an out-port in an alt, using the following
-syntax for a branch:
+syntax for a branch:%
+% Hacked index entry for =!=>
+\index[SCL]{\ignoreX {{=}}\protect\SCALA{=}\Ashriek\SCALA{=>}}
 %
 \begin{scala}
   bool && out =!=> { expression }
@@ -126,22 +130,23 @@ If the (optional) boolean guard |bool| is true, when the out-port |out| is
 ready for communication, |expression| is evaluated and the result sent.
 %
 Sometimes it's necessary to do something \emph{after} the value has been sent,
-using a continuation, with the following syntax.
+using a continuation, with the following syntax.\SCLIndex{==>}
 %
 \begin{scala}
    bool && outport =!=> { expression } ==> { command }
 \end{scala}
 
-Here's another definition for the |tee| function, which produces
-a thread that inputs on one in-port, and outputs on two out-ports, in either
-order. 
+Here's another definition for the |tee| function, which produces a thread that
+inputs on an in-port, and then outputs on two out-ports in either order.
 %
 %\begin{mysamepage}
 \begin{scala}
   def tee[T](in: ??[T], out1: !![T], out2: !![T]) = thread{
     repeat{ 
       val v = in?()
-      alt( out1 =!=> { v } ==> { out2!v } | out2 =!=> { v } ==> { out1!v } )
+      alt( out1 =!=> { v } ==> { out2!v }
+         | out2 =!=> { v } ==> { out1!v } 
+      )
     }
   }
 \end{scala}
@@ -159,9 +164,10 @@ pieces of data at a time: it is a two-place buffer.
 %
 \begin{scala}  
   def buff2[T](in: ??[T], out: !![T]): ThreadGroup = {
-    def empty(): Unit = { val x = in?(); full(x) }
-    def full(x: T): Unit = {
-      alt( out =!=> { x } ==> { empty() } | in =?=> { y => out!x; full(y) } )
+    def empty(): Unit = { val x = in?(); holding(x) }
+    def holding(x: T): Unit = {
+      alt( out =!=> { x } ==> { empty() } 
+         | in =?=> { y => out!x; holding(y) } )
     }
     thread{ attempt{empty()}{} }
   }
@@ -179,11 +185,18 @@ pieces of data at a time: it is a two-place buffer.
 %%   }  
 %% \end{scala}
 %
-This runs a thread that executes |empty()|, catching |Stopped| exceptions.
-When it  holds a value~|x|, in state |full(x)|, it can either
-output~|x|, or input a new value~|y|, at which point it is full so must
-output~|x|, after which it is just holding~|y|.
+The function |empty| corresponds to when the buffer is empty: it can input a
+value~|x|, and move to the state |holding(x)|.  The function |holding(x)|
+corresponds to when the buffer is holding the single value~|x|: it can
+output~|x| and become empty; or it can input another value~|y|, at which point
+it is full so must output~|x|, and subsequently it is holding just~|y|.  The
+body of |buff2| runs a thread starting in the |empty| state, and catching
+exceptions. 
 
+%% This runs a thread that executes |empty()|, catching |Stopped| exceptions.
+%% When it  holds a value~|x|, in state |full(x)|, it can either
+%% output~|x|, or input a new value~|y|, at which point it is full so must
+%% output~|x|, after which it is just holding~|y|.
 
 Here's an alternative definition.  The variable \SCALA{empty} records whether
 the buffer is empty.  When $\sm{empty} = \sm{false}$,\, \SCALA{x} stores the

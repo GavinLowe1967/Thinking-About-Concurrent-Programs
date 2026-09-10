@@ -51,8 +51,8 @@ shorthand for ``|ox.scl.thread|''.  (In later programs, we will tend to omit
 this |import| statement, for brevity.)
 
 A definition of the form \SCALA{thread\{<code>\}}\SCLIndex{thread} defines a
-thread that when executed will execute \SCALA{<code>}.  For example,
-line~\ref{line:p} defines |t1| to be a thread that when executed will
+thread\index{thread} that when executed will execute \SCALA{<code>}.  For
+example, line~\ref{line:p} defines |t1| to be a thread that when executed will
 increment the shared variable~|x| 1000 times, and line~\ref{line:q} defines
 |t2| to be a thread that when executed will decrement |x| 1000 times.  Each
 thread is of type |ThreadGroup|\SCLIndexX{threae}{ThreadGroup}\footnote{This
@@ -172,7 +172,7 @@ However, there are other reasons why programs with memory races can be
 unpredictable.  
 %
 As described earlier, multiprocessor machines may cache variables\index{cache
-  memory}.  Caching can make a program much faster; but it can create problems
+memory}.  Caching can make a program much faster; but it can create problems
 with concurrent programs.
 
 When a thread~$t$ first needs the value of a variable~|x|, it will read it

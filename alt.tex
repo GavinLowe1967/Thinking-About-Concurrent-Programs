@@ -55,11 +55,14 @@ which it can receive messages from either of the adjacent philosophers:
   }
 \end{scala}
 %
+Each |pick| and |drop| channel is shared between two philosophers; this
+sharing removes the need for an alternation.
+%
 %% Note that the \SCALA{pick} communication could be from either neighbouring
 %% philosopher, so these need to be |ManyOne| channels.
-Note that we need separate |pick| and |drop| channels: otherwise, an attempted
-pick by one philosopher might be misinterpreted as a drop by another
-philosopher who is currently holding the fork. 
+%% Note that we need separate |pick| and |drop| channels: otherwise, an attempted
+%% pick by one philosopher might be misinterpreted as a drop by another
+%% philosopher who is currently holding the fork. 
 %, so that when one of the
 %philosophers is holding the fork, the other cannot pick it up.  
 %% However, such

@@ -1,15 +1,19 @@
 At present, we can write definitions of threads that try to send or receive on
 a \emph{single} channel at a time.  However, it's often useful for a thread to
 be able to try to send or receive on either of two or more channels: the
-\emph{alternation}, or \emph{alt}, construct does that for us.
+\emph{alternation}\index{alternation}, or \emph{alt}, construct does
+that for us. 
 %
-In this chapter, we will study alternation: we start by describing the
-basic syntax of alternation in SCL, and then use it in examples.
+In this chapter, we will study alternation: we start by describing the basic
+syntax of alternation in SCL, and then use it in examples.
 
 %%%%%
 
+% Create index entry for "|".
+\def\indexBar{\index[SCL]{\protect\ignoreX {{*}}\protect\scalastyle$\mid$}}
+
 The following construct defines a thread that tries to receive from any one of
-several different in-ports:
+several different in-ports:\SCLIndex{alt}\SCLIndex{=?=>}\indexBar
 %
 \begin{scala}
   alt( in£$_1$£ =?=> {f£$_1$£} | ... | in£$_n$£ =?=> {f£$_n$£} )
@@ -65,6 +69,7 @@ construct%
 \begin{scala}
   alt( guard£$_1$£ && in£$_1$£ =?=> {f£$_1$£} | ... | guard£$_n$£ && in£$_n$£ =?=> {f£$_n$£} )
 \end{scala}
+\SCLIndex{&&}
 %
 a communication on each |in|$_i$ is possible only if the corresponding
 |guard|$_i$ is true.  Thus, \SCALA{in =?=> ...} is equivalent to \SCALA{true
@@ -72,13 +77,14 @@ a communication on each |in|$_i$ is possible only if the corresponding
 effects.
 
 If a guard evaluates to true and the in-port is open, we say that the
-corresponding branch is \emph{feasible}.  If no branch is feasible, the alt
-throws an |AltAbort| exception (a subclass of \SCALA{Stopped}): this
-corresponds to the case where the alt will never be able to communicate.
+corresponding branch is \emph{feasible}\index{feasible}.  If no branch is
+feasible, the alt throws an |AltAbort|\SCLIndexX{alté}{AltAbort} exception (a
+subclass of \SCALA{Stopped}\SCLIndexX{stopped}{Stopped}): this corresponds to
+the case where the alt will never be able to communicate.
 
 If a branch is feasible and the in-port is available for communication
 (i.e.,~another thread is trying to send on the channel), then we say that the
-branch is \emph{ready}.
+branch is \emph{ready}\index{ready}.
 %
 The alt waits until a branch is ready, and receives from the in-port.  If
 several are ready, it chooses between them.  If all the branches subsequently
@@ -96,11 +102,11 @@ construct
   }
 \end{scala}
 %
-Suppose no branch of the alt is feasible, that is, for every branch, either
-the guard is false or the port is closed.  Then the alt will throw an
+Suppose no branch of the alt is feasible, which means that for every branch,
+either the guard is false or the port is closed.  Then the alt will throw an
 |AltAbort| exception, which the |repeat| will catch.  Thus the above construct
 will repeatedly execute the alt until all branches become infeasible, at which
-point it terminates cleanly.  
+point it terminates cleanly.
 
 % (or one of the |f|$_i$ throws a |Stopped| exception).
 
@@ -109,7 +115,7 @@ port expression |in|$_i$ on each iteration.
 
 %%%%% \heading{\scalashape serve}
 
-The construct 
+The construct\SCLIndex{serve}
 %
 \begin{scala}
   serve( g£$_1$£ && in£$_1$£ =?=> {f£$_1$£} | ... | g£$_n$£ && in£$_n$£ =?=> {f£$_n$£} )
@@ -138,7 +144,7 @@ round).
 %
 This means that if a particular branch is continuously ready, and the |serve|
 performs enough iterations, then that branch will eventually be selected.  We
-say that the |serve| is \emph{fair} to each branch.
+say that the |serve| is \emph{fair}\index{fairness} to each branch.
 
 %% Both the |serve| and the |repeat{alt(...)}| constructs evaluate each guard
 %% expression~|g|$_i$ and each port expression |in|$_i$ on each iteration.
@@ -164,7 +170,8 @@ Henceforth, we will use the word ``alternation'' to mean either an |alt| or
 
 %%%%% \heading{About fairness}
 
-Fairness crops up in a number of scenarios in concurrent programming.
+Fairness\index{fairness} crops up in a number of scenarios in concurrent
+programming.
 %
 A~typical fairness property is that if a particular option is continuously
 logically possible, then it eventually happens.  Fairness for an alternation
@@ -186,21 +193,22 @@ throughput, and a simpler program, without fairness.
 %%%%%  Generalised
 
 There are generalised versions of the alternation operators that take an
-arbitrary sequence of branches~|bs|, denoted \SCALA{alt( \|(bs) )} and
-\SCALA{serve( \|(bs) )}.  For example, given an array |ins| of in-ports, we can
-form a generalisation of the tagger as follows.  It is built from a sequence
-of branches that is generated using a |for| expression.
+arbitrary sequence of branches~|bs|, denoted \SCALA{alt( \|(bs) )}\indexBar\  
+and \SCALA{serve( \|(bs) )}.  For example, given an array |ins| of in-ports,
+we can form a generalisation of the tagger as follows.  It is built from a
+sequence of branches that is generated using a |for| expression.
 % 
 \begin{scala}
   serve( | (for (i <- 0 until ins.length) yield ins(i) =?=> { x => out!(i, x) }) )
 \end{scala}
 %
 The branches are indexed by the variable~|i|; we will sometimes refer to an
-alternation like this as \emph{indexed}.  The branch for index~|i| is willing
-to input on |ins(i)|; if it receives~|x|, it outputs the pair |(i, x)|.  This
-|serve| is fair to each in-port: if a particular in-port is continually ready,
-it will be selected within at most |ins.length| iterations.  The construct
-terminates when all the ports in |ins| are closed, or |out| is closed.
+alternation like this as \emph{indexed}\index{alternation!indexed}.  The branch for
+index~|i| is willing to receive on |ins(i)|; if it receives~|x|, it sends the
+pair |(i, x)|.  This |serve| is fair to each in-port: if a particular in-port
+is continually ready, it will be selected within at most |ins.length|
+iterations.  The construct terminates when all the ports in |ins| are closed,
+or |out| is closed.
 
 There is a restriction on the use of alternations.  A port may not be
 simultaneously feasible in two alternations; in other words, a port may not be

@@ -7,9 +7,9 @@ object Buff2{
 
   /** Two place buffer. */
   def buff2[T](in: ??[T], out: !![T]): ThreadGroup = {
-    def empty() = { val x = in?(); full(x) }
-    def full(x: T): Unit = {
-      alt( out =!=> { x } ==> { empty() } | in =?=> { y => out!x; full(y) } )
+    def empty() = { val x = in?(); holding(x) }
+    def holding(x: T): Unit = {
+      alt( out =!=> { x } ==> { empty() } | in =?=> { y => out!x; holding(y) } )
     }
     thread{ 
       attempt{empty()}{}

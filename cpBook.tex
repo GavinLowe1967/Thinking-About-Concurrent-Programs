@@ -1,8 +1,8 @@
 \documentclass[12pt,a4paper]{book}
 %\documentclass[times]{acm-book}%%%
 \usepackage{imakeidx}
-\makeindex
-\makeindex[name=SCL, title=Index of SCL Notation]
+\makeindex[intoc = true]
+\makeindex[name=SCL, title=Index of SCL Notation, intoc = true]
 %\usepackage{comment}
 
 %% \usepackage{amsmath}    % Package for AMS math extensions.
@@ -50,7 +50,7 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%\includeonly{trapezium}
+%\includeonly{alt}
 
 \begin{document}
 \maketitle
@@ -108,7 +108,7 @@
 
 \input{answers}
 
-
+\unScalaMid
 \printindex[SCL]
 \printindex
 
