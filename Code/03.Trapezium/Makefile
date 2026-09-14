@@ -4,7 +4,7 @@ DIR = $(ROOT)/trapezium
 
 LOCK_SRC_DIR = ../09.Locks
 
-EXERCISES =  $(DIR)/Pi.class $(DIR)/Matrix.class
+EXERCISES =  $(DIR)/Pi.class $(DIR)/ArrayMax.class $(DIR)/Matrix.class
 
 all:   $(DIR)/TrapeziumTest.class $(DIR)/TrapeziumExperiment.class $(EXERCISES)
 

@@ -1,6 +1,6 @@
 A common pattern in concurrent systems is that of clients and servers.
-A~\emph{server} is a thread or process that repeatedly handles requests from
-\emph{client}s.
+A~\emph{server}\index{server} is a thread or process that repeatedly handles
+requests from \emph{client}s\index{client}.
 
 The client-server pattern is particularly prevalent in distributed systems,
 where communications are over a network, such as the Internet.  For example,
@@ -27,23 +27,27 @@ approach several times: for example, in the bag-of-tasks examples, the bag was
 implemented as a server that received requests from workers (clients) for
 tasks.
  
-A \emph{synchronisation object} is an object that allows two (or more) threads
-to synchronise and exchange data.  By \emph{synchronise}, we mean that the
-threads execute the operations at the same time: more precisely, there is an
-overlap between the time periods during which the threads execute their
-operations.  Synchronisation is a useful tool in coordinating threads. 
+A \emph{synchronisation object}\index{synchronisation object} is an object
+that allows two (or more) threads to synchronise and exchange data.
+By \emph{synchronise}\index{synchronisation}, we mean that the threads execute
+their operations at the same time.  For example, a synchronous channel is a
+synchronisation object, because the send and receive operations happen at the
+same time.  More precisely, there is an overlap between the time periods during
+which the threads execute their operations.  Synchronisation is a useful tool
+in coordinating threads.
 
 Towards the end of this chapter we will use a client-server pattern to
-implement two \emph{synchronisation objects}: an \emph{exchanger} that allows
-two threads to exchange data; and a \emph{filter channel} that is like a
-synchronous channel, but allows the receiver to specify a property that must
-be satisfied by the value it receives.  We will also consider how to test
+implement two \emph{synchronisation objects}: an \emph{exchanger}\index{label}
+that allows two threads to exchange data; and a \emph{filter channel} that is
+like a synchronous channel, but allows the receiver to specify a property that
+must be satisfied by the value it receives.  We will also consider how to test
 these objects: testing synchronisation objects often requires some ingenuity.
 
 In Chapter~\ref{chap:datatypes}, we will study how to use a client-server
-architecture to implement a \emph{concurrent datatype}: an object that acts
-much like a sequential datatype, such as a queue or a mapping, but provides
-client code with thread-safe operations on the datatype. 
+architecture to implement a \emph{concurrent datatype}\index{concurrent
+datatype}: an object that acts much like a sequential datatype, such as a
+queue or a mapping, but provides client code with thread-safe operations on
+the datatype.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -58,10 +62,11 @@ use, and later return them to the server.
 One problem we need to address is: what should happen if a client requests a
 resource and there is none available?  In this section, we return a special
 value to indicate that no resource is available.  More precisely, we use an
-|Option[Resource]| value: the client receives a value |Some(r)| to indicate
-that resource |r| has been acquired, or the value |None| to indicate that no
-resource is available.  (The word ``optionally'' is commonly used to describe a
-use like this of an |Option| type.)
+|Option[Resource]| value (see Section~\ref{sec:scala-types}): the client
+receives a value |Some(r)| to indicate that resource |r| has been acquired, or
+the value |None| to indicate that no resource is available.  (The word
+``optionally'' is commonly used to describe a use like this of an |Option|
+type.)
 %
 In the latter case, it is up to the client to decide what to do: it might try
 again later, or might throw an exception.  
@@ -101,12 +106,12 @@ trait RAServer{
 
 %%%%%
 
-Thus we will define a server that extends the trait |RAServer| in
-Figure~\ref{fig:RAServer}.  We represent resources by |Int|s, and we also
+Thus we will define a class that extends the trait |RAServer| in
+Figure~\ref{fig:RAServer}.  We represent resources by |Int|s; and we also
 assume each client has an |Int| identity, which they include in operation
-calls.  There are operations for a client to obtain a resource, or to return a
-resource.  There is also an operation to shut down the server (although this
-could be considered optional).
+calls.  The trait includes operations for a client to obtain a resource, or to
+return a resource.  There is also an operation to shut down the server
+(although this could be considered optional).
 
 %%%%% First implementation
 
@@ -203,6 +208,8 @@ the channel |shutDownChan|.
 
 %%%%%
 
+A server thread is forked as part of the construction of the |RAServer1|
+object. 
 The server (Figure~\ref{fig:RAServer1-2}) keeps track of the resources that are
 currently free in an array \SCALA{free}.  Note that |free| is declared as a
 local variable within the definition of~|server|.  This ensures that only the
@@ -218,7 +225,7 @@ a resource from client~|c|, it performs a straightforward search through
 If it receives a returned resource, is simply updates |free| to mark that
 resource as free.  If it receives a shutdown message, it sets |done| to true
 to exit the loop, at which point it closes its input channels to signal to
-clients.
+clients, and terminates.
 
 \begin{instruction}
 Study the details of the implementation. 

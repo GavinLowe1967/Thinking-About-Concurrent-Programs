@@ -71,7 +71,7 @@ object TrapeziumTest{
   var doBagOfTasks = false; var doBagOfTasksObjects = false;
   var doBagOfTasksMonitor = false; var doBagOfTasksLock = false
 
-  def doTest = {
+  def doTest() = {
     val (f, p, a, b, nWorkers, n) = pickParams
     val seqResult = new SeqTrapezium(f, a, b, n)()
     val concResult =
@@ -121,7 +121,7 @@ object TrapeziumTest{
       import java.lang.System.nanoTime
       val start = nanoTime
       for(i <- 0L until reps){
-        doTest
+        doTest()
         if(i%100 == 0){ print("."); if (i%5_000 == 0) print(i) }
       }
       println(); println(((nanoTime-start)/1_000_000).toString+"ms")

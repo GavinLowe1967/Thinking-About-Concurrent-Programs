@@ -1,15 +1,15 @@
 \section{Example: An Exchanger}
 \label{sec:exchanger}
 
-In this section, we consider how to use a client-server mechanism to solve a
+We now consider how to use a client-server mechanism to solve a
 synchronisation problem.  
-
-An \emph{exchanger} is a concurrent object that extends the trait in
-Figure~\ref{fig:ExchangerT}.  Its main operation allows a pair of threads to
-exchange values: each thread should pass in a value, and receive the other
-thread's value back.
-This exchange represents a \emph{synchronisation}: the two executions of
-|exchange| must necessarily overlap in time.   (The trait includes an
+%
+An \emph{exchanger}\index{exchanger} is a concurrent object that extends the
+trait in Figure~\ref{fig:ExchangerT}.  Its main |exchange| operation allows a
+pair of threads to exchange values: each thread should pass in a value, and
+receive the other thread's value back.  This exchange represents a
+\emph{synchronisation}\index{synchronisation}: the two executions of
+|exchange| must necessarily overlap in time.  (The trait also includes an
 operation to shut down the server.)
 
 %%%%%
@@ -78,28 +78,27 @@ Make sure you understand the details of the exchanger.
 
 %%%%%
 
-We now consider testing.  The property we need to check is that if
-thread~$t_1$ receives thread~$t_2$'s value, then $t_2$ receives $t_1$'s value.
-Note that this necessarily implies that the two operation executions overlap
-in time: if, say, $t_1$ returned before $t_2$ called the operation, there
-would be no way for $t_1$ to obtain $t_2$'s value.  
+We now consider testing\index{testing}.  The property we need to check is that
+if thread~$t_1$ receives thread~$t_2$'s value, then $t_2$ receives $t_1$'s
+value.  Note that this necessarily implies that the two operation executions
+overlap in time: if, say, $t_1$ returned before $t_2$ called the operation,
+there would be no way for $t_1$ to obtain $t_2$'s value.
 
 We can test this property by arranging for each thread to store the value it
 receives, and subsequently trying to pair up the threads that exchanged.  It
-is possible to come up with an algorithm to find such a pairing of threads, if
-one exists.
-However, if two threads pass in the same value, there might be multiple
-candidates for pairing, which complicates the algorithm.
+is possible to come up with an algorithm to find such a pairing of threads if
+one exists.  However, if two threads pass in the same value, there might be
+multiple candidates for pairing, which complicates the algorithm.
 
 We can make things easier by arranging for threads to pass in distinct values.
-This approach is sound because the implementation is \emph{data independent}:
-each data value is passed in as an input (as a parameter of |exchange|),
-passed between threads, stored in variables, and output (as the returned value
-from |exchange|); but no operation is
-performed on it that depends on its actual value.  This means that if there
-were an incorrect behaviour that didn't satisfy our requirements, there would
-also be an incorrect behaviour where all the inputs were replaced by distinct
-values.
+This approach is sound because the implementation is \emph{data
+  independent}\index{data independence}: each data value is passed in as an
+input (as a parameter of |exchange|), passed between threads, stored in
+variables, and output (as the returned value from |exchange|); but no
+operation is performed on it that depends on its actual value.  This means
+that if there were an incorrect behaviour that didn't satisfy our
+requirements, there would also be an incorrect behaviour where all the inputs
+were replaced by distinct values.
 
 A function to perform a single test is below; this can be executed many times.
 Each test runs |n| threads with an exchanger, where |n| is a random even
@@ -111,8 +110,9 @@ thread~|i| exchanged with a \emph{different} thread), and thread~|x|
 received~|i| (so those two threads exchanged with each other); this is easily
 checked.
 %
+\begin{mysamepage}
 \begin{scala}
-  def doTest = {
+  def doTest() = {
     val n = 2*scala.util.Random.nextInt(10); val results = new Array[Int](n)
     val exchanger = new Exchanger[Int]
     def worker(me: Int) = thread(s"worker($me)"){ 
@@ -123,7 +123,7 @@ checked.
     exchanger.shutdown()
   }
 \end{scala}
-%
+\end{mysamepage}
 
 One detail concerning this testing strategy is that each thread performed just
 a single exchange.  It is tempting to arrange for a worker to perform multiple
@@ -143,9 +143,9 @@ Study the details of the |doTest| function.
 \label{sec:filter-chan}
 
 We now consider another example of a synchronisation object.  A \emph{filter
-  channel} acts much like a standard synchronous channel, except a receiver
-can specify a property that it requires the value it receives to satisfy.
-Thus a filter channel implements the following trait.
+  channel}\index{filter channel} acts much like a standard synchronous
+channel, except a receiver can specify a property that it requires the value
+it receives to satisfy.  Thus a filter channel implements the following trait.
 %
 \begin{scala}
 trait FilterChanT[A]{
@@ -275,7 +275,7 @@ Make sure you understand the implementation of |FilterChan|.
 
 %%%%%
 
-We now consider how to test the implementation.  We need to
+We now consider how to test\index{testing} the implementation.  We need to
 ensure that the filter channel is \emph{synchronous}, in particular that the
 sender does not return before the corresponding receiver calls the operation:
 in the implementation, the use of a reply channel was designed to ensure this.
@@ -283,7 +283,7 @@ We will therefore use the technique of logging, as we did with the resource
 server.  We will run a number of senders and receivers that call the
 operations, but that write into the log both before and after the operation.
 This will allow us to identify which operation executions overlap, and then we
-can try to pair up corresponding sends and receives.  
+can try to pair up corresponding sends and receives.
 %
 This pairing up of corresponding operation executions will be easier if we
 arrange for each |send| operation to send a different value.  
@@ -319,7 +319,7 @@ arrange for each |send| operation to send a different value.
 
   def checkLog(events: Array[LogEvent]): Boolean = ... // See Figure £\ref{fig:FilterChan-test2}£.
 
-  def doTest = {
+  def doTest() = {
     val chan: FilterChanT[Int] = new FilterChan[Int]; val log = new Log1(2*n)
     val senders = || (for(i <- 0 until n) yield(sender(i, chan, log)))
     val receivers = || (for(i <- 0 until n) yield (receiver(i, chan, log)))
@@ -352,9 +352,9 @@ $\sm{x}\%\sm{n} = \sm{me}$, so the receivers collectively are willing to
 receive all the values.
 
 Each thread writes suitable events into the log before calling the operation,
-and after it returns.  Recall that each thread includes its identity in
-operations to add events to the log.  In order to ensure that the senders and
-receivers use different identities for this purpose, we add |n| to the
+and after it returns\index{logging}.  Recall that each thread includes its
+identity in operations to add events to the log, and that different threads
+should use different identities.  In order to ensure this, we add |n| to the
 identity of each receiver.
 
 The log slightly overestimates the time period during which a thread is
@@ -435,7 +435,7 @@ with another operation call (value~|Matched|).  It also keeps track, in array
 When the traversal encounters a |Begin| operation, it updates values
 appropriately.  In the case of a |BeginReceive|, it searches forward through
 the log to find the corresponding |EndReceive| event, to record the value the
-operation will return.
+operation will return, storing that value in |receiverValue|.
 
 When the traversal encounters an |EndSend| event, if this operation has not
 already been matched, it searches through the receivers to try to find one
@@ -458,15 +458,15 @@ standard graph algorithm.  Consider a graph where each node is an execution of
 |send| or |receive|, and there is an edge between |send(x)| and |receive(p)|
 if those executions overlapped in the log and |p(x)|, i.e., those two
 executions are candidates for being matched.  This graph is \emph{bipartite},
-i.e., the nodes can be partitioned intro two subsets (here the |send|s and
-|receive|s) such that every edge connects two nodes from different subsets.
-We then want to ask whether there is a subset of the edges that includes every
-node exactly once: in graph-theoretic terms, this is known as a \emph{perfect
-  matching}.  There are standard algorithms for finding a perfect matching, if
-one exists, for example the Ford-Fulkerson method~\cite{ford-fulkerson, CLRS}.
-We can therefore use such an algorithm to decide whether the log represents a
-valid execution.  This technique can be applied more generally for testing
-synchronisation objects.
+i.e., the nodes can be partitioned into two subsets (here the |send|s and
+|receive|s) such that every edge connects two nodes from the different
+subsets.  We then want to ask whether there is a subset of the edges that
+includes every node exactly once: in graph-theoretic terms, this is known as a
+\emph{perfect matching}.  There are standard algorithms for finding a perfect
+matching, if one exists, for example the Ford-Fulkerson
+method~\cite{ford-fulkerson, CLRS}.  We can therefore use such an algorithm to
+decide whether the log represents a valid execution.  This technique can be
+applied more generally for testing synchronisation objects.
 
 %% that are binary (i.e.,~each synchronisation is
 %% between precisely two operation executions), stateless (i.e., synchronisations

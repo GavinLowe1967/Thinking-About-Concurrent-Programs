@@ -6,7 +6,8 @@ MONDIR = $(ROOT)/monitors
 
 MON_SRC_DIR = ../10.Conditions
 
-EXERCISES = $(DIR)/MenWomen.class $(DIR)/AtomicBroadcastTest.class
+EXERCISES = $(DIR)/MenWomen.class $(DIR)/AtomicBroadcastTest.class	\
+$(DIR)/TimedExchanger.class
 
 all: $(DIR)/RAServer.class $(DIR)/PartialRAServer.class		\
   $(DIR)/ExchangerTest.class $(DIR)/FilterChan.class $(EXERCISES)

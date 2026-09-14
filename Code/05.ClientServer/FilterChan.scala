@@ -234,7 +234,7 @@ object FilterChanTest{
   /** Are we using the faulty version. */
   var faulty = false
 
-  def doTest = {
+  def doTest() = {
     val chan: FilterChanT[Int] = 
       if(faulty) new FaultyFilterChan[Int] else new FilterChan[Int]
     val log = new Log1(2*n)
@@ -256,7 +256,7 @@ object FilterChanTest{
       case arg => println(s"Illegal argument: $arg"); sys.exit() 
     }
 
-    for(i <- 0 until reps){ doTest; if(i%50 == 0) print(".") }
+    for(i <- 0 until reps){ doTest(); if(i%50 == 0) print(".") }
     println()
   }
 

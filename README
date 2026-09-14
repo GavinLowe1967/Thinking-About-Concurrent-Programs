@@ -12,6 +12,7 @@ Chapter 3: Example: Numerical Integration
 Chapter 4: Alternation
 
 Chaper 5: Clients and Servers
+-- More exercises.
 
 Chapter 6: Interacting Peers
 
@@ -46,7 +47,7 @@ Chapter 12: Semaphores:
 
 Appendices
 
-- Scala -- TODO: import, equality, hash codes.
+- Scala -- TODO: import, equality, hash codes.  API documentation.
 
 - Experiments -- improve
 

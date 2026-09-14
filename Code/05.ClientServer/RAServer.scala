@@ -196,7 +196,7 @@ object RATest{
   }
 
   /** Run a single test. */
-  def runTest(resourceServer: RAServer, numClients: Int, numResources: Int) = {
+  def doTest(resourceServer: RAServer, numClients: Int, numResources: Int) = {
     //println
     val log = new Log[LogEvent](numClients)
     val clients = 
@@ -236,7 +236,7 @@ object RATest{
         if(rsType == 1) new RAServer1(numClients, numResources)
         else{ assert(rsType == 2); new RAServer2(numResources) }
         // else{ assert(rsType == 3); new RAServer3(numResources) }
-      runTest(resourceServer, numClients, numResources)
+      doTest(resourceServer, numClients, numResources)
       if(r%10 == 0) print(".")
       // println
     }
@@ -304,7 +304,7 @@ object RALinTest{
   }
 
   /** Do a single test. */
-  def doTest = {
+  def doTest() = {
     val ra = new RAServer1(numWorkers, numResources) 
     val s = new SeqAlloc(Array.fill(numResources)(true))
     val tester = 
@@ -314,7 +314,7 @@ object RALinTest{
   }
 
   def main(args: Array[String]) = {
-    for(i <- 0 until 100){ doTest; if(i%5 == 0) print(".") }
+    for(i <- 0 until 100){ doTest(); if(i%5 == 0) print(".") }
     println()
   }
 }

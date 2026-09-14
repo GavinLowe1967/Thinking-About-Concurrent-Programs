@@ -35,4 +35,6 @@ Other options are as follows:
 
 Pi.scala: Estimation of pi (exercise).
 
+ArrayMax.scala: Finding the maximum entry in an array (exercise).
+
 Matrix.scala: Matrix multiplication (exercise)

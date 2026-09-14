@@ -1,9 +1,9 @@
 \section{Testing the Resource Allocation Server}
 
-We want to test the resource allocation server.  The property we want to
-test is that two clients never hold the same resource: if a resource~$r$ is
-allocated to client~$c_1$, it can't be allocated to another client~$c_2$ until
-$c_1$ has returned it.
+We want to test\index{testing} the resource allocation server.  The property
+we want to test is that two clients never hold the same resource: if a
+resource~$r$ is allocated to client~$c_1$, it can't be allocated to another
+client~$c_2$ until $c_1$ has returned it.
 
 We can perform this test by running a number of clients that randomly request
 and return resources, and log those actions.  We can then test whether the
@@ -15,8 +15,8 @@ resulting history of log events is valid.
 
 %%%%%
 
-We use a log of type |Log[LogEvent]|, where |LogEvent| is defined in
-Figure~\ref{fig:RATest-1}.  
+We use a log\index{logging} of type |Log[LogEvent]|, where |LogEvent| is
+defined in Figure~\ref{fig:RATest-1}.
 %% Subsequently, we can use the |get| method on the
 %% log, to get the results of logging as an |Array[LogEvent]|.
 %
@@ -57,6 +57,7 @@ it has one.  In each case, it adds a suitable event to the log.
 \end{figure}
 
 %%%%%
+
 
 Note that we log acquiring resources \emph{after} the resource is acquired,
 and log returning resources \emph{before} the resource is returned.  This
@@ -101,7 +102,7 @@ positives.
   }
 
   /** Run a single test. */
-  def runTest(resourceServer: RAServer) = {
+  def doTest(resourceServer: RAServer) = {
     val log = new Log[LogEvent](numClients)
     run(|| (for (i <- 0 until numClients) yield client(i, resourceServer, log)))
     if(!checkLog(log.get)) sys.exit()
@@ -114,10 +115,10 @@ positives.
 
 %%%%%
 
-The function |runTest(resourceServer)| (Figure~\ref{fig:RATest-2}) performs a
+The function |doTest(resourceServer)| (Figure~\ref{fig:RATest-2}) performs a
 single test on |resourceServer|.  This runs |numClients| clients, sharing a
 log.  It uses the |checkLog| function (described below) to check whether the
-log represents a correct execution.  It shuts down |resourceServer|, to
+log represents a correct execution.  Finally, it shuts down |resourceServer|, to
 terminate the server thread: this is necessary when we perform many tests on
 different |RAServer| objects; if we did not do this, we would end up with many
 server threads still running, which would consume system resources.
@@ -127,7 +128,7 @@ which resources are currently held by threads.  If it finds that a resource
 that is currently held is allocated a second time, this constitutes an error:
 it prints the log up to that point to help with debugging.
 
-The program's |main| function calls |runTest| many times. 
+The program's |main| function calls |doTest| many times. 
 
 \begin{instruction}
 Study the details of the test program.
@@ -142,8 +143,9 @@ the resource server is created.  This allowed us to create one reply channel
 per client.  However, in many circumstances, this assumption doesn't hold.
 
 If we do not know the number of clients, an alternative is for each client to
-create a new reply channel for each request, and to send the reply channel
-within the request.  The server can then reply on this reply channel.  
+create a new reply channel\index{reply channel} for each request, and to send
+the reply channel within the request.  The server can then reply on this reply
+channel.
 %
 This technique is illustrated in Figure~\ref{fig:RAServer-replyChan} (eliding
 code that is unchanged from earlier). 
@@ -253,7 +255,7 @@ otherwise the client-side code is unchanged.
 	while(r < numResources && !free(r)) r += 1
 	if(r == numResources) 
           pending.enqueue(replyChan) // Client has to wait.
-        else{  // Pass resource r back to client. 
+        else{  // Pass resource £r£ back to client. 
 	  free(r) = false; replyChan!r
         }
       }
@@ -278,7 +280,7 @@ resource that could be allocated to the blocked operation.  When the server
 receives a request for a resource, but there is no free resource, it adds the
 reply channel to |pending|.  When a resource is returned, if |pending| is
 nonempty, the server dequeues the first reply channel, and uses it to send the
-resource to the corresponding channel.
+resource to the corresponding client.
 
 \begin{instruction}
 Study the details of the implementation.
@@ -286,10 +288,11 @@ Study the details of the implementation.
 
 With this implementation, the |requestResource| operation can take effect only
 when there is an unallocated resource: we say that it is a \emph{partial
-  operation}.  By contrast, in the previous implementations, the operation was
-a \emph{total operation}, that could take effect in any state.  (The terms
-``partial'' and ``total'' are by analogy with partial and total functions,
-which are defined on some or all potential arguments, respectively.)
+  operation}\index{partial operation}.  By contrast, in the previous
+implementations, the operation was a \emph{total operation}\index{total
+operation}, that could take effect in any state.  (The terms ``partial'' and
+``total'' are by analogy with partial and total functions, which are defined
+on some or all potential arguments, respectively.)
 
 This approach can lead to a deadlock if all resources are allocated, and all
 clients are requesting more.  There is no good solution to this problem:
@@ -317,11 +320,11 @@ attempts to send a message to the server, the server eventually receives it.
 Put another way, we assume that clients don't make so many requests that the
 server is overwhelmed.
 
-The use of a queue then ensures a degree of fairness.  Assuming resources are
-repeatedly returned, once a client attempts to obtain a resource, its message
-on |acquireRequestChan| will eventually be received, so the reply channel will
-be enqueued; and eventually the reply channel will reach the front of the
-queue, and the request serviced.
+The use of a queue then ensures a degree of fairness\index{fairness}.
+Assuming resources are repeatedly returned, once a client attempts to obtain a
+resource, its message on |acquireRequestChan| will eventually be received, so
+the reply channel will be enqueued; and eventually the reply channel will
+reach the front of the queue, and the request serviced.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -329,11 +332,11 @@ queue, and the request serviced.
 There is a simpler way to achieve the same effect of buffering requests that
 cannot be served immediately, albeit it the cost of losing this fairness.
 Rather than the server explicitly queueing pending requests, the clients can
-be blocked on the |acquireRequestChan| channel until there is a resource free.
-This can be achieved simply by adding a variable that keeps track of the
-number of free resources, and a suitable guard on the |acquireRequestChan|
-branch of the |serve|, to block communications when there are no free
-resources.%
+be blocked\index{blocking} on the |acquireRequestChan| channel until there is
+a resource free.  This can be achieved simply by adding a variable that keeps
+track of the number of free resources, and a suitable guard on the
+|acquireRequestChan| branch of the |serve|, to block communications when there
+are no free resources.%
 %
 \begin{scala}
   private def server = thread{

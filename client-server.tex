@@ -20,18 +20,19 @@ larger program.
 
 Typically, a server will allow different sorts of request.  These can be
 supported by using a different channel for each sort, and using an alternation
-in the server.  Alternatively, we could use a single channel, and use
-different subtypes of the channel's data type to represent the different sorts
-of request. 
+in the server.  Alternatively, we can use a single channel, and use different
+subtypes of the channel's data type to represent the different sorts of
+request.
 
 Responses to requests (where needed) can be implemented by using a separate
 channel for each client.  Alternatively, we can arrange for the client to
 create a short-term reply channel that it sends to the server, and for the
 server to respond on this reply channel.  The latter approach is more
-flexible, so it is what we tend to use.
+flexible, so it is what we tend to use.  With either approach, the client-side
+code is normally straightforward, differing little between examples.
 
 Sometimes a server is not immediately able to respond to a request; this is
-the case in the resource allocation example, when no resource is available.
+the case in the resource allocation example when no resource is available.
 The normal approach in these circumstances is to store the request in a queue.
 However, sometimes it is simpler for the server to refuse to communicate on
 the relevant channel, so clients are blocked on that communication.  This
@@ -61,13 +62,13 @@ this respect as the exchanging executions must necessarily overlap in time.)
 
 \section*{Exercises}
 
+\input{Exercises/timedExchanger}
+
 \input{Exercises/menWomenServer}
 
 \input{Exercises/atomicBroadcast}
 
-
 Possible \framebox{extra} exercises:
-Timeout exchanger;
 One family problem (2023 exam);
 Same-arg synchronisation (2022 exam);
 ABC problem (2021 exam).
