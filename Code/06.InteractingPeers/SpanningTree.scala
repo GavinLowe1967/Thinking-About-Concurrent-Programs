@@ -109,7 +109,7 @@ import scala.util.Random
 
 object SpanningTreeTest{
   /** Run a single test on SpanningTree. */
-  def doTest = {
+  def doTest() = {
     val n = 2+Random.nextInt(9)
     val adjacency = Array.ofDim[Boolean](n,n)
     for(i <- 0 until n; j <- 0 until i; if Random.nextDouble() <= 0.3){ 
@@ -134,7 +134,7 @@ object SpanningTreeTest{
 
   def main(args: Array[String]) = {
     for(i <- 0 until 1000000){ 
-      doTest; if(i%100 == 0) print("."); if(i%10000 == 0) print(i) 
+      doTest(); if(i%100 == 0) print("."); if(i%10000 == 0) print(i) 
     }
     println()
   }

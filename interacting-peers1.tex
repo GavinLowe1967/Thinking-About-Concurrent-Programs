@@ -1,8 +1,9 @@
 A common paradigm in concurrent programming is that of \emph{interacting
-  peers}.  Several threads or processes are peers, in the sense that they
-execute basically the same code.  They exchange messages to achieve some goal.
-The way in which messages are exchanged can follow various patterns or
-topologies.
+peers}\index{interacting peers}.  Several threads or processes
+are \emph{peers}\index{peers}, in the sense that they execute basically the
+same code.  They exchange messages to achieve some goal.  The way in which
+messages are exchanged can follow various patterns or
+topologies\index{topology}.
 
 \begin{figure}[hbtp]
 %\begin{center}
@@ -55,36 +56,37 @@ topologies.
 % \draw (2)++ (0.5,-1) node[draw] (6) {6}; \draw[<->] (2) -- (6);
 \end{tikzpicture}}%
 %\end{center}
-\caption{Four patterns of interacting peers: (a) a centralised pattern; (b)~a
+\caption{Four patterns of interacting peers: (a) a centralised topology; (b)~a
   fully connected topology; (c) a ring; (d) a binary heap.}
 \label{fig:interacting-peers}
 \end{figure}
 
 %%%%%
 
-In this chapter we will examine four patterns of interacting peers, depicted
-in Figure~\ref{fig:interacting-peers}: 
+In the first half of this chapter we  examine four patterns of interacting
+peers, depicted in Figure~\ref{fig:interacting-peers}:
 %
 \begin{enumerate}
-\item[(a)] A system with a centralised thread doing most of the work;
+\item[(a)] A system with a centralised thread doing most of the
+work\index{centralised topology};
 
-\item[(b)] A symmetric, fully connected topology, where each thread sends
-  messages to all the others;
+\item[(b)] A symmetric, fully connected topology\index{fully connected
+topology}, where each thread sends  messages to all the others;
 
-\item[(c)] A ring topology, where each thread communicates with just its two
-  neighbours;
+\item[(c)] A ring topology\index{ring topology}, where each thread
+communicates with just its two neighbours;
 
-\item[(d)] A binary tree, or heap, topology, where each thread communicates
-  just with its parent and two children.
+\item[(d)] A binary tree, or heap\index{binary heap topology}, topology, where
+each thread communicates just with its parent and two children.
 \end{enumerate}
 %
 We will often use graph-theoretic terminology, and refer to the threads as
-\emph{nodes}.  
+\emph{nodes}\index{node}.  
 
-Typically, each node will hold some data, and they want to calculate some
-function of that data.  To illustrate different topologies and associated
-techniques, we consider a very simple example in the first part of this
-chapter: at the start, each node holds an integer; at the end, each node
+Typically, each node will hold some data, and collectively they need to
+calculate some function of that data.  To illustrate different topologies and
+associated techniques, we consider a very simple example in the first part of
+this chapter: at the start, each node holds an integer; at the end, each node
 should hold the sum of all those integers.
 %
 For each pattern, we will implement objects implementing the following trait. 
@@ -102,24 +104,25 @@ trait Sum{
 
 %%%%%
 
-We will reason about the correctness of the patterns by identifying
-\emph{invariants} that hold at certain points in the execution, for example,
-about the values sent in particular messages, or properties of the state of
-threads after each message that is sent or received.
+We  reason about the correctness of the implementations by identifying
+\emph{invariants}\index{invariant} that hold at certain points in the
+execution, for example, about the values sent in particular messages, or
+properties of the state of threads after each message that is sent or
+received.
 
-We will also consider the cost of each pattern.  One obvious measure of cost
+We  also consider the cost of each implementation.  One obvious measure of cost
 is the \emph{total} number of messages sent.  However, this isn't necessarily
 a good measure of the running time if multiple messages can be sent
 concurrently.
 %
-We will therefore also consider the number of messages sent
+We  therefore also consider the number of messages sent
 \emph{sequentially}.  Recall the ``happens-before'' relation $\preceq$; we say
-that messages $m_1$, \ldots, $m_k$ form a \emph{totally ordered chain} if
-necessarily 
+that messages $m_1$, \ldots, $m_k$ form a \emph{totally ordered
+chain}\index{totally ordered chain} if necessarily
 \[\mstyle
 m_1 \prec m_2 \prec \ldots \prec m_k,
 \]
-i.e., those messages have to be sent in that sequential order.  We will be
+i.e., those messages have to be sent in that sequential order.  We are
 interested in identifying the length of the longest totally ordered chain, and
 how that relates to the number of threads.
 
@@ -131,18 +134,20 @@ controller, each node knows only about its neighbours, and the goal is to find
 all the nodes reachable from the controller, and to construct a spanning tree
 for those nodes.
 
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Centralised Pattern}
+\section{Centralised Topology}
 
-We start with the centralised pattern: see Figure~\ref{fig:sum-centralised}.
-In this protocol, each client node sends its value to a central node, with
-identity~|0|.  The controller calculates the sum, and sends the sum back.
-We use a single channel in each direction, which is shared by the client
-nodes.  This pattern has similarities with the client-server pattern we
-studied in Chapter~\ref{chap:clientServer}, except the controller has its own
-value. 
+We start by giving an implementation of the |Sum| trait using a centralised
+topology\index{centralised topology}: see Figure~\ref{fig:sum-centralised}.  In
+this protocol, each client node sends its value to a central node, with
+identity~|0|.  The controller calculates the sum, and sends the sum back.  We
+use a single channel in each direction, which is shared by the client nodes.
+
+This pattern has similarities with the client-server pattern we studied in
+Chapter~\ref{chap:clientServer}.  However, here we consider all the nodes to
+be peers, whereas there is a distinct difference between a server and its
+clients. 
 
 %%%%%
 
@@ -182,7 +187,7 @@ the protocol, the following invariant holds for the controller:
 %
 \begin{eqnarray*}
 \sm{sum} & = & 
-   x_0 + \sum \set{x_i \| 1 \le i < \sm n \land 
+   x_0 + \textstyle\sum \set{x_i \| 1 \le i < \sm n \land 
            \mbox{node~$i$'s value has been received}}.
 \end{eqnarray*}
 %
@@ -206,12 +211,12 @@ element of |results| is as expected.
 
 %%%%%
 
-This protocol uses $2(\sm n-1)$ messages in total: each client thread sends one
-message and receives one message.  However, none of these messages can occur
-concurrently, since all messages involve the controller.
+This protocol uses $2(\sm n-1)$ messages in total: each of nodes~$1$ to~$\sm
+n-1$ sends one message and receives one message.  However, none of these
+messages can occur concurrently, since all messages involve the controller.
 Write $\sm{toController}.i$ for the communication on |toController| from
-thread~$i$, and similarly for |fromController|.
-We can find a totally-ordered chain of communications:
+thread~$i$, and similarly for |fromController|.  We can find a totally-ordered
+chain of communications:
 \[
 \begin{align}
 \mbox{\SCALA{toController}}.i_1 \prec \mbox{\SCALA{toController}}.i_2 
@@ -230,10 +235,10 @@ for some permutations $i_1, \ldots, i_{\ss n-1}$ and $j_1, \ldots, j_{\ss
 \section{Fully Connected Pattern}
 \label{sec:fully-connected}
 
-We now consider the fully connected pattern: see
-Figure~\ref{fig:sum-symmetric}.  In this solution, each node sends its value
-to every other node, and each node calculates the sum using the values it
-receives.
+We now consider the fully connected pattern\index{fully connected topology}:
+see Figure~\ref{fig:sum-symmetric}.  In this solution, each node sends its
+value to every other node, and each node calculates the sum using the values
+it receives.
 
 %%%%%
 
@@ -274,7 +279,7 @@ each node~$i$ has a value for \SCALA{sum} such that:
 %
 \begin{eqnarray*}
 \sm{sum} & = & 
-  x_i + \sum \set{x_j \| \mbox{node~$j$'s value has been received by node~$i$}}.
+  x_i + \textstyle\sum \set{x_j \| \mbox{node~$j$'s value has been received by node~$i$}}.
 \end{eqnarray*}
 %
 Each node sends to each other node; and each node receives exactly $\sm n-1$
@@ -288,9 +293,8 @@ argument.
 
 %%%%%
 
-The above program suffers from contention.  
-Each \SCALA{sender} sends to the other nodes in order, starting from
-\SCALA{0}.  This means that:
+The above program suffers from contention.  Each node sends to the other nodes
+in order, starting from~\SCALA{0}.  This means that:
 %
 \begin{itemize}
 \item
@@ -312,8 +316,8 @@ from the one with identity one higher than itself:
 \end{scala}
 %
 If all the nodes proceed at the same speed, this is likely to avoid contention
-for the channels.  Of course, unfortunately scheduling might create
-contention; but this seems unlikely. 
+for the channels.  Of course, unfortunate scheduling might create
+contention; but this seems unlikely to be too bad. 
 
 %%%%%
 

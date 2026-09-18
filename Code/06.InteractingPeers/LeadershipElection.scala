@@ -70,7 +70,7 @@ object LeadershipElectionTest{
 
   var sel = "Simple"
 
-  def doTest = {
+  def doTest() = {
     val lr: LeadershipElection = 
       if(sel == "Peterson") new PetersonLeader
       else{ assert(sel == "Simple"); new SimpleLeaderRing }
@@ -91,7 +91,7 @@ object LeadershipElectionTest{
 
   def main(args: Array[String]) = {
     if(args.nonEmpty) sel = args(0)
-    for(i <- 0 until 10000){ doTest; if(i%100 == 0) print(".") }
+    for(i <- 0 until 10000){ doTest(); if(i%100 == 0) print(".") }
     println()
   }
 }

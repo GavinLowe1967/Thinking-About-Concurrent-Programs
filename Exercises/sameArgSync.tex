@@ -1,0 +1,140 @@
+\begin{question}
+A synchronisation object is required with the following signature
+%
+\begin{scala}
+class SameArgSync{
+  def sync(n: Int): Unit = ...
+  def shutdown: Unit = ...
+}
+\end{scala}
+%
+Each thread~$t$ that requires synchronisation should call~|sync(n)| for
+some~|n|.  That thread should synchronise with another thread that calls
+|sync| passing in the \emph{same} value for the parameter~|n|.  If there is no
+current thread for that value for~|n|, then the thread~$t$ should wait.  If a
+subsequent thread~$t'$ calls |sync| with the same value of~|n|, then both $t$
+and~$t'$ can return.  
+
+The |shutdown| operation should shut down the synchronisation object, as
+usual. 
+
+Implement this class, using the client-server pattern.  Hint: you might use an
+instance of |scala.collection.mutable.HashMap| inside the server, mapping
+values of~|n| to information about the corresponding thread.
+
+Test your code.  You will need to ensure that your testing system always
+terminates. 
+\end{question}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{answerI}
+My code is below.  Each client sends a reply channel, in the normal way.  The
+server maintains a map from values of |n| to the corresponding reply channel
+for calls of |sync| that have to wait. 
+%
+\begin{scala}
+/** A synchronisation object that allows a thread to synchronise with another
+  * thread that submits the same argument to `sync`. */
+class SameArgSync{
+  /** A reply channel. */
+  type ReplyChan = Chan[Unit]
+
+  /** Channel on which clients send messages to the server. */
+  private val toServer = new SyncChan[(Int, ReplyChan)]
+
+  /** Synchronise with another thread that submits `n`. */
+  def sync(n: Int) = {
+    val reply = new OnePlaceBuffChan[Unit]; toServer!((n, reply)); reply?()
+  }
+
+  private def server = thread("server"){
+    // Map holding pending requests
+    val map = new scala.collection.mutable.HashMap[Int, ReplyChan]()
+    repeat{
+      val (n, reply) = toServer?()
+      map.get(n) match{
+        case Some(r1) => map -= n; reply!(); r1!()
+        case None => map += n -> reply
+      }
+    }
+  }
+
+  fork(server)
+
+  def shutdown = toServer.close()
+}
+\end{scala}
+
+For testing, we need to ensure that each value of~|n| is used an even number
+of times.  As with earlier example, we arrange that each thread in the system
+calls |sync| just once, to avoid deadlocks.
+
+In order to test that corresponding calls really are synchronous, we arrange
+for each thread to write into a log, before and after the call of |sync|.  At
+the end, we traverse the log to check it is correct.  More precisely, the
+traversal keeps track of, for each~|n|: (1)~whether there is a blocked call
+to~|sync(n)|, and (2)~how many calls to~|sync(n)| may return.
+\begin{itemize}
+\item When the traversal encounters a call: (a)~if there is no corresponding
+  blocked call, then this call is blocked; (b)~if there is a corresponding
+  blocked call, then that call is unblocked, and both calls may return. 
+
+\item When the traversal encounters a return, it checks that such a return is
+  allowed, and decrements the count of allowed returns.
+\end{itemize}
+At the end of the traversal, all threads should have returned.  
+
+My code is below, explained by comments.
+%
+\begin{scala}
+object SameArgSyncTest{
+  val N = 10  // sync is called on values in the range £[0..N)£. 
+  val p = 10 // # workers in each test
+
+  // Events to be stored in the log
+  trait LogEvent
+  case class CallEvent(n: Int) extends LogEvent
+  case class ReturnEvent(n: Int) extends LogEvent
+
+  /** Worker that calls £sync(n)£, logging the calls. */
+  def worker(me: Int, sync: SameArgSync, log: Log[LogEvent], n: Int) = 
+    thread("worker"+me){
+      log.add(me, CallEvent(n)); sync.sync(n); log.add(me, ReturnEvent(n))
+    }
+
+  /** Do a single test. */
+  def doTest() = {
+    val sync = new SameArgSync; val log = new Log[LogEvent](p)
+    assert(p%2 == 0); val p2 = p/2   
+    val ns = Array.fill(p2)(Random.nextInt(N)) // £worker(i)£ will use £ns(i\%p2)£
+    run(|| (for(i <- 0 until p) yield worker(i, sync, log, ns(i%p2))))
+    checkLog(log.get); sync.shutdown
+  }
+
+  /** Check the contents of the log. */
+  def checkLog(log: Array[LogEvent]) = {
+    // Bit map indicating those £n£ for which a £sync(n)£ is pending
+    val pending = new Array[Boolean](N)
+    // Count of how many £sync(n)£s can return
+    val canReturn = new Array[Int](N)
+    for(i <- 0 until log.length){
+      log(i) match{
+        case CallEvent(n) => 
+          if(pending(n)){ pending(n) = false; canReturn(n) += 2 }
+          else pending(n) = true
+        case ReturnEvent(n) =>
+          assert(canReturn(n) > 0, log.take(i+1).mkString("\n"))
+          canReturn(n) -= 1
+      }
+    }
+    assert(pending.forall(_ == false) && canReturn.forall(_ == 0))
+  }
+
+  def main(args: Array[String]) = {
+    for(i <- 0 until 5000){ doTest(); if(i%100 == 0) print(".") }
+    println()
+  }
+}
+\end{scala}
+\end{answerI}

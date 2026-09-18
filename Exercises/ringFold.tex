@@ -14,7 +14,7 @@ for some given function $f$.
 Give your program the following signature (where $\sm{xs}(i) = x_i$, for
 each~$i$):
 %
-\begin{mysamepage}
+%\begin{mysamepage}
 \begin{scala}
 class RingFold[T](xs: Array[T], f: (T,T) => T, outs: Array[SyncChan[T]]){  
   private val n = xs.length
@@ -23,12 +23,12 @@ class RingFold[T](xs: Array[T], f: (T,T) => T, outs: Array[SyncChan[T]]){
   def apply(): ThreadGroup = ...
 }
 \end{scala}
-\end{mysamepage}
+%\end{mysamepage}
 %
 \noindent
 Or, if you use buffered channels of type |BuffChan|, you will need to write 
 \begin{scala}
-class RingFold1[T: scala.reflect.ClassTag] ...
+class RingFold[T: scala.reflect.ClassTag] ...
 \end{scala}
 %
 Each thread should output its final result on the appropriate |outs| channel.
@@ -53,7 +53,8 @@ We write $x_i$ for $\sm{xs}(i)$.  Define
 \mathrm{combine}~f~ \seq{x_0, x_1, x_2, \ldots, x_k} = 
   f(f(f(\ldots f(x_0, x_1), x_2) \ldots ), x_k),
 \]
-i.e.,~those elements combined together using~$f$.  
+i.e.,~those elements combined together using~$f$ (functional programmers will
+recognise this as a fold).  
 
 My code is below.  A single token is passed twice round the ring.  On the
 first cycle, the desired value is built up.  The node with identity~$me$ sends
@@ -70,7 +71,7 @@ class RingFold[T](xs: Array[T], f: (T,T) => T, outs: Array[SyncChan[T]]){
   require(n >= 2 && outs.length == n)
 
   /** The channels connecting nodes, indexed by the recipient's identity:
-    * node(i) receives on chans(i) and sends on chans((i+1)%n). */
+    * £node(i)£ receives on £chans(i)£ and sends on £chans((i+1)\%n)£. */
   private val chans = Array.fill(n)(new SyncChan[T]) 
 
   /** A single node. */
@@ -199,9 +200,10 @@ from~0), each node~$me$ sends the value
 %% xs[me-r..me] =
 %%   f(f(f(\ldots f(x_{me-r}, x_{me-r+1}), x_{me-r+2}) \ldots ), x_{me}),
 %% \]
-to node~$me+1$, where all indices are interpreted mod $n$.  The code has an
-invariant that at the start of round~$r$, the variable |y| holds the above value.
-%
+to node~$me+1$, where all indices are interpreted mod $n$. 
+%%  The code has an
+%% invariant that at the start of round~$r$, the variable |y| holds the above value.
+%% %
 After $\sm n-1$ rounds, each node~$me$ has the value
 \[\mstyle
 \mathrm{combine}~f~ \seq{x_{me-(n-1)}, x_{me-r+1}, x_{me-r+2} \ldots, x_{me}},
@@ -209,8 +211,10 @@ After $\sm n-1$ rounds, each node~$me$ has the value
 which equals  the desired final value by the assumption that $f$ is
 associative and commutative.
 
-The changes from the previous code are below.  The channels need to be
-buffered to avoid deadlocks, obviously.
+The changes from the previous code are below.  The code has an invariant that
+at the start of round~|r|,\, $\sm y = \mathrm{combine}
+\linebreak[1]\ f \linebreak[1]\ \seq{x_{\ss{me}-\ss{r}},  \ldots,
+  x_{\ss{me}}}$.  The channels need to be buffered to avoid deadlocks, obviously.
 %
 \begin{scala}
   private val chans = Array.fill(n)(new OnePlaceBuffChan[T]) 
@@ -253,5 +257,5 @@ buffered to avoid deadlocks, obviously.
 %
 The comment concerning |z| is justified by the fact that this value was sent
 by node~|me-1|, which is running the same protocol, and must have sent this
-value on its round |r| (since the channels are FIFO). 
+value on its round |r| (since the channels are first-in first-out). 
 \end{answerI}

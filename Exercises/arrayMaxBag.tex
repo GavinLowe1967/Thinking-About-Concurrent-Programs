@@ -1,0 +1,93 @@
+\begin{questionS}
+Write a concurrent program to find a maximum element in a large array~|a| of
+|Int|s, using the bag-of-tasks pattern.  Each task should correspond to
+finding the maximum in some segment of the array.  Give your code the
+following signature:
+%
+\begin{scala}
+class ArrayMax(a: Array[Int], numWorkers: Int, taskSize: Int){
+  require(a.nonEmpty && numWorkers > 0 && taskSize > 0)
+
+  def apply(): Int = ...
+}
+\end{scala}
+%
+where |numWorkers| is the number of workers, and |taskSize| is the number of
+elements in each task; the |apply| function returns the maximum. 
+
+Test your code.  
+
+Carry out some informal experiments to find a sensible size for each task.  
+\end{questionS}
+
+%%%%%%%%%%
+
+\begin{answerS}
+My answer is below.
+%
+\begin{scala}
+class ArrayMax(a: Array[Int], numWorkers: Int, taskSize: Int){
+  require(a.nonEmpty && numWorkers > 0 && taskSize > 0)
+
+  /** A £Task (l,r)£ represents the task of calculating the maximum of £a[l..r)£. */
+  type Task = (Int, Int)
+
+  /** Channel from the controller to workers. */
+  private val toWorkers = new BuffChan[Task](numWorkers)
+
+  /** Channel from the workers to the controller. */
+  private val toController = new BuffChan[Int](numWorkers)
+
+  /** A worker thread. */
+  private def worker = thread("worker"){
+    var myMax = Int.MinValue
+    repeat{
+      val (l,r) = toWorkers?()
+      for(i <- l until r) myMax = myMax max a(i)
+      }
+    toController!myMax
+  }
+
+  /** The maximum value so far. */
+  private var theMax = Int.MinValue
+
+  /** The controller. */
+  private def controller = thread{
+    // Distribute tasks.
+    var l = 0; val n = a.length
+    while(l < n){ val r = (l+taskSize) min n; toWorkers!(l,r); l = r } 
+    toWorkers.endOfStream()
+    // Receive workers' maxima, and combine, storing the result in £theMax£
+    for(_ <- 0 until numWorkers) theMax = theMax max toController?()
+  }
+
+  /** The system. */
+  private def system = 
+    controller || (|| (for (_ <- 0 until numWorkers) yield worker))
+
+  /** Find the maximum. */
+  def apply(): Int = { run(system); theMax }
+}
+\end{scala}
+
+I tested my code using the standard technique of generating random data, and
+comparing the result of the concurrent program with that from sequential
+code.  The following function performs a single test; the main testing program
+calls this many times.
+% 
+\begin{scala}
+  def doTest() = {
+    val a = Array.fill(1+Random.nextInt(1000))(Random.nextInt(Int.MaxValue))
+    val numWorkers = 1+Random.nextInt(20); val taskSize = 1+Random.nextInt(100)
+    val max = new ArrayMax(a, numWorkers, taskSize)()
+    assert(max == a.max, a.mkString(",")+s"\nmax = $max")
+  }
+\end{scala}
+
+I ran some informal experiments using an input array of size 10,000,000, and
+eight workers, repeated 100 times.  I found that a task size of about 40,000
+was best, taking around 9ms per array.  Using larger tasks (while still
+considerably smaller than the whole array) gave a similar running time.
+However, with a task size of 10,000, the running time was nearly twice as
+large, as the channel communication became a bottleneck.
+\end{answerS}

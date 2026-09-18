@@ -7,11 +7,13 @@ the range $\interval{0}{\sm n}$.  This might be the case in a distributed
 system, where the identities are MAC addresses or IP addresses.  Further, each
 node has ports with which it communicates with its neighbours in the ring.
 
-We want a protocol to elect one node as a leader (or controller) for
-subsequent computation.  More precisely, each node should end up with a
-boolean indicating whether it is the leader: the leader could then inform the
-others of its own identity, if that is required.  We will encapsulate
-solutions into classes with the following interface.
+We want a protocol to elect one node as a leader\index{leadership election}
+(or controller) for subsequent computation.  More precisely, each node should
+end up with a boolean indicating whether it is the leader: the leader could
+then inform the others of its own identity, if that is required.  We will
+encapsulate solutions into classes with the following interface, where a
+thread with identity~|id| receives ring messages on~|in|, and sends ring
+messages on~|out|. 
 %
 \begin{scala}
 trait LeadershipElection{
@@ -21,6 +23,7 @@ trait LeadershipElection{
 }
 \end{scala}
 %
+
 
 We will consider two protocols for this problem. 
 Note that there is no way to adapt the first ring protocol for the sum
@@ -109,7 +112,7 @@ class PetersonLeader extends LeadershipElection{
 
 The code is in Figure~\ref{fig:leadership2}.  In each round, some of the node
 are \emph{active}, and the remainder are \emph{relaying}: the active nodes are
-ones that are still candidates to become the election, while those relaying
+ones that are still candidates to become the leader, while those relaying
 simply pass on messages.  Initially all nodes are active.  Each active node
 has a \emph{temporary identity}~|tid|: this is one of the original identities,
 but each node's temporary identity changes from round to round.

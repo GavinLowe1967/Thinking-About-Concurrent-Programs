@@ -3,7 +3,7 @@ ROOT = ../tacp
 DIR = $(ROOT)/interactingPeers
 
 EXERCISES = $(DIR)/RingFold.class $(DIR)/AtomicBroadcast.class	\
-  $(DIR)/GridMaxTest.class
+  $(DIR)/GridMaxTest.class $(DIR)/Distribution.class
 
 all:   $(DIR)/SumTest.class $(DIR)/LeadershipElection.class $(DIR)/SpanningTree.class $(EXERCISES)
 

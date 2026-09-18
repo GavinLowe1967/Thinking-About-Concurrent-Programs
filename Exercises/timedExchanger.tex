@@ -1,0 +1,74 @@
+\begin{questionS}
+A \emph{timed exchanger} is like an exchanger, except if a client fails to
+exchange within a certain time, the operation can timeout and return an
+appropriate result.  Implement a timed exchanger, with the following
+signature, using the client-server pattern:
+%
+\begin{scala}
+class TimedExchanger[A](delay: Int){
+  def exchange(x: A): Option[A] = ...
+}
+\end{scala}
+%
+We arrange for the |exchange| operation to return an |Option[A]| value, with
+|Some(y)| indicating that |y| was received in the exchange, and |None|
+indicating that the exchange timed out.  The parameter |delay| indicates the
+(approximate) time in nanoseconds after which a timeout should occur.  Hint:
+in the server, use the |receiveWithinNanos| operation on a channel.
+
+Test your code.  It is enough to check that successful exchanges work
+correctly.  It is not necessary to test whether unsuccessful exchanges really
+should have been unsuccessful: given the possibility of delays at various
+points in the system, this isn't really feasible.  However, you should try to
+write your test program so that there is a reasonable mix of successful and
+unsuccessful cases, so as to cover both outcomes. 
+\end{questionS}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{answerS}
+Most of the code is the same as in Figure \ref{fig:exchanger}, so we omit it.
+The type |ReplyChan| is changed to deal with |Option| values.  The definition
+of the server follows the hint in the question, dealing with the two possible
+outcomes in obvious ways.
+%
+\begin{scala}
+  private type ReplyChan = OnePlaceBuffChan[Option[A]]
+
+  private def server = thread("Exchanger"){
+    repeat{
+      val (x1, c1) = toServer?()
+      toServer.receiveWithinNanos(delay) match{
+        case Some((x2, c2)) => c1!Some(x2); c2!Some(x1) 
+        case None => c1!None // exchange failed.
+      }
+    }
+  }
+\end{scala}
+
+The code to perform a single test is below, and is very similar to that in
+Section~\ref{sec:exchanger}.
+%
+\begin{scala}
+  def doTest() = {
+    val n = scala.util.Random.nextInt(20); val results = new Array[Option[Int]](n)
+    val exchanger = new TimedExchanger[Int](8000)
+    def worker(me: Int) = thread(s"worker($me)"){ 
+      val x = exchanger.exchange(me); results(me) = x 
+    }
+    run(|| (for(i <- 0 until n) yield worker(i)))
+    for(i <- 0 until n) results(i) match{
+      case Some(x) => assert(x != i && results(x) == Some(i)) 
+      case None => {}
+    }
+    // println(results.count(_.isEmpty).toString+"/"+n)
+    exchanger.shutdown()
+  }
+\end{scala}
+%
+The commented-out |println| statement gives the number of exchanges that
+failed, and the total number.  With the timeout of 8000~ns, around half are
+unsuccessful (on my machine).  Pseudo-random variations in the time taken for
+workers to start mean that some are unable to exchange.
+\end{answerS}

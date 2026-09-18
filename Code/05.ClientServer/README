@@ -16,3 +16,6 @@ MenWomenTest.scala: Test for the above and other implementations of the
 problem.
 
 AtomicBroadcast.scala: Atomic broadcast object (Exercise).
+
+SameArgSync.scala: Synchronisation object where threads synchronise with a
+thread that passes in the same value.

@@ -12,7 +12,7 @@ The aim of this question is to consider a technique for determining whether
 all the threads are passive, in which case the system can terminate.
 
 \begin{enumerate}
-\item Consider the following scheme.  Thread~0, when it is passive, sends a
+\item Consider the following scheme.  Thread~$0$, when it is passive, sends a
 token to thread~1, containing a boolean value, initially $true$.  Each
 thread~$k$, when it receives a token of this form, sends a similar token to
 thread~$(k+1) \bmod N$, so the token circulates, as if the threads are
@@ -20,7 +20,7 @@ arranged in a ring; note, though that other messages don't need to follow the
 ring.  Thread~$k$ sets the value in the token to be $false$ if it is active,
 or passes on the value it receives if it is passive; in each case, the thread
 retains its previous status (active or passive).  When the token returns to
-thread~0, if its value is $true$, it assumes that all threads are passive,
+thread~$0$, if its value is $true$, it assumes that all threads are passive,
 so sends a message to all threads telling them to terminate.
 
 Explain why this scheme does \emph{not} achieve the desired goal.
@@ -40,8 +40,8 @@ appropriate circumstances.
 %%%%%
 
 \item
-Now suppose the normal messages do follow the ring topology.  Describe how to
-adapt the scheme so that it achieves the desired goal. 
+Now suppose the normal messages \emph{do} follow the ring topology.  Describe
+how to adapt the scheme so that it achieves the desired goal.
 
 % \item
 % Does it make a difference if the channels are asynchronous (i.e.~buffered)? 
@@ -65,7 +65,7 @@ threads are passive, even though thread~1 is active.
 \item Arrange for the token to go round the ring \emph{twice} (with some field
 indicating whether it is on its first or second circuit).  On the second
 circuit, each thread sets the boolean to be $false$ if it has been active at
-any time since it saw the token the first time.
+\emph{any} time since it saw the token the first time.
 
 Consider the time~$t$ at which the token first returns to thread~0.  If any
 thread is active at time~$t$, then it will subsequently set the boolean to
@@ -84,17 +84,17 @@ terminate, under the stated conditions.
 %%%%%
 
 \item Arrange for the termination messages and the data messages to go round
-the ring in the same direction.  Sending the token only once round the ring is
-now sufficient: thread~0 can choose to terminate provided the boolean comes
-back as $true$ and it has been continually passive since initiating the token.
-The following property is invariant: if thread~0 remains passive, and the
-boolean in the token is still $true$, then all threads between~0 and the
-current token-holder are passive.
+  the ring in the same direction.  Sending the token only once round the ring
+  is now sufficient: thread~$0$ can choose to terminate provided the boolean
+  comes back as $true$ and it has been continually passive since initiating
+  the token.  The following property is invariant: if thread~$0$ remains
+  passive, and the boolean in the token is still $true$, then all threads
+  between~$0$ and the current token-holder are passive.
 
 \emph{Alternatively} send the termination messages round the ring in the
 \emph{opposite} direction, i.e.~node~$i$ sends the termination token to
 node ${(i-1)} \bmod N$.   The following property is invariant: if thread~$i$
-sends the token with value $true$, then all threads in the range $[i ..
-N-1) \union \set{0}$ are passive.
+sends the token with value $true$, then all threads in the range
+$\interval{i}{N-1} \union \set{0}$ are passive. 
 \end{enumerate}
 \end{answerI}

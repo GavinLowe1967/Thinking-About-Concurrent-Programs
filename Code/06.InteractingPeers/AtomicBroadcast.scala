@@ -64,7 +64,7 @@ object AtomicBroadcastTest{
     }
   }
 
-  def doTest = {
+  def doTest() = {
     val n = 2+Random.nextInt(20); val ab = new AtomicBroadcast[Int](n)
     val log = new Log1(n+1)
     val receivers = || (for(i <- 0 until n) yield receiver(i, ab, log))
@@ -73,7 +73,7 @@ object AtomicBroadcastTest{
   }
 
   def main(args: Array[String]) = {
-    for(i <- 0 until 5000){ doTest; if(i%50 == 0) print(".") }
+    for(i <- 0 until 5000){ doTest(); if(i%50 == 0) print(".") }
     println()
   }
 

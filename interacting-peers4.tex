@@ -7,9 +7,10 @@ that the graph is disconnected: it might not be possible to find a path from
 one node to another.
 
 One of the nodes is designated as a controller.  We want to find which other
-nodes are reachable from the controller, and to find a spanning tree for them,
-i.e.~a collection of edges that connect those nodes, without any cycles.  This
-spanning tree could be used subsequently to distribute messages.
+nodes are reachable from the controller, and to find a spanning
+tree\index{spanning tree} for them, i.e.,~a collection of edges that connect
+those nodes, without any cycles.  This spanning tree could be used
+subsequently to distribute messages.
 
 %%%%%
 
@@ -60,9 +61,9 @@ predecessor~|p|, the edge from~|p| to~|n| will be included in the spanning
 tree.  Node~|n| tries to continue the tree by sending a message |Start(n)| to
 each of its neighbours except~|p|.  Each of those nodes reacts in a similar
 way: if this is the first |Start| message it has received, it tries to grow
-the tree further.  When it has grown the tree as much as possible, it returns
-a message |Finished(edges)| to~|n|, where |edges| is the list of edges in the
-subtree it has formed.  Node~|n| then accumulated all such subtrees and
+the tree further.  When that node has grown the tree as much as possible, it
+returns a message |Finished(edges)| to~|n|, where |edges| is the list of edges
+in the subtree it has formed.  Node~|n| then accumulates all such subtrees and
 returns the result to its predecessor~|p|.
 
 \smallskip
@@ -97,14 +98,17 @@ the edge between them is not included in the spanning tree.
 \smallskip
 
 More generally, each node ignores every |Start| message it receives other than
-the first (but it won't expect a subsequent |Finished| message).  If node |n1|
+the first.  
+% (but it won't expect a subsequent |Finished| message).  
+If node |n1| has previously received a |Start| message, and subsequently
 receives a message |Start(n2)| from |n2|, then previously it sent a message
-|Start(n1)| to~|n2|, which |n2| will also ignore.  The edge between |n1|
-and~|n2| will not be included in the spanning tree, since both nodes will be
-connected to the initiator~|0| by other edges, so that edge would erroneously
-create a cycle.
+|Start(n1)| to~|n2|, which |n2| will also ignore.  In this case, neither |n1|
+nor |n2| will reply to the other with a |Finished| message.  The edge between
+|n1| and~|n2| will not be included in the spanning tree, since both nodes will
+be connected to the initiator~|0| by other edges, so that edge would
+erroneously create a cycle.
 
-The above example also illustrated that the system needs to use buffered
+The above example also illustrates that the system needs to use buffered
 channels.  If we used synchronous channels in the above scenario, then when
 nodes~|1| and~|2| try to send a message to each other, the system would
 deadlock.  It is enough to use one-place buffered channels, since at most a
@@ -173,8 +177,9 @@ A node other than node~|0| starts (from line~\ref{line:waiting}) by waiting to
 receive a |Start| message, recording the identity and index of its
 predecessor.  (We explain the use of the |attempt| construct below.)
 
-The node then sends a |Start| message to each of its neighbours in the graph
-other than its predecessor (line~\ref{line:sending}).  
+Each node (including the initiator, node~|0|) then sends a |Start| message to
+each of its neighbours in the graph other than its predecessor
+(line~\ref{line:sending}).
 
 Next, the node waits (from line~\ref{line:receiving}) to receive |Finished|
 messages from those nodes.  It accumulates the edges of the subtree in the
@@ -242,7 +247,7 @@ variable.
 
 \begin{figure}
 \begin{scala}
-  def doTest = {
+  def doTest() = {
     val n = 2+Random.nextInt(10); val adjacency = Array.ofDim[Boolean](n,n)
     for(i <- 0 until n; j <- 0 until i; if Random.nextDouble() <= 0.3){ 
       adjacency(i)(j) = true; adjacency(j)(i) = true 
@@ -278,8 +283,14 @@ this can be repeated many times.  It chooses the number~|n| of nodes randomly,
 and then constructs a random graph where there is an edge between nodes~|i|
 and |j| (for $\sm i \ne \sm j$) with probability $0.3$.  It then uses the
 spanning tree program to construct a purported spanning tree.  It then checks
-the correctness of the result.  It traverses the list of edges, calculating
-(using bitmap |reached|) which nodes are reached by the tree, and checks that
-each edge joins a node already seen to a node not previously seen, and that
-each such edge is an edge in the original graph.  Finally, it checks
-that no further nodes could have been reached.
+the correctness of the result.  It starts by checking that the result really
+does represent a tree: it traverses the list of edges, calculating (using
+bitmap |reached|) which nodes are reached by the tree, and checks that each
+edge joins a node already seen to a node not previously seen, and that each
+such edge is an edge in the original graph.  Finally, it checks that no
+further nodes could have been reached, i.e.~that the result does span all the
+reachable nodes.
+
+\begin{instruction}
+Make sure you understand the program and the testing code.
+\end{instruction}
