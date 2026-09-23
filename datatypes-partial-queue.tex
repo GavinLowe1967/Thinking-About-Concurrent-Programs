@@ -4,21 +4,21 @@
 In previous sections, we considered a total concurrent queue that returns
 |None| if |dequeue| is called when the queue is empty.  
 %
-An alternative is to block that thread until there is a value to be dequeued.
-This gives a partial queue, with the interface given by |PartialQueue| in
-Figure~\ref{fig:partial-queue}.  It is worth noting that if the queue is empty
-and all threads are attempting a dequeue, the system will deadlock; we will
-return to this point later.
+An alternative is to block that operation until there is a value to be
+dequeued.  This gives a partial queue, with the interface given by
+|PartialQueue| in Figure~\ref{fig:partial-queue}\index{partial queue}.  Note
+that if the queue is empty and all threads are attempting a dequeue, the
+system will deadlock; we will return to this point later.
 
 %%%%%
 
 \begin{figure}
 \begin{scala}
 trait PartialQueue[T]{
-  /** Enqueue x. */
+  /** Enqueue £x£. */
   def enqueue(x: T): Unit
 
-  /** Dequeue a value.  Blocks until the queue is non-empty. */
+  /** Dequeue a value.  Blocks until the queue is nonempty. */
   def dequeue(): T
 
   /** Shut down the queue. */
@@ -57,7 +57,7 @@ class ServerPartialQueue[T] extends PartialQueue[T]{
 Figure~\ref{fig:partial-queue} also contains an implementation that uses a
 server thread internally.  The main point of interest here is that the |serve|
 uses a guard on the dequeuing branch that allows dequeues only when the queue
-is non-empty. 
+is nonempty. 
 
 \begin{instruction}
 Study the details of the implementation.
@@ -65,9 +65,10 @@ Study the details of the implementation.
 
 %%%%%
 
-We can test the partial queue for linearizability, much as for the total
-queue.  Figure~\ref{fig:partial-queue-lin-tester} includes the main parts.
-Again, we can use an immutable queue as the sequential specification object.
+We can test the partial queue for linearizability\index{linearizability
+testing}, much as for the total queue.
+Figure~\ref{fig:partial-queue-lin-tester} includes the main parts.  Again, we
+can use an immutable queue as the sequential specification object.
 
 %%%%%
 
@@ -116,7 +117,8 @@ do this is to include a |require| statement (see Section~\ref{sec:scala-core})
 in the corresponding sequential operation~|seqDequeue|.  This will throw an
 |IllegalArgumentException| when the precondition does not hold.  Internally,
 the linearizability tester catches this exception, but does not allow the
-|dequeue| to be linearized at this point.
+|dequeue| to be linearized at this point.  Thus the |require| statement
+captures the precondition. 
 
 As noted earlier, a partial queue can deadlock if it gets into a state where
 the queue is empty and all the threads are attempting a |dequeue|.  To avoid
@@ -136,7 +138,7 @@ A better approach would be for the server to detect such a state, and react
 accordingly.  We choose to terminate the queue in this case.  We arrange for
 the |dequeue| operation to return an |Option| result, with |None| used to
 indicate the termination case (an alternative would be to throw a |Closed|
-exception).
+exception).\index{terminating partial queue}
 
 In order to do this, the server needs to know how many threads are attempting
 a |dequeue|.  That means we can't just block the |dequeueChan| channel when
@@ -257,9 +259,9 @@ claimed invariant is maintained.
 
 %%%%%%%%%%
 
-We can apply linearizability testing to the terminating partial queue.
-Figure~\ref{fig:terminating-queue-tester} gives the main parts; other parts
-are standard. 
+We can apply linearizability testing\index{linearizability testing} to the
+terminating partial queue.  Figure~\ref{fig:terminating-queue-tester} gives
+the main parts; other parts are standard.
 
 %%%%%
 
@@ -280,7 +282,7 @@ are standard.
   /** Sequential dequeue. */
   def seqDequeue(oq: SeqQueue) : (Option[Int], SeqQueue) = oq match{
     case Some(q) => 
-      if(q.nonEmpty){ val(x,q1) = q.dequeue; (Some(x), Some(q1)) } 
+      if(q.nonEmpty){ val (x,q1) = q.dequeue; (Some(x), Some(q1)) } 
       else (None, None) // Enter termination state. 
     case None => (None, None) // Already terminated.
   }
@@ -316,20 +318,31 @@ In each state, the terminating partial queue is either still running, or it
 has reached the termination point.  The type of sequential specification
 objects needs to reflect this.  We choose to do this using an |Option| value,
 with a value |Some(q)| representing a queue that has not yet terminated with
-contents~|q|, and |None| representing a queue that has terminated.  The
-function |seqEnqueue| is the enqueue operation on the sequential specification
-type: this can't happen when the queue is terminated.  Likewise, the function
-|seqDequeue| is the dequeue operation on the specification object: if this
-happens when the queue is empty, it enters the termination state.
+contents~|q|, and |None| representing a queue that has terminated.  
+
+The function |seqEnqueue| is the enqueue operation on the sequential
+specification object.  The definition is straightforward when the queue is not
+terminated.  However, we should not reach a state where an |enqueue| is
+attempted once the queue has terminated: this would represent a bug in our
+testing code, so we throw an exception.
+
+Likewise, the function |seqDequeue| is the dequeue operation on the
+specification object.  The definition is straightforward when the queue has
+not terminated and is nonempty.  If a |dequeue| happens when the queue is
+empty, we treat this as the termination point, so the |dequeue| returns
+|None|, and the specification object enters the terminated state.
+Subsequently, other |dequeue|s also return |None|, and the specification
+object remains in the terminated state.
 
 Each worker repeatedly enqueues with probability~$0.3$, and otherwise
-dequeues.  It terminates when a dequeue returns |None|.  The expression
+dequeues.    The expression 
 \begin{scala}
   q => {val res = q.dequeue(); done = (res == None); res}
 \end{scala}
-is a function that takes a terminating partial queue~|q|, and returns the
-result of |q.dequeue()|, but has the side effect of setting |done| to true
-if this result is |None|, which causes the worker to terminate.  
+is an anonymous function (see Section~\ref{sec:scala-misc}) that takes a
+terminating partial queue~|q|, and returns the result of |q.dequeue()|, but
+has the side effect of setting |done| to true if this result is |None|.  Thus
+the worker terminates when |None| is received from a |dequeue|.
 
 This tester doesn't quite capture the property we require, in particular, that
 the queue terminates only in the correct state.  It would allow a history of a

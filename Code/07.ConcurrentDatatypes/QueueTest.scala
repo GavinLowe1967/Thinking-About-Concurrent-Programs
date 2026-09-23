@@ -33,7 +33,7 @@ object QueueTest{
       else log(_.dequeue(), "dequeue", seqDequeue)
   }
 
-  def doTest = {
+  def doTest() = {
     // The shared concurrent queue
     val concQueue: TotalQueue[Int] = queueType match{
       case "server" => new ServerTotalQueue[Int]
@@ -64,7 +64,7 @@ object QueueTest{
       case arg => println("Unrecognised argument: "+arg); sys.exit()
     }
 
-    for(r <- 0 until reps){ doTest; if(r%50 == 0) print(".") }
+    for(r <- 0 until reps){ doTest(); if(r%50 == 0) print(".") }
     println()
   }
 }

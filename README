@@ -47,7 +47,8 @@ Chapter 12: Semaphores:
 
 Appendices
 
-- Scala -- TODO: import, equality, hash codes.  API documentation.
+- Scala -- TODO: import, equality, hash codes.  API documentation; infix
+  operators.
 
 - Experiments -- improve
 
@@ -57,6 +58,8 @@ Appendices
 --------------
 
 TO DO
+
+Extra index entries corresponding to examples.
 
 Check capitals in comments.
 

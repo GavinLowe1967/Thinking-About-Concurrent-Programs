@@ -118,7 +118,7 @@ Thus the |dequeue| operation could be written more succinctly as:
 \end{scala}
 
 It is tempting to write the |enqueue| operation as follows, so that only an
-|enqueue| that makes the queue non-empty signals.
+|enqueue| that makes the queue nonempty signals.
 %
 \begin{scala}
   def enqueue(x: T) = lock.mutex{ // £\emph{This doesn't work!}£
@@ -172,7 +172,7 @@ class BoundedMonitorPartialQueue[T](bound: Int) extends PartialQueue[T]{
     notEmpty.signal() // Signal to a waiting dequeue at (2).
   }
 
-  /** Dequeue a value.  Blocks until the queue is non-empty. */
+  /** Dequeue a value.  Blocks until the queue is nonempty. */
   def dequeue(): T = lock.mutex{
     notEmpty.await(queue.nonEmpty) // Wait for a signal (2).
     val result = queue.dequeue()

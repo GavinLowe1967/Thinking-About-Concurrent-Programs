@@ -79,7 +79,7 @@ object SetTest{
     }
   }
 
-  def doTest = {
+  def doTest() = {
     val concSet = new ServerConcSet[Int]; val seqSet = new S
     val tester = LinearizabilityTester[S, C](seqSet, concSet, 4, worker)
     if(tester() <= 0) sys.exit()
@@ -88,7 +88,7 @@ object SetTest{
 
   // The main method
   def main(args: Array[String]) = {
-    for(i <- 0 until reps){ doTest; if(i%10 == 0) print(".") }
+    for(i <- 0 until reps){ doTest(); if(i%10 == 0) print(".") }
     println()
   }
 }

@@ -27,8 +27,8 @@ or the A$^*$ Algorithm.
 
 In this section we will examine a concurrent algorithm to search a graph for a
 node with a particular property, using approximate breadth-first search.
-Exercise~\ref{ex:dfs} asks you to implement approximate concurrent
-depth-first search.
+Exercise~\ref{ex:dfs} asks you to implement a concurrent algorithm for
+approximate depth-first search.
 
 We define a graph as an implementation of the trait |Graph[N]| in
 Figure~\ref{fig:graph}.  The type parameter~|N| represents nodes.  The
@@ -134,8 +134,8 @@ Make sure you understand the sequential implementation of breadth-first search.
 
 %%%%%
 
-We now consider a concurrent algorithm.  Each worker thread  executes very
-much as in the main loop of the sequential algorithm.
+We now consider a concurrent algorithm.  Each worker thread behaves very much
+as in the main loop of the sequential algorithm.
 
 The workers share a concurrent queue, in particular a
 |Terminating|\-|Partial|\-|Queue|.  If the graph has no reachable
@@ -212,7 +212,7 @@ class ConcGraphSearch[N](g: Graph[N], numWorkers: Int)
           }
         }
         pathFound.close() // Causes coordinator to close down.
-      }
+      } // End of £worker£.
 
       def coordinator = thread("coordinator"){
         attempt{ result = Some(pathFound?()) }{ }
@@ -223,7 +223,7 @@ class ConcGraphSearch[N](g: Graph[N], numWorkers: Int)
       run(workers || coordinator)
       result
     }
-  }
+  } // End of £apply£.
 }
 \end{scala}
 \caption{The concurrent graph search algorithm.}
@@ -250,7 +250,7 @@ catches this.  The controller then shuts down the queue: if it did indeed
 receive a path, this will cause the other workers to terminate.  It also shuts
 down the |seen| set, to allow its server to terminate.  In addition, it closes
 |pathFound|: this is necessary in the case that a second worker thread has
-found a solution and it trying to sent it to the controller.
+found a solution and it trying to send it to the controller.
 
 The workers and the controller are run in parallel.  When the system
 terminates, the value in |result| is returned.
@@ -259,22 +259,22 @@ terminates, the value in |result| is returned.
 Study the details of the implementation.
 \end{instruction}
 
-It is worth emphasising that the use of concurrent datatypes has simplified
+It is worth emphasising how the use of concurrent datatypes has simplified
 the implementation.  Most of the concurrency is dealt with inside those
 datatypes.  As a result, much of the code is similar to as in the sequential
 case.  However, dealing with termination is an exception, for which we had to
 come up with a suitable strategy: most of the complexity of dealing with
-termination comes from the fact that there are two different ways
+termination in this case comes from the fact that there are two different ways
 in which the search can terminate, corresponding to successful and
-unsuccessful searches. 
+unsuccessful searches.
 
 The implementation doesn't quite achieve breadth-first search.  The set of
-nodes at a particular distance from the start node is known as a \emph{ply}.
-A true breadth-first search would expand nodes in ply order.  However, with
-our implementation, if a thread is delayed, deeper nodes might be expanded
-before a node from an earlier ply.  This might mean that the path that is
-found isn't the shortest.  In many cases, this won't matter much.  If true
-breadth-first behaviour is needed, the threads can performs a global
+nodes at a particular distance from the start node is known as a
+\emph{ply}\index{ply}.  A true breadth-first search would expand nodes in ply
+order.  However, with our implementation, if a thread is delayed, deeper nodes
+might be expanded before a node from an earlier ply.  This might mean that the
+path that is found isn't the shortest.  In many cases, this won't matter much.
+If true breadth-first behaviour is needed, the threads can performs a global
 synchronisation at the end of each ply; we will explore this approach in
 Section~\ref{sec:sync-BFS}.
 

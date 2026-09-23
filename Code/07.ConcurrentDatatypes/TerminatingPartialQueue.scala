@@ -99,7 +99,7 @@ object TerminatingPartialQueueTest{
     * termination state. */
   def seqDequeue(oq: SeqQueue) : (Option[Int], SeqQueue) = oq match{
     case Some(q) => 
-      if(q.nonEmpty){ val(x,q1) = q.dequeue; (Some(x), Some(q1)) } 
+      if(q.nonEmpty){ val (x,q1) = q.dequeue; (Some(x), Some(q1)) } 
       else (None, None)
     case None => (None, oq)
   }
@@ -118,7 +118,7 @@ object TerminatingPartialQueueTest{
     }
   }
 
-  def doTest = {
+  def doTest() = {
     val p = 4 // Number of workers.
     val concQueue = new ConcQueue(p); val seqQueue = Some(Queue[Int]())
     val tester =
@@ -140,7 +140,7 @@ object TerminatingPartialQueueTest{
       case arg => println("Unrecognised argument: "+arg); sys.exit()
     }
 
-    for(r <- 0 until reps){ doTest; if(r%50 == 0) print(".") } 
+    for(r <- 0 until reps){ doTest(); if(r%50 == 0) print(".") } 
     println()
   }
 

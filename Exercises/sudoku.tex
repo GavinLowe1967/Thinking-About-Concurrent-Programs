@@ -5,10 +5,26 @@ website includes a program that makes use of this depth-first search in order
 to solve sudoku problems.
 
 We will deal with graphs from the trait |Graph[T]| from the body of this
-chapter.  We will consider a search algorithm implementing the following
-abstract class.
+chapter.  We will consider a search algorithm implementing the abstract class
+|DFGraphSearch| in Figure~\ref{fig:dfs-seq}.
 %
-%\begin{mysamepage}
+%% %\begin{mysamepage}
+%% \begin{scala}
+%% /** Encapsulation of depth-first search in £g£. */
+%% abstract class DFGraphSearch[N](g: Graph[N]){
+%%   /** Perform a depth-first search in £g£, starting from £start£, for a node that
+%%     * satisfies £isTarget£.  */
+%%   def apply(start: N, isTarget: N => Boolean): Option[N] 
+%% }
+%% \end{scala}
+%\end{mysamepage}
+%
+Note that the |apply| method simply returns a node, rather than a path to a
+node: this is enough for the application to sudoku problems.
+
+%%%%% 
+
+\begin{figure}
 \begin{scala}
 /** Encapsulation of depth-first search in £g£. */
 abstract class DFGraphSearch[N](g: Graph[N]){
@@ -16,22 +32,7 @@ abstract class DFGraphSearch[N](g: Graph[N]){
     * satisfies £isTarget£.  */
   def apply(start: N, isTarget: N => Boolean): Option[N] 
 }
-\end{scala}
-%\end{mysamepage}
-%
-Note that the |apply| method simply returns a node, rather than a path to a
-node: this is enough for the application to sudoku problems.
 
-Figure~\ref{fig:dfs-seq} gives code for sequential depth-first search, using a
-stack.  This
-version does not keep track of nodes seen previously: there is no need in our
-program to solve sudoku problems, since the same node will not be encountered
-twice. 
-
-%%%%% 
-
-\begin{figure}
-\begin{scala}
 class SeqDFGraphSearch[N](g: Graph[N]) extends DFGraphSearch[N](g){
   def apply(start: N, isTarget: N => Boolean): Option[N] = {
     val stack = new scala.collection.mutable.Stack[N](); stack.push(start)
@@ -45,9 +46,14 @@ class SeqDFGraphSearch[N](g: Graph[N]) extends DFGraphSearch[N](g){
   }
 }
 \end{scala}
-\caption{Sequential depth-first search.}
+\caption{Depth-first search, and a sequential implementation.}
 \label{fig:dfs-seq}
 \end{figure}
+
+Figure~\ref{fig:dfs-seq} also gives code for sequential depth-first search,
+using a stack.  This version does not keep track of nodes seen previously:
+there is no need in our program to solve sudoku problems, since the same node
+will not be encountered twice.
 
 %%%%%
 
@@ -110,7 +116,7 @@ class TerminatingPartialStack[A](numWorkers: Int){
     // Reply channels for current £pop£ attempts.
     val waiters = new Queue[ReplyChan]() 
     var done = false
-    // Main loop.  Invariant: stack.isEmpty or waiters.isEmpty.
+    // Main loop.  Invariant: £stack.isEmpty£ or £waiters.isEmpty£.
     serve(!done)(
       pushChan =?=> { x => 
         if(waiters.nonEmpty){ // Pass £x£ directly to a waiting £pop£

@@ -1,11 +1,11 @@
-A \emph{concurrent datatype} is a datatype, for example, a queue, stack, set
-or mapping, that can be safely accessed concurrently by multiple threads.
-Operation executions should appear to take place in a one-at-a-time order,
-without interference.
+A \emph{concurrent datatype}\index{concurrent datatype} is a datatype, for
+example, a queue, stack, set or mapping, that can be safely accessed
+concurrently by multiple threads.  Operation executions should appear to take
+place in a one-at-a-time order, without interference.
 
-Threads that use the concurrent datatype can act much as they would with a
-sequential datatype: the implementer of the threads does not need to think
-much about concurrency.  
+Threads can use the concurrent datatype much as they would with a sequential
+datatype: the implementer of the threads does not need to think much about
+concurrency.
 
 The implementer of the concurrent datatype \emph{does} have to think about
 concurrency, and ensure different operation calls do not interfere with one
@@ -13,12 +13,13 @@ another.  But that concurrency is local, often inside a single object: local
 reasoning is much easier than global reasoning.  And there's a lot of scope
 for re-using concurrent datatypes.
 
-Datatype-based concurrent programming encapsulates all, or nearly all, the
+\emph{Datatype-based concurrent programming}\index{datatype-based concurrent
+programming}  encapsulates all, or nearly all, the
 concurrency within a small number of concurrent datatypes.
 
 As mentioned in Chapter~\ref{chap:clientServer}, operations on concurrent
-objects can be either \emph{total}, i.e.~able to be performed in an arbirary
-state, or \emph{partial}, i.e.~where the operation blocks if a precondition
+objects can be either \emph{total}, i.e.,~able to be performed in an arbitrary
+state, or \emph{partial}, i.e.,~where the operation blocks if a precondition
 does not hold.  The terms total and partial also apply to concurrent
 datatypes.
 
@@ -74,12 +75,13 @@ such as:
 \end{scala}
 
 However, this won't work with multi-threaded code: thread~$t$ might check that
-the queue is non-empty; but then other threads might empty the queue before
+the queue is nonempty; but then other threads might empty the queue before
 $t$ attempts the |dequeue|, at which point the precondition is violated.  This
-is a time-of-check to time-of-use (TOCTTOU) problem: there is a delay between
-the thread checking the relevant precondition and performing the operation that
-depends upon it, during  which the precondition becomes false; several
-exercises in Chapter~\ref{chap:intro} considered the same issue.
+is a \emph{time-of-check to time-of-use}\index{time-of-check to time-of-use}
+(TOCTTOU) problem: there is a delay between the thread checking the relevant
+precondition and performing the operation that depends upon it, during which
+the precondition becomes false; several exercises in Chapter~\ref{chap:intro}
+considered the same issue.
 
 We saw in Chapter~\ref{chap:clientServer} that there are two main ways of
 dealing with operations that have a non-trivial precondition.  One way is to
@@ -87,18 +89,18 @@ return a special value to indicate that the precondition does not hold.  In
 Scala, it is natural to use an |Option| value, with |None| indicating that the
 precondition does not hold.  In some circumstances, it might be appropriate
 (and more efficient) to use |null| for this, if |null| can never be returned
-when the precondition does hold.  An alternative is for the operation to throw
-an exception, and expect the thread to catch it.  Recall that operations that
-treat preconditions in this way are called \emph{total}: they can take effect
-in any state.
+when the precondition does hold.  Another alternative is for the operation to
+throw an exception, and expect the thread to catch it.  Recall that operations
+that treat preconditions in this way are called \emph{total}: they can take
+effect in any state.
 
 %% The other way to deal with the case that the precondition does not hold is to
 %% block the thread until the precondition becomes true.  Such operations are
 %% called \emph{partial}.
 
-We implement a total concurrent queue, with the following interface,
-where the |dequeue| operation returns an |Option| type, with |None| used to
-indicate am empty queue. 
+We implement a total concurrent queue,\index{total queue} with the following
+interface, where the |dequeue| operation returns an |Option| type, with |None|
+used to indicate am empty queue.
 %
 %\begin{mysamepage}
 \begin{scala}
@@ -111,7 +113,7 @@ trait TotalQueue[T]{
   def dequeue(): Option[T]
 
   /** Shut down the queue. */
-  def shutdown: Unit = {}
+  def shutdown(): Unit = {}
 }
 \end{scala}
 %\end{mysamepage}
@@ -128,10 +130,10 @@ code such as:
 Figure~\ref{fig:total-queue-server} gives a straightforward implementation of
 a total queue that encapsulates a server.  But we could also implement the
 queue using one of the techniques we'll see later in the course.  The server
-stores the queue itself (using a |Queue| from the Scala API).  Clients use
-channels to cause the server to enqueue and dequeue values.  Note that the
-server handles operations in a one-at-a-time way, preventing operations from
-interfering with one another.  
+stores the queue itself (using a mutable |Queue| from the Scala API)\@.
+Clients use channels to cause the server to enqueue and dequeue values.  Note
+that the server handles operations in a one-at-a-time way, preventing
+operations from interfering with one another.
 
 
 %%%%%

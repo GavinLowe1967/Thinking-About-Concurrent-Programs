@@ -3,19 +3,22 @@
 We now consider how we can test whether the implementation of a total
 concurrent queue from Section~\ref{sec:total-queue} is linearizable, and more
 generally, how we can test other implementations of concurrent datatypes for
-linearizability.
+linearizability.\index{testing}\index{linearizability testing}
 
-The basic idea is as follows. We run some threads on the concurrent datatype,
-performing random operations, and record the history of operation calls and
-returns.  We then search for a corresponding sequential history that explains
-linearizability, and that is a valid history for the corresponding sequential
-datatype.  If none is found, we signal an error.  We can repeat this procedure
-many times.
+The basic idea is as follows. We run some worker threads on the concurrent
+datatype, performing random operations, and record the history of operation
+calls and returns.  We then search for a corresponding sequential history that
+explains linearizability, and that is a valid history for the corresponding
+sequential datatype.  If none is found, we signal an error.  We can repeat
+this procedure many times.
 
 Algorithms for searching for the corresponding sequential history have been
 investigated by Wing and Gong~\cite{wing-gong}, and by
 me~\cite{gavin:lin-testing}.  The SCL library includes the latter, which can
-be used without understanding the underlying algorithms. 
+be used without understanding the underlying algorithms.  The linearisability
+testing framework encapsulates most of the boiler-plate code involved in the
+testing: the programmer only has to provide the essentials, the sequential
+specification object and  the worker threads.
 
 Figure~\ref{fig:queue-lin-tester} gives a stripped-down testing script for a
 concurrent total queue.  (The full version, on the book website, can be used
@@ -50,7 +53,7 @@ object QueueTest{
   }
 
   /** Perform a single test. */
-  def doTest = {
+  def doTest() = {
     val concQueue = new ServerTotalQueue[Int]; val seqQueue = Queue[Int]()
     val tester = 
       LinearizabilityTester[SeqQueue,ConcQueue](seqQueue, concQueue, 4, worker)£\label{line:construct-lin-tester}£
@@ -59,7 +62,7 @@ object QueueTest{
   }
 
   def main(args: Array[String]) = {
-    for(r <- 0 until 10000){ doTest; if(r%20 == 0) print(".") }
+    for(r <- 0 until 10000){ doTest(); if(r%20 == 0) print(".") }
     println()
   }
 }
@@ -74,12 +77,13 @@ The test program works on a |TotalQueue[Int]|; we define |ConcQueue| as a type
 synonym.
 
 The test program also requires a corresponding sequential specification
-object.  The underlying linearizability framework requires this to be
-\emph{immutable} (unlike in Section~\ref{sec:linearization}): the state of the
-specification object should not change; instead, operations produce new
-instances of the same type.  The framework also requires the specification
-object to be deterministic.  Here, we use an immutable queue
-from the Scala API; we define |SeqQueue| as a type synonym. 
+object\index{sequential specification object}.  The underlying linearizability
+framework requires this to be \emph{immutable} (unlike in
+Section~\ref{sec:linearization}): the state of the specification object should
+not change; instead, operations produce new instances of the same type.  The
+framework also requires the specification object to be deterministic.  Here,
+we use an immutable queue from the Scala API; we define |SeqQueue| as a type
+synonym.
 
 In general, given a type |S| of the sequential specification object, for each
 operation |op: A| on the concurrent datatype, we need a corresponding function
@@ -111,9 +115,11 @@ probability 0.3) an enqueue of a random value, or (with probability~0.7) a
 dequeue.
 
 
-The worker takes a log object |log| as a parameter; each operation is
-performed and logged via a call to |log| (more precisely, the |apply| function
-of~|log|; see Section~\ref{sec:scala-misc}), taking three parameters:
+The worker takes a log object |log|, of type
+|LinearizabilityLog|\SCLIndexX{linearizabilityLog}{LinearizabilityLog}, as a
+parameter.  Each operation is performed and logged via a call to |log| (more
+precisely, the |apply| function of~|log|; see Section~\ref{sec:scala-misc}),
+taking three parameters:
 %
 \begin{itemize}
 \item
@@ -143,13 +149,14 @@ the concurrent queue is placed.
 
 The function |doTest| performs a single test.  This starts by creating a
 concurrent queue to test, and a corresponding sequential specification object.
-Line~\ref{line:construct-lin-tester} constructs a linearizability testing
+Line~\ref{line:construct-lin-tester} constructs a
+|LinearizabilityTester|\SCLIndexX{linearizabilityTester}{LinearizabilityTester}
 object~|tester|.  This takes two type parameters, representing the type of
-sequential specification objects and concurrent objects (we could omit these
-type parameters, but I find it useful to include them).  It takes value
-parameters representing the specification object, the concurrent object to be
-tested, the number of worker threads to run (here~4), and the definition of a
-worker.
+sequential specification objects and concurrent objects, respectively (we
+could omit these type parameters, but I find it useful to include them).  The
+|LinearizabilityTester| takes value parameters representing the specification
+object, the concurrent object to be tested, the number of worker threads to
+run (here~4), and the definition of a worker.
 %
 The expression |tester()| then runs the testing object (by calling its |apply|
 function).  This runs the workers concurrently, logging the operation calls on
@@ -161,6 +168,10 @@ down the concurrent queue.
 
 The |main| function calls |doTest| many times. 
 
+\begin{instruction}
+Study the details of |QueueTest|.
+\end{instruction}
+
 Figure~\ref{fig:lin-testing-error} gives sample debugging information for a
 (deliberately) incorrect implementation of a |TotalQueue|.  More precisely,
 the implementation uses buffered channels, rather than synchronous channels;
@@ -169,8 +180,9 @@ threads, each performing a single operation, so as to keep the history short.
 The error is reflected by the value of |None| returned (at line~5) by the
 |dequeue| done by thread~|2|.  Each of threads~|0| and~|1| had completed an
 |enqueue| by this point, so the |dequeue| should have returned one of their
-values; in fact, the |enqueue|s were concurrent, so could have been linearized
-in either order, and so either of their values would have been allowed.
+values.  In fact, the |enqueue|s were concurrent, so could have been
+linearized in either order, and so either of their values would have been
+allowed.
 
 %%%%%  
 
@@ -260,20 +272,24 @@ sequential operation on the specification object, using the string as a key;
 this avoids repeating the same operation on the same specification object).
 
 We mentioned above that the problem of deciding whether a given history is
-linearizable is NP-complete in general.  Let's prove that fact, as it's quite
-easy.  (We assume here at least a passing familiarity with NP-completeness.)
-Clearly the problem is in NP: given an interleaving of the history~$h$ with a
-corresponding history~$h_s$ of the specification object, we can check that
-$h_s$ is indeed a linearization of~$h$ in polynomial time.  To show the
-problem is NP-hard, we perform a reduction from the subset-sum problem, which
-is as follows:
+linearizable is NP-complete in 
+general\index{linearizability testing!NP-completeness}.
+Let's prove that fact, as it's quite easy.  (We assume here at least a passing
+familiarity with NP-completeness.)  Clearly the problem is in NP: given an
+interleaving of the history~$h$ with a corresponding history~$h_s$ of the
+specification object, we can check that $h_s$ is indeed a linearization of~$h$
+in polynomial time.  
+
+To show the problem is NP-hard, we perform a reduction
+from the subset-sum problem, which is as follows:
 \begin{quote}
 \textbf{Subset-sum problem:} Given a set $S \subseteq \sm{Int}$, and an
 |Int|~$t$, determine whether there is a subset of~$S$ whose sum is~$t$. 
 \end{quote}
 %
-This problem is known to be NP-complete.  We will use the following sequential
-specification object.
+This problem is known to be NP-complete.  
+
+We will use the following sequential specification object.
 \begin{scala}
 object Spec{
   private var sum = 0
@@ -281,19 +297,48 @@ object Spec{
   def get: Int = sum 
 }
 \end{scala}
-So, given an instance $S = \set{x_1,\ldots,x_n}$ and~$t$ of the subset-sum
+(If using the linearization testing framework, we would have to produce an
+immutable version.)
+%% \begin{scala}
+%% case class ISpec(sum: Int)
+%% def seqAdd(s: ISpec)(x: Int) = ((), ISpec(s.sum+x))
+%%   def get
+%
+
+Given an instance $S = \set{x_1,\ldots,x_n}$ and~$t$ of the subset-sum
 problem, build the history
 \begin{eqnarray*}
 h & = & \langle\,
   \begin{align}
-  \call.\sm{add}^1(x_1),\, \ldots,\, \call.\sm{add}^n(x_n),\, \call.\sm{get}^0, \\
+  \call.\sm{add}^1(x_1),\, \ldots,\, \call.\sm{add}^n(x_n),\, 
+  \call.\sm{get}^0,\,  \return.\sm{get}^0\::t, \\
   \return.\sm{add}^1\::(),\, \ldots,\, 
-     \return.\sm{add}^n\::(),\,  \return.\sm{get}^0\::t \, \rangle
+     \return.\sm{add}^n\::() \, \rangle
   \end{align}
 \end{eqnarray*}
 %
+\begin{figure}[hbt]
+\def\X{node{\scalastyle X};}
+\begin{center}
+\begin{tikzpicture}[yscale=0.85]
+\draw[|-|] (0,0) -- node[above] {\scalashape add(1)} (7,0); \draw(4.5,0)\X
+\draw[|-|] (1,-1) -- node[above] {\scalashape add(2)} (6,-1); \draw(1.5,-1)\X
+\draw[|-|] (2,-2) -- node[above] {\scalashape add(3)} (5,-2); \draw(2.5,-2)\X
+\draw[|-|] (3,-3) -- node[above] {\scalashape get: 5} (4,-3); \draw(3.5,-3)\X
+\end{tikzpicture}
+\end{center}
+\caption{Timeline for the subset-sum example.}
+\label{fig:subset-sum}
+\end{figure}%
+%
+This is illustrated in Figure~\ref{fig:subset-sum} for the case $S =
+\set{1,2,3}$ and $t = 5$.
+%
 Then $h$ is linearisable with respect to~|Spec| precisely if the subset-sum
 problem should return |true|: if $h$ is linearisable, then $t$ equals the sum
-of the $x_i$ values whose |add| operation is linearised before the |get|.  If
-we could decide linearisability in polynomial time, we could also decide the
-subset-sum problem in polynomial time. 
+of the $x_i$ values whose |add| operation is linearised before the |get|.  In
+Figure~\ref{fig:subset-sum}, linearisation points are indicated by~|X|s; this
+is a correct linearisation, because $2+3 = 5$, indicating a solution to the
+subset-sum problem in this case.  If we could decide linearisability in
+polynomial time, we could also decide the subset-sum problem in polynomial
+time; hence deciding if a history is linearizable is NP-hard.

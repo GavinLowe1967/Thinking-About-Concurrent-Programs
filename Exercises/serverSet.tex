@@ -62,7 +62,7 @@ specification.  The interesting parts of the code are below.
   }
 
   /** Perform a single test. */
-  def doTest = {
+  def doTest() = {
     val concSet = new ServerConcSet[Int]; val seqSet = new S
     val tester = LinearizabilityTester[S, C](seqSet, concSet, 4, worker)
     if(tester() <= 0) sys.exit()

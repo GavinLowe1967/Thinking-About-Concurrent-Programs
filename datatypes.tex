@@ -35,11 +35,12 @@ The concept of linearization captures the correctness of a concurrent
 datatype.  Operation executions should appear to take place in a one-at-a-time
 order, each taking place between the call and return, and such that the
 sequence of operation executions, and their return values, satisfies our
-requirements, typically that they match a corresponding sequential datatype.
+requirements, typically that they match a corresponding sequential
+specification datatype.
 
-Testing for linearizability is fairly straightforward within SCL.  The tester
+Testing for linearizability is fairly straightforward within SCL\@.  The tester
 needs to define workers that perform and log operations on the concurrent
-datatype, and needs to define how the corresponding operation behave on the
+datatype, and needs to define how the corresponding operations behave on the
 sequential specification object.  In particular, the framework allows the
 tester to capture preconditions for partial operations. 
 
@@ -56,11 +57,12 @@ sequential algorithm, although ensuring termination required a bit of work.
 \exercises
 
 
-\input{Exercises/serverSet} % concurrent set
 
 \input{Exercises/serverStack} % Total stack
 
 \input{Exercises/partialStack} % Partial stack
+
+\input{Exercises/serverSet} % concurrent set
 
 \input{Exercises/sudoku} % Concurrent DFS for sudoku (cf practical). 
 

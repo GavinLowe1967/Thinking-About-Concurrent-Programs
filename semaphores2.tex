@@ -125,7 +125,7 @@ Figure~\ref{fig:SemaphorePartialQueue}.
 %
 If a |dequeue| finds that the queue is empty, it will wait for a signal on a
 signalling semaphore |nonEmptyS|.  When a subsequent |enqueue| signals on
-this semaphore, it will indicate that the queue is now non-empty (in fact,
+this semaphore, it will indicate that the queue is now nonempty (in fact,
 that the queue contains precisely one element), and the |dequeue| can proceed.
 %
 In addition, we have to protect the shared variables from  race conditions.  We

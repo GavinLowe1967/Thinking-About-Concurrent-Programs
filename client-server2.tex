@@ -246,7 +246,7 @@ otherwise the client-side code is unchanged.
     val free = Array.fill(numResources)(true)
     // Reply channels for requests that cannot be served immediately.
     val pending = new scala.collection.mutable.Queue[ReplyChan]
-    // Invariant: if £pending£ is non-empty, then all entries in £free£ are false.
+    // Invariant: if £pending£ is nonempty, then all entries in £free£ are false.
     var done = false
 
     serve(!done)(
