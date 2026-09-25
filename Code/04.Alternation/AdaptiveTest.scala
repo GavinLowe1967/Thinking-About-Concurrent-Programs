@@ -73,7 +73,7 @@ object AdaptiveTest{
   }
 
   /** Do a single test. */
-  def doTest = {
+  def doTest() = {
     val (f, p, a, b, nWorkers) = pickParams
     val seqResult = estimate(f, a, b)
     val concResult = new Adaptive(f, a, b, Epsilon, nWorkers)()
@@ -86,7 +86,7 @@ object AdaptiveTest{
   }
 
   def main(args: Array[String]) = {
-    for(i <- 0 until 1000){ doTest; if(i%10 == 0) print(".") }
+    for(i <- 0 until 1000){ doTest(); if(i%10 == 0) print(".") }
     println()
   }
 }

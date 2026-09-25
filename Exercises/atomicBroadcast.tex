@@ -135,7 +135,7 @@ happen.
     }
   }
 
-  def doTest = {
+  def doTest() = {
     val n = Random.nextInt(10); val ab = new AtomicBroadcast[Int](n)
     val log = new Log1(n+1)
     val receivers = || (for(i <- 0 until n) yield receiver(i, ab, log))

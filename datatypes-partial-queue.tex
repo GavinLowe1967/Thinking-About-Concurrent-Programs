@@ -95,7 +95,7 @@ can use an immutable queue as the sequential specification object.
     }
   }
 
-  def doTest = {
+  def doTest() = {
     val concQueue = new ServerPartialQueue[Int]; val seqQueue = Queue[Int]()
     val tester =
       LinearizabilityTester[SeqQueue,ConcQueue](seqQueue, concQueue, 4, worker)

@@ -40,7 +40,7 @@ import scala.util.Random
 /** Test for ArrayMax. */
 object ArrayMaxTest{
   /** Perform a single test. */
-  def doTest = {
+  def doTest() = {
     val numWorkers = 1+Random.nextInt(20)
     val n = numWorkers + Random.nextInt(100)
     val a = Array.fill(n)(Random.nextInt(100))
@@ -50,7 +50,7 @@ object ArrayMaxTest{
   }
 
   def main(args: Array[String]) = {
-    for(i <- 0 until 10000){ doTest; if(i%100 == 0) print(".") }
+    for(i <- 0 until 10000){ doTest(); if(i%100 == 0) print(".") }
     println()
   }
 }

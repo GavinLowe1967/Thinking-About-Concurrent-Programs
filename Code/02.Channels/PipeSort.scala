@@ -45,7 +45,7 @@ object PipeSortTest{
 
   /** Perform a single test: pass in random numbers; record output; check output
     * is sorted version of input. */
-  def doTest = {
+  def doTest() = {
     val N = 100; val xs = Array.fill(N)(Random.nextInt())
     val ys = new Array[Int](N); val ps = new PipeSort(N)
     // Run system
@@ -55,10 +55,7 @@ object PipeSortTest{
 
 
   def main(args : Array[String]) = {
-    for(i <- 0 until 500){
-      doTest
-      if(i%10 == 0) print(".")
-    }
+    for(i <- 0 until 500){ doTest(); if(i%10 == 0) print(".") }
     println()
   }
 }

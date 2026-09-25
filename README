@@ -52,7 +52,6 @@ Appendices
 
 - Experiments -- improve
 
-- Add SCL summary?  Or just index.
 
 
 --------------
@@ -63,12 +62,6 @@ Extra index entries corresponding to examples.
 
 Check capitals in comments.
 
-Check for correct usage of ??[A] and !![A]:
-fgrep -n "?[" *.tex | fgrep -v "??"
-fgrep -n "?\`" *.tex 
-grep "[!][[]" *.tex | egrep -v "[!]{2}"
-
-Change doTest -> doTest()
 Provide default implementations of shutdown? 
 
 

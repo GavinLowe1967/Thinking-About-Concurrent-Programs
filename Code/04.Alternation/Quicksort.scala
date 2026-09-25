@@ -199,7 +199,7 @@ object QuicksortTest{
   }
 
   /** Do a single test. */
-  private def doTest = {
+  private def doTest() = {
     val n = Random.nextInt(MaxSize); val a = Array.fill(n)(Random.nextInt(Max))
     val a1 = a.clone.sorted; doSort(a)
     assert(a.sameElements(a1), a.mkString(", ")+"\n"+a1.mkString(", "))
@@ -227,7 +227,7 @@ object QuicksortTest{
     if(timing) doTiming(size)
     else{
       val t0 = nanoTime
-      for(i <- 0 until 10000){ doTest; if(i%100 == 0) print(".") }
+      for(i <- 0 until 10000){ doTest(); if(i%100 == 0) print(".") }
       println(s"\n${(nanoTime-t0)/1_000_000} ms")
     }
   }

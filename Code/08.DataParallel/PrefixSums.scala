@@ -53,7 +53,7 @@ object PrefixSumsTest{
   val reps = 10000
 
   /** Do a single test. */
-  def doTest = {
+  def doTest() = {
     // Pick random n and array.
     val n = 1+Random.nextInt(20)
     val a = Array.fill(n)(Random.nextInt(100))
@@ -70,7 +70,7 @@ object PrefixSumsTest{
   }
 
   def main(args : Array[String]) = {
-    for(r <- 0 until reps){ doTest; if(r%100 == 0) print(".") }
+    for(r <- 0 until reps){ doTest(); if(r%100 == 0) print(".") }
     println()
   }
 }

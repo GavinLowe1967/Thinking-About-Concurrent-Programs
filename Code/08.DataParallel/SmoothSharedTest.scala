@@ -6,7 +6,7 @@ import scala.util.Random
 object SmoothSharedTest{
 
   /** Do a single test. */
-  def doTest = {
+  def doTest() = {
     val n = 10+Random.nextInt(40) // Height of image.
     val w = 10+Random.nextInt(30) // Width of image.
     val p = 1+Random.nextInt(10) // Number of workers.
@@ -20,7 +20,7 @@ object SmoothSharedTest{
   }
 
   def main(args: Array[String]) = {
-    for(i <- 0 until 1000){ doTest; if(i%50 == 0) print(".") }
+    for(i <- 0 until 1000){ doTest(); if(i%50 == 0) print(".") }
     println()
   }
 }

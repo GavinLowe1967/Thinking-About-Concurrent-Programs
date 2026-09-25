@@ -24,7 +24,7 @@ case class Vector(x: Double, y: Double, z: Double){
   /** This plus v. */
   def + (v: Vector) = Vector(x+v.x, y+v.y, z+v.z)
 
-  /** The minus v. */
+  /** This minus v. */
   def - (v: Vector) = Vector(x-v.x, y-v.y, z-v.z)
 
   /** This times s. */
@@ -154,7 +154,7 @@ object GravityTest{
 
   /** Perform a single test, running sequential and concurrent simulations on
     * the same data, and comparing the results. */
-  def doTest = {
+  def doTest() = {
     val steps = 1000
     val n = 2+Random.nextInt(50); val numWorkers = 2+Random.nextInt(7)
     // A random number in [0,max).
@@ -177,7 +177,7 @@ object GravityTest{
   def main(args: Array[String]) = {
     if(false) twoBodySimulation
     else{ 
-      for(i <- 0 until 100){ doTest; print(".") }
+      for(i <- 0 until 100){ doTest(); print(".") }
       println()
     }
   }

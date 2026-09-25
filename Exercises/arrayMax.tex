@@ -1,10 +1,13 @@
 \begin{questionS}
 Write a concurrent program to find a maximum element in an array of |Int|s,
-and its index, using |numWorkers| worker threads.  
+and its index, using |numWorkers| worker threads.  You may assume that the
+length of the array is at least |numWorkers|.
 %
 \begin{scala}
 object ArrayMax{
-  def apply(a: Array[Int], numWorkers: Int): (Int, Int) = ... 
+  def apply(a: Array[Int], numWorkers: Int): (Int, Int) = {
+    require(a.length >= numWorkers); ... 
+  }
 }
 \end{scala}
 %
@@ -18,7 +21,8 @@ commutative?  If not, does this matter?
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \begin{answerS}
-My answer is below.
+My answer is below.  The combining barrier receives from each thread a pair
+containing the maximum value the thread found, and its index. 
 %
 \begin{scala}
 /** Object to find a maximum value in an array and its index. */
@@ -70,9 +74,9 @@ An alternative definition of~|f|, which is commutative, is
 \begin{scala}
   private def f(pair1: Pair, pair2: Pair): Pair = {
     val (max1,ix1) = pair1; val(max2,ix2) = pair2
-    if(max1 > max2) (max1,ix1) 
-    else if(max1 == max2) (max1,ix1 min ix2) 
-    else (max2,ix2)
+    if(max1 > max2) (max1, ix1) 
+    else if(max1 == max2) (max1, ix1 min ix2) 
+    else (max2, ix2)
   }
 \end{scala}
 %

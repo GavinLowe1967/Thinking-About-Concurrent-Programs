@@ -60,10 +60,8 @@ class Counter extends CounterT{
 object CounterTest{
   val iters = 1000
 
-  var version = 1
-
   /** Perform a single test. */
-  def doTest = {
+  def doTest(version: Int) = {
     val c: CounterT = if(version == 0) new Counter0 else new Counter
     def p = thread("p"){ for(i <- 0 until iters) c.inc() }
     def q = thread("q"){ for(i <- 0 until iters) c.dec() }
@@ -72,9 +70,10 @@ object CounterTest{
   }
 
   def main(args: Array[String]) = {
+    var version = 1
     if(args.nonEmpty && args(0) == "-0") version = 0
 
-    for(r <- 0 until 10000){ doTest; if(r%500 == 0) print(".") }
+    for(r <- 0 until 10000){ doTest(version); if(r%500 == 0) print(".") }
     println()
   }
 }

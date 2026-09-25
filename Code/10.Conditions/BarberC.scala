@@ -115,7 +115,7 @@ object SyncTest{
   }
 
   /** Do a single test. */
-  def doTest = {
+  def doTest() = {
     val iters = 10; val numA = 5 // Iterations per A thread; number of A threads.
     val sync = new Sync; val log = new Log[LogEvent](numA+1)
     def aThread(me: Int) = thread(s"A($me)"){
@@ -134,7 +134,7 @@ object SyncTest{
   }
 
   def main(args: Array[String]) = {
-    for(i <- 0 until 10000){ doTest; if(i%100 == 0) print(".") }
+    for(i <- 0 until 10000){ doTest(); if(i%100 == 0) print(".") }
     println()
   }
 }

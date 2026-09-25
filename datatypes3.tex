@@ -272,13 +272,14 @@ sequential operation on the specification object, using the string as a key;
 this avoids repeating the same operation on the same specification object).
 
 We mentioned above that the problem of deciding whether a given history is
-linearizable is NP-complete in 
-general\index{linearizability testing!NP-completeness}.
-Let's prove that fact, as it's quite easy.  (We assume here at least a passing
-familiarity with NP-completeness.)  Clearly the problem is in NP: given an
-interleaving of the history~$h$ with a corresponding history~$h_s$ of the
-specification object, we can check that $h_s$ is indeed a linearization of~$h$
-in polynomial time.  
+linearizable is NP-complete in general\index{linearizability
+  testing!NP-completeness}.  Let's prove that fact, as it's quite easy.  This
+proof is due to Anish Athalye~\cite{Athalye}.  We assume at least a passing
+familiarity with NP-completeness.
+
+Clearly the problem is in NP: given an interleaving of the history~$h$ with a
+corresponding history~$h_s$ of the specification object, we can check that
+$h_s$ is indeed a linearization of~$h$ in polynomial time.
 
 To show the problem is NP-hard, we perform a reduction
 from the subset-sum problem, which is as follows:

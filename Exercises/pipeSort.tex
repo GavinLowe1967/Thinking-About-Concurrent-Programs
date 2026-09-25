@@ -59,7 +59,7 @@ other ways of structuring the code.
 /** A network to sort £n£ numbers, using a pipeline. */
 class PipeSort(n: Int){
   /** A single node. */
-  private def node(left: ?[Int], right: ![Int]) = thread("node"){
+  private def node(left: ??[Int], right: !![Int]) = thread("node"){
     var current = left?()
     repeat{
       val next = left?()

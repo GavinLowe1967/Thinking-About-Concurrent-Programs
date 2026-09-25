@@ -43,7 +43,7 @@ object QSortTest{
 
   /** Run a single test.  Generate random inputs.  Pass them in to a sorter.
     * Receive outputs.  Check result is as expected. */
-  def doTest = {
+  def doTest() = {
     val size = Random.nextInt(MaxSize)
     val xs = Array.fill(size)(Random.nextInt(Max))
     val ys = new Array[Int](size)
@@ -59,7 +59,7 @@ object QSortTest{
   }
 
   def main(args : Array[String]) = {
-    for(i <- 0 until 1000){ doTest; if(i%10 == 0) print(".") }
+    for(i <- 0 until 1000){ doTest(); if(i%10 == 0) print(".") }
     println()
   }   
 }

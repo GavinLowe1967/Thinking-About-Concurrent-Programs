@@ -38,10 +38,10 @@ object BufferTest{
 
   def system = sender || receiver || Buffer.buffer(in, out)
 
-  def doTest = { run(system); in.reopen(); out.reopen() }
+  def doTest() = { run(system); in.reopen(); out.reopen() }
 
   def main(args: Array[String]) = {
-    for(i <- 0 until 100){ doTest; if(i%10 == 0) print(".") }
+    for(i <- 0 until 100){ doTest(); if(i%10 == 0) print(".") }
     println()
   }
 

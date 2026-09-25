@@ -107,7 +107,7 @@ object ABCTest{
     // Note: this ought to give more feedback in the case of a failure. 
   }
 
-  def doTest = {
+  def doTest() = {
     val abc: ABC[Int,Int,Int] = new ABCSyncMonitor[Int,Int,Int]
     val log = new Log[LogEvent](3*n)
     def aThread(a: Int) = thread(s"A($a)"){
@@ -126,7 +126,7 @@ object ABCTest{
   } // end of doTest
 
   def main(args: Array[String]) = {
-    for(i <- 0 until 5000){ doTest; if(i%200 == 0) print(".") }
+    for(i <- 0 until 5000){ doTest(); if(i%200 == 0) print(".") }
     println()
   }
 

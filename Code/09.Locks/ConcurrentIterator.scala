@@ -39,7 +39,7 @@ object ArrayIteratorTest{
    * and a Collector, and compares with a sum calculated sequentially. */
 
   /** Perform a single test. */
-  def doTest = {
+  def doTest() = {
     val a = Array.fill(Random.nextInt(1000))(Random.nextInt(100))
     val iter = new ArrayIterator(a); val collector = new CollectorLock
     def worker = thread{
@@ -54,7 +54,7 @@ object ArrayIteratorTest{
   }
 
   def main(args: Array[String]) = {
-    for(i <- 0 until 1000){ doTest; if(i%100 == 0) print(".") }
+    for(i <- 0 until 1000){ doTest(); if(i%100 == 0) print(".") }
     println()
   }
 }
@@ -99,7 +99,7 @@ object ArrayBlockIteratorTest{
    * and a Collector, and compares with a sum calculated sequentially. */
 
   /** Perform a single test. */
-  def doTest = {
+  def doTest() = {
     val a = Array.fill(Random.nextInt(1000))(Random.nextInt(100))
     val bIter = new ArrayBlockIterator(a,12); val collector = new CollectorLock
     def worker = thread{
@@ -115,7 +115,7 @@ object ArrayBlockIteratorTest{
   }
 
   def main(args: Array[String]) = {
-    for(i <- 0 until 1000){ doTest; if(i%100 == 0) print(".") }
+    for(i <- 0 until 1000){ doTest(); if(i%100 == 0) print(".") }
     println()
   }
 }
@@ -147,7 +147,7 @@ class IterableShardedSet[A](shards: Int) extends ShardedSet[A](shards){
 object IterableShardedSetTest{
   val numWorkers = 8
 
-  def doTest = {
+  def doTest() = {
     // Add random distinct numbers to a set. 
     val set = new IterableShardedSet[Int](128); var sum = 0; var next = 0
     for(i <- 0 until 10000){
@@ -169,7 +169,7 @@ object IterableShardedSetTest{
   }
 
   def main(args: Array[String]) = {
-    for(i <- 0 until 5000){ doTest; if(i%100 == 0) print(".") }
+    for(i <- 0 until 5000){ doTest(); if(i%100 == 0) print(".") }
     println()
   }
 

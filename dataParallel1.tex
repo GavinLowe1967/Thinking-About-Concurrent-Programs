@@ -1,9 +1,9 @@
 In this chapter we will study a particular style of data parallel programming
 where the threads proceed \emph{synchronously}.  The program proceeds in
-\emph{rounds}; in each round, each thread performs some computation.  However,
-at the end of each round, each thread needs to wait for the other threads to
-finish that round before they all proceed to the next: this requires a global
-synchronisation.
+\emph{rounds}\index{rounds}; in each round, each thread performs some
+computation.  However, at the end of each round, each thread needs to wait for
+the other threads to finish that round before they all proceed to the next:
+this requires a global synchronisation\index{global synchronisation}.
 
 %%%%%
 
@@ -37,17 +37,20 @@ examples of this style of programming.
 %%%%%
 
 The global synchronisation at the end of each round is sometimes known as a
-\emph{barrier synchronisation}, since it represents a barrier than no thread
+\emph{barrier synchronisation}\index{barrier synchronisation}, since it
+represents a barrier than no thread 
 may pass until all have reached that point.
 
 Suppose we have |p| threads with identities $\interval{\sm 0}{\sm p}$.  Then a
-suitable barrier synchronisation object may be created in SCL by:
+suitable barrier synchronisation object may be created in SCL
+by:\SCLIndexX{barrier}{Barrier} 
 %
 \begin{scala}
   val barrier = new Barrier(p)
 \end{scala}
 %
-A thread with identity~|me| performs the barrier synchronisation by executing%
+A thread with identity~|me| performs the barrier synchronisation by
+executing\SCLIndex{sync}% 
 %
 \begin{scala}
   barrier.sync(me)
@@ -61,10 +64,10 @@ it.
 
 Figure~\ref{fig:serverBarrier} gives a possible implementation of a barrier
 using a server.  The server waits to receive a message on channel |arrive|
-from each of the |p|~threads before sending then a message on channel~|leave|,
-telling them they can continue.
+from each of the |p|~threads, and then sends them each a message on
+channel~|leave|, telling them they can continue.
 
-\begin{figure}[htb]
+\begin{figure}[thb]
 \begin{scala}
 class ServerBarrier(p: Int){
   private val arrive = new SyncChan[Unit]
@@ -93,11 +96,11 @@ to take time $O(\log \sm p)$.  Exercise~\ref{ex:barrierLog} asks you to
 implement a barrier with this property.
 
 One important feature of a barrier synchronisation is that it also ensures
-cache consistency between different threads.  If one thread writes to a shared
-variable before a synchronisation, and another thread reads that variable
-after the synchronisation, then the read is guaranteed to see the effects of
-the write.  Further, compiler optimisations are not allowed to break this
-property.  
+cache consistency\index{cache consistency} between different threads.  If one
+thread writes to a shared variable before a synchronisation, and another
+thread reads that variable after the synchronisation, then the read is
+guaranteed to see the effects of the write.  Further, compiler optimisations
+are not allowed to break this property.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -108,9 +111,10 @@ In this section we illustrate this style of synchronous programming by
 implementing a concurrent simulation of astronomical bodies, such as stars,
 planets and moons, moving relative to one another under gravity.  Each
 concurrent worker will be responsible for updating the state of some of the
-bodies in each step of the simulation.  However, each worker will need to read
-the states of all of the bodies.  We will use barrier synchronisations to
-coordinate the threads and to avoid races.
+bodies in each step of the simulation (we expect there to be many more bodies
+than workers).  However, each worker will need to read the states of all of
+the bodies.  We will use barrier synchronisations to coordinate the threads
+and to avoid races.
 
 We will need to record the position and velocity of each astronomical body.
 Each of these is a vector in three-dimensional space.  The support class
@@ -128,7 +132,7 @@ case class Vector(x: Double, y: Double, z: Double){
   /** This plus £v£. */
   def + (v: Vector) = Vector(x+v.x, y+v.y, z+v.z)
 
-  /** The minus £v£. */
+  /** This minus £v£. */
   def - (v: Vector) = Vector(x-v.x, y-v.y, z-v.z)
 
   /** This times £s£. */
@@ -153,7 +157,7 @@ Given two bodies, of mass $m_1$ and $m_2$ at a distance~$d$ from each other,
 each exerts a force on the other of magnitude $G \times m_1 \times m_2 / d^2$,
 where $G \approx 6.6743 \times 10^{-11}$ is the gravitational constant.  These
 are attractive forces: the force on each body is directly towards the other.
-The force on each body gives an acceperation equal to the force divided by the
+The force on each body gives an acceleration equal to the force divided by the
 body's mass.
 
 The object |Gravity| in Figure~\ref{fig:Gravity} defines the
@@ -254,9 +258,12 @@ results will be nondeterministic: the update to |b1| might depend on either
 the previous or the new position of~|b|.
 
 To avoid such a race, we arrange for a barrier synchronisation after all the
-threads have finished the calls to |updateVel|, but before any call to
-|move|.  That means that each call to |updateVel| will depend on the previous
-positions of the bodies, as in the sequential program. 
+threads have finished the calls to |updateVel|, but before any call to |move|.
+That means that each call to |updateVel| will depend on the previous positions
+of the bodies, as in the sequential program.  Two calls to |updateVel| on
+different bodies may happen in either order; but these operations do not
+produce a race.  And likewise two calls to |move| on different bodies may
+happen in either order; but these again do not produce a race.
 
 The resulting concurrent simulation is in
 Figure~\ref{fig:ConcurrentSimulation}.  The threads perform two barrier

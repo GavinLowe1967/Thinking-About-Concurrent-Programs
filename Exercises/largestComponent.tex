@@ -32,13 +32,14 @@ the pixel in the top-left corner.
 (3,0) & (3,1) & (0,0) & (0,0) & (2,5) & (2,5)
 \end{array}
 \]
-\caption{An example image (left), and its index array (right).}
+\caption{An example image (left), and its index array (right) for the largest
+  connected component problem.}
 \label{fig:image}
 \end{figure}
 
 %%%%%
 
-Here is an outline of an algorithm to find  the largest connected
+Here is an outline of a sequential algorithm to find  the largest connected
 component.  
 %
 \begin{description}
@@ -103,7 +104,7 @@ class LargestComponent(image: Array[Array[Int]], p: Int){
   def apply(): (Index, Int) = ...
 }
 \end{scala}
-\caption{Code for the largest connected component problem}
+\caption{Code for the largest connected component problem.}
 \label{fig:largestComponentCode}
 \end{figure}
 
@@ -126,9 +127,9 @@ My code is below.
 
 Stage 1 proceeds in rounds.  Each thread is responsible for some of the rows.
 The threads use two |IndexArray|s, corresponding to the |Index|es calculated
-on the previous round and the current round; the roles are swapped at the end
-of each round.  A combining barrier is used to coordinate and to decide
-termination.
+on the previous round and the current round, respectively; the roles are
+swapped at the end of each round.  A combining barrier is used to coordinate
+and to decide termination.
 
 In state 2, each worker directly counts the entries in its segment.  There are
 a number of ways to do this.  My code makes use of a map recording the current

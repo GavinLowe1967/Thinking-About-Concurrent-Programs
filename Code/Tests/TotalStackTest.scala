@@ -42,7 +42,7 @@ object TotalStackTest{
       else log(_.pop(), "pop", seqPop)
   }
 
-  def doTest = {
+  def doTest() = {
     val concStack = new ServerStack[Int]
     val seqStack = new ImmutableStack[Int]
     val tester = LinearizabilityTester[S, C](seqStack, concStack, 4, worker)
@@ -52,7 +52,7 @@ object TotalStackTest{
 
   // The main method
   def main(args: Array[String]) = {
-    for(i <- 0 until reps){ doTest; if(i%10 == 0) print(".") }
+    for(i <- 0 until reps){ doTest(); if(i%10 == 0) print(".") }
     println()
   }
 }

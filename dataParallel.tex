@@ -88,8 +88,8 @@ to split each round into two subrounds, so using two barrier synchronisations
 per round, with threads only reading shared variables in the first subround,
 and then writing only to their part of the shared variables in the second
 subround.  The other approach is to use two copies of the data, where, on each
-round, threads only read one copy, and write only to their share of the second
-copy; the role of the two copies switches at the end of each round.
+round, threads read only one copy, and write only to their share of the second
+copy; the roles of the two copies switch at the end of each round.
 
 Our main focus has been on programs with multiple rounds, where the
 threads perform a loop, with one or two barrier synchronisations per

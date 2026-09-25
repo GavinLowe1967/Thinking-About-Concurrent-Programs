@@ -91,7 +91,7 @@ cast back to an |Int| to store in the arrays.)
   }
 
   /** Do a single test. */
-  def doTest = {
+  def doTest() = {
     val n = scala.util.Random.nextInt(10) // Number of men, women.
     partnerOfMan = new Array[Int](n); partnerOfWoman = new Array[Int](n)
     val mw = new MenWomenServer 

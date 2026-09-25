@@ -11,7 +11,7 @@ of size~$n$ such that $Ax \approx b$.
 The standard technique to find an exact solution to this problem is Gaussian
 elimination.  However, this algorithm runs in time $O(n^3)$, which can be
 prohibitive for large~$n$.  Jacobi iteration provides an alternative
-technique, which can be more efficient.  We start by describing this
+technique, which can be more efficient.  We start by describing the
 technique.
 
 Let $D$ be a matrix containing the diagonal entries of~$A$, and let $R$ be a
@@ -128,7 +128,7 @@ Make sure you understand the sequential implementation.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\subsection{A concurrent implementation using shared variables}
+\subsection{A Concurrent Implementation Using Shared Variables}
 
 We now consider a concurrent implementation using shared variables.  We 
 use |p| workers, and split the calculation of |newX| between the workers.  The
@@ -144,30 +144,33 @@ should terminate when \emph{all} the threads have $\sm{myDone} = \sm{true}$.
 We can test this as part of the barrier synchronisation at the end of each
 round; however, this requires a slightly different form of barrier object.  
 
-A \emph{combining barrier} is associated with a function \SCALA{f: (A,A) =>
-  A}, which is assumed to be associative.  Each thread contributes some piece
-of data~$x_i: \sm{A}$ to each synchronisation.  All the threads then receive
-back the result of combining all the $x_i$ values together using~|f|, i.e.,
+A \emph{combining barrier}\index{combining barrier} is associated with a
+function \SCALA{f: (A,A) => A}, which is assumed to be associative.  Each
+thread contributes some piece of data~$x_i: \sm{A}$ to each synchronisation.
+All the threads then receive back the result of combining all the $x_i$ values
+together using~|f|, i.e.,
 \[\mstyle
 \sm f(x_0, \sm f(x_1, \sm f(x_2, \ldots, \sm f(x_{p-2}, x_{p-1})\ldots),
 \]
 where $x_0, \ldots, x_{p-1}$ are the data provided, in some order.  In most
-applications, |f| is commutative, and so the order doesn't matter.
+applications, |f| is commutative, and so the order doesn't matter.  For
+example, if |f| adds its arguments, the result is the sum of all the~$x_i$.
 
-In SCL, the expression |new CombiningBarrier(p, f)| creates a combining
-barrier for |p| threads, associated with function~|f|.  In the Jacobi
-iteration example, we want the combining barrier to calculate the conjunction
-of the workers' |myDone| variables, so we can define the combining barrier
+In SCL, the expression \SCALA{new CombiningBarrier(p, f)}%
+\SCLIndexX{combiningBarrier}{CombiningBarrier} creates a combining barrier
+for |p| threads, associated with function~|f|.  In the Jacobi iteration
+example, we want the combining barrier to calculate the conjunction of the
+workers' |myDone| variables, so we can define the combining barrier
 by\footnote{The notation {\scalashape \_ \&\& \_} uses placeholder notation;
-  see Section~\ref{sec:scala-misc}.  It represents a function that takes
-  two arguments, \SCALA{x} and~{\scalashape y}, and returns {\scalashape x
-    \&\& y}.}:
+  see Section~\ref{sec:scala-misc}.  It represents a function that takes two
+  arguments, \SCALA{x} and~{\scalashape y}, and returns {\scalashape x \&\&
+    y}.}:
 %
 \begin{scala}
   val combBarrier = new CombiningBarrier[Boolean](p, _ && _)
 \end{scala}
 %
-Each thread can then execute
+Each thread can then execute\SCLIndex{sync}
 \begin{scala}
   done = combBarrier.sync(me, myDone)
 \end{scala}
@@ -175,9 +178,10 @@ Each thread can then execute
 Each thread receives back |true| if  all threads pass in |true|.
 
 This particular form of combining barrier---returning the conjunction of the
-inputs--is very common, so SCL contains a built-in equivalent version, created
-by |new AndBarrier(p)|.  Likewise, an |OrBarrier| returns the disjunction of
-the inputs.
+inputs---is very common, so SCL contains a built-in equivalent version, created
+by |new AndBarrier(p)|\SCLIndexX{andBarrier}{AndBarrier}.  Likewise, an
+|OrBarrier|\SCLIndexX{orBarrier}{OrBarrier} returns the disjunction of the
+inputs.
 
 %%%%%
 
@@ -270,7 +274,7 @@ astronomical bodies.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\subsection{A concurrent implementation using message-passing}
+\subsection{A Concurrent Implementation Using Message-Passing}
 
 We can convert the shared-memory program into a message-passing program, with
 no shared variables.  Each thread has its own copy of~\SCALA{x}: all threads
@@ -291,8 +295,7 @@ sent on buffered channels, indexed by the recipient's identity.  We use a
 
 \begin{figure}
 \begin{scala}
-/** A concurrent implementation of Jacobi iteration, using message
-  * passing. */
+/** A concurrent implementation of Jacobi iteration, using message passing. */
 class JacobiMP0(p: Int) extends Jacobi{
   private val barrier = new Barrier(p)
   private type Msg = (Int, Vector, Boolean)
@@ -303,7 +306,7 @@ class JacobiMP0(p: Int) extends Jacobi{
     val n = a.length; require(a.forall(_.length == n) && b.length == n)
     /* The start of the segment calculated by thread id. */
     @inline def startFor(id: Int) = id*n/p
-    var result: Vector = null // will hold final result
+    var result: Vector = null // Ends up storing the final result.
 
     /* Worker to handle rows £[startFor(me) .. startFor(me+1))£. */
     def worker(me: Int) = // See Figure £\ref{fig:JacobiMP-worker}£.

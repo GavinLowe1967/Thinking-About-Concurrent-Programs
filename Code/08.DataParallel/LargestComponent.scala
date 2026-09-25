@@ -182,7 +182,7 @@ import scala.util.Random
   * one. */
 object LargestComponentTest{
   /** Run a single test. */
-  def doTest = {
+  def doTest() = {
     val p = 2+Random.nextInt(10) // # threads
     val Height = p*(Random.nextInt(6))+1+Random.nextInt(10) // # rows
     val Width = 1+Random.nextInt(20)
@@ -202,7 +202,7 @@ object LargestComponentTest{
   }
 
   def main(args: Array[String]) = {
-    for(i <- 0 until 1000){ doTest; if(i%10 == 0) print(".") }
+    for(i <- 0 until 1000){ doTest(); if(i%10 == 0) print(".") }
     println()
   }
 }
