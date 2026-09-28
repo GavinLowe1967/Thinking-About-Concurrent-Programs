@@ -7,7 +7,7 @@ particular, we consider how best to avoid this object acting as a bottleneck.
 
 %%%%%
 
-\begin{figure}[bhtp]
+\begin{figure}[tpbh]
 \begin{scala}
 /** An array of £n£ thread£-£safe counters. */
 abstract class CounterArray(n: Int){
@@ -33,10 +33,10 @@ abstract class CounterArray(n: Int){
 The class |CoarseGrainedCounterArray| in
 Figure~\ref{fig:CoarseGrainedCounterArray} gives a simple implementation using
 a single lock.  Each operation is performed under mutual exclusion using that
-lock.  This approach is known as \emph{coarse-grained locking}.  The obvious
-disadvantage of this approach is that the class might act as a bottleneck: a
-single thread can perform an operation at a time, so other threads might be
-blocked.
+lock.  This approach is known as \emph{coarse-grained
+  locking}\index{locking!coarse-grained}.  The obvious disadvantage of this
+approach is that the class might act as a bottleneck: a single thread can
+perform an operation at a time, so other threads might be blocked.
 
 \begin{figure}
 \begin{scala}
@@ -83,7 +83,8 @@ use an array of |n| |Lock|s, where each lock |locks(i)| protects the
 entry~|a(i)|.  Each operation uses the relevant lock to ensure that two
 executions do not act on the same counter concurrently, which would be a race.
 However, operations on different counters use different locks, so can proceed
-concurrently.  This approach is known as \emph{fine-grained locking}.
+concurrently.  This approach is known as \emph{fine-grained
+locking}\index{locking!fine-grained}. 
 
 %%%%%
 
@@ -146,10 +147,10 @@ $\sm i \% \sm{stripes} = \sm{j}$; equivalently, each |a(i)| is protected by
 
 %%%%%
 
-This style is known as \emph{striped locking}.  Imagine allocating a different
-colour to each lock, and then drawing a picture of the array where each entry
-is coloured according to its lock.  Then this picture would have a regular
-striped pattern. 
+This style is known as \emph{striped locking}\index{locking!striped}.  Imagine
+allocating a different colour to each lock, and then drawing a picture of the
+array where each entry is coloured according to its lock.  Then this picture
+would have a regular striped pattern.
 
 Suppose we take |stripes| to be somewhat larger than the number of threads,
 say 10 or 100 times larger.  In most applications, it is reasonable to suppose
@@ -171,22 +172,22 @@ Study the three implementations, and make sure you understand the differences.
 In this section we  consider how to implement a concurrent set, say
 containing elements of type~|A|.  We will give an implementation that extends
 the trait in Figure~\ref{fig:Set-trait}, which includes the three main
-operations provided by sets in the Scala API{}.  However, it would be
+operations provided by sets in the Scala API{}\@.  However, it would be
 straightforward to add other operations.
 
 %%%%%
 
 \begin{figure}
 \begin{scala}
-/** Trait for a set containing elements of type A. */
+/** Trait for a set containing elements of type £A£. */
 trait Set[A]{
-  /** Does this contain x? */
+  /** Does this contain £x£? */
   def contains(x: A): Boolean
 
-  /** Add x to this.  Return true if x was not already in the set. */
+  /** Add £x£ to this.  Return true if £x£ was not already in the set. */
   def add(x: A): Boolean 
 
-  /** Remove x from this.  Return true if x was previously in the set. */
+  /** Remove £x£ from this.  Return true if £x£ was previously in the set. */
   def remove(x: A): Boolean
 }
 \end{scala}
@@ -204,13 +205,13 @@ straightforward approach, and would be adequate in many applications.
 However, in other applications it might prove to be a bottleneck.  A pragmatic
 approach might be to use this approach in a prototype, and to perform
 profiling to see how well it works in practice.  In this section, we study a
-different approach, using a finer granularity of locking, analagous in some
-ways to striped locking.
+different approach, known as \emph{sharding}\index{sharding}, which uses a
+finer granularity of locking, similar in some ways to striped locking.
 
 Our approach is to split the set up into some number |shards| of disjoint
-sets, known as \emph{shards}, held in an array.  The object represents the
-union of these sets.  Each set can be protected using its own lock, so as to
-provide thread safety.  We will use a function
+sets, known as \emph{shards}\index{shard}, held in an array.  The object
+represents the union of these sets.  Each set can be protected using its own
+lock, so as to provide thread safety.  We will use a function
 %
 \begin{scala}
   /** The shard in which £x£ is stored. */ 
@@ -258,9 +259,10 @@ class ShardedSet[A](shards: Int) extends Sharding[K](shards) with Set[A]{
 Figure~\ref{fig:ShardedSet} gives an implementation using this idea, using a
 |HashSet| for each shard.  Our implementation abstracts away from how
 operations are performed on the individual shards, for example issues such as
-resizing a hash table, delegating these to the |HashSet| objects.
-Figure~\ref{fig:Sharding} defines the |shardFor| function, which we will
-discuss shortly: we will reuse this class later.
+resizing a hash table, delegating these to the |HashSet| objects.  The
+implementation extends the abstract class |Sharding| in
+Figure~\ref{fig:Sharding}, which defines the |shardFor| function, and which we
+will discuss shortly: we will reuse this class later.
 %% gives some supporting code
 %% (Exercise~\ref{ex:sharded-map} asks you to implement a mapping using sharding;
 %% some of this supporting code will also be useful there).
@@ -334,8 +336,9 @@ larger than the number of threads, then under reasonable assumptions we can
 expect threads normally to operate on different shards, and so rarely have to
 wait to obtain a lock.
 
-We can test the implementation using linearizability testing, using an
-immutable set as the sequential specification object.  The values added to the
-set should be from a fairly small range so that the same value is used in
-multiple operation calls.  The code is on the book website.
+We can test the implementation using linearizability
+testing\index{linearizability testing}, using an immutable set as the
+sequential specification object.  The values added to the set should be from a
+fairly small range so that the same value is used in multiple operation calls.
+The code is on the book website.
 

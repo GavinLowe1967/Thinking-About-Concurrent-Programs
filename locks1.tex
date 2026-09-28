@@ -4,11 +4,11 @@ few chapters, we will look at other concurrency primitives.  These typically
 operate at a lower level of abstraction.  They are often built in to the
 hardware, the operating system, or the programming language implementation.
 This tends to make them more efficient.  However, they tend to be harder to
-use, and less intuitive, than message passing, which is why we started this
+use and less intuitive than message passing, which is why we started this
 book with the latter.
 
-In this chapter we will see how to use explicit locks.  An SCL lock can be
-created as follows:
+In this chapter we will see how to use explicit locks\index{lock}.  An SCL
+lock can be created as follows:\SCLIndexX{lock}{Lock}
 %
 \begin{scala}
   val lock = new Lock
@@ -17,19 +17,20 @@ created as follows:
 A lock has two principle operations:
 %
 \begin{itemize}
-\item |acquire()|: wait until no other thread holds the lock, and then acquire
-  it;
+\item |acquire()|:\SCLIndex{acquire} wait until no other thread holds the
+  lock, and then acquire it;
 
-\item |release()|: release the lock.
+\item |release()|:\SCLIndex{release} release the lock.
 \end{itemize}
 %
 At most one thread can hold the lock at a time.  Hence this gives us a way to
-enforce \emph{mutual exclusion}, where a \emph{single} thread at a time
-executes in a particular section of code.  This helps us to avoid races.
+enforce \emph{mutual exclusion}\index{mutual exclusion}, where a \emph{single}
+thread at a time executes in a particular section of code.  This helps us to
+avoid races.
 
 We will see other uses of locks in the next chapter. 
 %
-Most other programming languages provide an implementation of locks with a
+Most other programming languages provide implementations of locks with a
 similar interface.
 
 Figure~\ref{fig:counter-lock0} gives a simple example, based on the counter
@@ -89,7 +90,7 @@ Make sure you understand the code in Figure~\ref{fig:counter-lock0}.
 %%%%%
 
 The |Lock| class also contains the following helper function, which performs
-the computation~|comp| under mutual exclusion.
+the computation~|comp| under mutual exclusion.\SCLIndex{mutex}
 \begin{scala}
   /** Execute £comp£ under mutual exclusion for this lock. */
   def mutex[A](comp: => A): A = {
@@ -168,12 +169,13 @@ block.  That means that when a thread in~|f| reaches the call of~|g|, it
 already holds the lock, but has to obtain it again.
 
 The implementation of a |Lock| allows this: if a thread holds the lock, it can
-acquire it again.  We say that the lock is \emph{re-entrant}.  Internally, the
-implementation records how many times the thread holds the lock: it needs to
-release the lock a corresponding number of times before another thread can
-acquire it.  In the above example, if a thread in~|f| enters~|g|, it holds the
-lock twice; when |g| returns, it still holds the lock once; only when |f|
-returns can another thread obtain the lock.
+acquire it again.  We say that the lock is
+\emph{re-entrant}\index{re-entrant}.  Internally, the implementation records
+how many times the thread holds the lock: it needs to release the lock a
+corresponding number of times before another thread can acquire it.  In the
+above example, if a thread in~|f| enters~|g|, it holds the lock twice; when
+|g| returns, it still holds the lock once; only when |f| returns can another
+thread obtain the lock.
 
 %%%%%%%%%%  \heading{Java Memory Model}
 
@@ -184,15 +186,16 @@ initially the write happens only in the thread's cache, so the new value might
 not be available to other threads.
 
 Correct use of a |Lock| avoids these problems.  When a thread releases a
-|Lock|, it \emph{publishes} the values in the cache, making them available to
-other threads.  When a thread aquires a |Lock|, it \emph{subscribes} to all
-variables published by other threads on the same |Lock|.  This means that if
-all accesses to a variable are protected by a particular |Lock|, as in
-Figure~\ref{fig:counter-lock}, then any read of the variable is guaranteed to
-see the most-recent value written by another operation.  Further, compiler
-optimisations must respect this semantics.  This means that if you are using
-|Lock|s correctly to protect against data races, you do not need to worry
-about the memory consistency.
+|Lock|, it \emph{publishes}\index{publish} the values in the cache, making
+them available to other threads.  When a thread aquires a |Lock|, it
+\emph{subscribes}\index{subscribe} to all variables published by other threads
+on the same |Lock|.  This means that if all accesses to a variable are
+protected by a particular |Lock|, as in Figure~\ref{fig:counter-lock}, then
+any read of the variable is guaranteed to see the most-recent value written by
+another operation.  Further, compiler optimisations must respect this
+semantics.  This means that if you are using |Lock|s correctly to protect
+against data races, you do not need to worry about cache
+consistency\index{cache consistency}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -202,7 +205,7 @@ about the memory consistency.
 Many concurrent objects can be implemented using locks.  Remember, the idea
 here is that a concurrent object should provide thread-safe operations:
 different executions of operations should not interfere.  This can be achieved
-by each operation execution locking the object, so as to provide mutual
+by each execution of an operation locking the object, so as to provide mutual
 exclusion.  This strategy is sufficient for \emph{total}  operations, where
 the operation can return a result in an arbitrary state.  However, it is not
 appropriate for partial operations or synchronisation objects, where a thread
@@ -302,11 +305,15 @@ It is tempting to use a |mutex| block for the whole of the |getTask|
 operation.  However, this operation creates a bottleneck for the application.
 It is more efficient to make the part of the operation executed under mutual
 exclusion as small as possible.  To this end, a short |mutex| block copies the
-value of~|i| into a thread-local variable, and increments~|i| ready for the
-next thread.  Straightforward code then calculates the required |Task| from
-the thread-local copy.  This means that several threads can be performing this
-latter calculation concurrently: a thread needs to wait only for the,
+value of~|i| into a thread-local variable~|myI|, and increments~|i| ready for
+the next thread.  Straightforward code then calculates the required |Task|
+from the thread-local copy.  This means that several threads can be performing
+this latter calculation concurrently: a thread needs to wait only for the,
 hopefully short, period when another thread holds the lock.
+
+\begin{instruction}
+Study the details of the implementation. 
+\end{instruction}
 
 %%%%%
 

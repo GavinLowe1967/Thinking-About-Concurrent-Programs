@@ -17,7 +17,10 @@ at a time.
 Locks provide a convenient way to provide mutual exclusion, so as to protect
 shared state.  Each thread may access the shared state only when holding the
 lock.  In particular, this provides an easy way to implement many concurrent
-objects, such as total concurrent datatypes.
+objects, such as total concurrent datatypes.  However, the locked section can
+act as a bottleneck: it can be advantageous to make the locked section as
+small as possible if other parts of an operation can be performed using only
+thread-local variables.
 
 Locks in SCL are re-entrant: a thread that holds a lock may acquire it again;
 it must release the lock as many times as it acquired it before another thread

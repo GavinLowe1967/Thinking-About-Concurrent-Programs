@@ -51,7 +51,7 @@ implementation of a shared set from the body of the chapter.
 \begin{scala}
 /** A sharded map from £K£ to £V£, using £shards£ shards. */
 class ShardedMap[K,V](shards: Int) extends Sharding[K](shards) with Map[K,V]{
-  /** The shards.  This £ShardedMap£ object represents the union of maps. */ 
+  /** The shards.  This £ShardedMap£ object represents the union of £maps£. */ 
   private val maps = 
     Array.fill(shards)(new scala.collection.mutable.HashMap[K, V])
 

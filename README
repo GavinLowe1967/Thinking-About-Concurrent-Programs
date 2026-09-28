@@ -1,3 +1,5 @@
+Prface: add prerequisites; how to rad the book; how to teach using the book.
+
 Chapter 1: Introduction
 - reasons for concurrency.  
 - concurrent architectures: TO DO: GPUs
@@ -17,7 +19,6 @@ Chaper 5: Clients and Servers
 Chapter 6: Interacting Peers
 
 Chapter 7: Concurrent Datatypes
-- Proof of NP completeness of lin testing (Anish Athalye?).
 
 Chapter 8: Data Parallel
 
