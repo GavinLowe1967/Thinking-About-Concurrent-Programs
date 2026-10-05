@@ -34,9 +34,7 @@ The class |CoarseGrainedCounterArray| in
 Figure~\ref{fig:CoarseGrainedCounterArray} gives a simple implementation using
 a single lock.  Each operation is performed under mutual exclusion using that
 lock.  This approach is known as \emph{coarse-grained
-  locking}\index{locking!coarse-grained}.  The obvious disadvantage of this
-approach is that the class might act as a bottleneck: a single thread can
-perform an operation at a time, so other threads might be blocked.
+  locking}\index{locking!coarse-grained}.  
 
 \begin{figure}
 \begin{scala}
@@ -51,7 +49,43 @@ class CoarseGrainedCounterArray(n: Int) extends CounterArray(n){
 
   def get(i: Int) = lock.mutex{ a(i) }
 }
+\end{scala}
+%% \caption{Implementations of an array of counters using coarse-grained and
+%%   fine-grained locking.}
+\caption{An implementation of an array of counters using coarse-grained
+   locking.}
+\label{fig:CoarseGrainedCounterArray}
+%\label{fig:FineGrainedCounterArray}
+\end{figure}
 
+The obvious disadvantage of using coarse-grained locking is that the class
+might act as a bottleneck: a single thread can perform an operation at a time,
+so other threads might be blocked.
+
+Let's consider this issue of a bottleneck in more detail.  Suppose the have a
+program that, when executed by a single thread, would take time~$t$, and that
+time~$t_s$ is spent in the critical section (with $0 \le t_s \le t$).  Now
+suppose that, instead, we adapt the program to use~$p$ threads (each on its
+own processor).  The best we can hope for is that the time spent on work
+outside the critical section is reduced by a factor of~$p$ to $(t-t_s)/p$.
+But the threads would still collectively spend (at least) time~$t_s$ in the
+critical sector.  This gives a total time of $t_s + (t-t_s)/p$.  The ratio of
+the times for the sequential and parallel programs is then
+\[\mstyle
+\frac{t}{t_s + (t-t_s)/p} \, \raisebox{-1.8ex}{.}
+\]
+This result is known as \emph{Amdahl's Law}\index{Amdahl's Law}.  It gives
+limitations on the amount of scaling that is possible giving a section that
+must be executed sequentially.  For example, if we take $t = 1$ and $t_s =
+\frac{1}{2}$ in the above expression, the ratio is
+\[\mstyle
+\frac{1}{\frac{1}{2} + \frac{1}{2}/p} = \frac{2p}{p+1} < 2.
+\]
+We can't reduce the running time by even 50\%, however many threads we use!
+
+
+\begin{figure}
+\begin{scala}
 /** An implementation using fine£-£grained locking. */
 class FineGrainedCounterArray(n: Int) extends CounterArray(n){
   /** Locks.  £locks(i)£ protects £a(i)£. */
@@ -63,13 +97,10 @@ class FineGrainedCounterArray(n: Int) extends CounterArray(n){
 
   def get(i: Int) = locks(i).mutex{ a(i) }
 }
-
 \end{scala}
-\caption{Implementations of an array of counters using coarse-grained and
-  fine-grained locking.}
-%% \caption{An implementation of an array of counters using coarse-grained
-%%   locking.}
-\label{fig:CoarseGrainedCounterArray}
+\caption{An implementation of an array of counters using fine-grained
+   locking.}
+%\label{fig:CoarseGrainedCounterArray}
 \label{fig:FineGrainedCounterArray}
 \end{figure}
 
@@ -83,12 +114,19 @@ use an array of |n| |Lock|s, where each lock |locks(i)| protects the
 entry~|a(i)|.  Each operation uses the relevant lock to ensure that two
 executions do not act on the same counter concurrently, which would be a race.
 However, operations on different counters use different locks, so can proceed
-concurrently.  This approach is known as \emph{fine-grained
-locking}\index{locking!fine-grained}. 
+concurrently.  Under reasonable assumptions, we can expect that most of the
+time threads try to update different counters, so do not need to wait to
+obtain the lock.  This approach is known as \emph{fine-grained
+  locking}\index{locking!fine-grained}.
+
+
+A potential disadvantage of fine-grained locking is that it might require many
+locks, and so consume a lot of memory.  Each SCL |Lock| uses 24 bytes, which
+on its own is fairly trivial; but with many locks, this can mount up. 
 
 %%%%%
 
-\begin{figure}
+\begin{figure}[hbtp]
 \begin{scala}
 /** An implementation using striped locking. */
 class StripedCounterArray(n: Int, stripes: Int) extends CounterArray(n){
@@ -110,11 +148,7 @@ class StripedCounterArray(n: Int, stripes: Int) extends CounterArray(n){
 \label{fig:StripedCounterArray}
 \end{figure}
 
-%%%%%
-
-A potential disadvantage of fine-grained locking is that it might require many
-locks, and so consume a lot of memory.  Each SCL |Lock| uses 24 bytes, which
-on its own is fairly trivial; but with many locks, this can mount up.  
+%%%%% 
 
 The class |StripedCounterArray| in Figure~\ref{fig:StripedCounterArray} uses
 an in-between approach.  It uses some number |stripes| of locks, where

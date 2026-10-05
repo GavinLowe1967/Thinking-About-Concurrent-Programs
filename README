@@ -7,14 +7,17 @@ Chapter 1: Introduction
 - races
 
 Chaper 2: Message passing using channels.
+* More about CSP.  ? and ! notation?
+** Exercise: generating primes using dynamic pipeline.
 
 Chapter 3: Example: Numerical Integration
--- Maybe more exercises.
+* Maybe more exercises.
+** Running time O(numTasks + n/numWorkers)
 
 Chapter 4: Alternation
 
 Chaper 5: Clients and Servers
--- Maybe another exercise; maybe one-family problem.
+* Maybe another exercise; maybe one-family problem.
 
 Chapter 6: Interacting Peers
 
@@ -23,9 +26,9 @@ Chapter 7: Concurrent Datatypes
 Chapter 8: Data Parallel
 
 Chapter 9: Locks
-- Talk about scaling, maybe related to Amdahl's law.
-- Add work stealing example, 2023 exam, workStealing.tex
-- local linearisable queue (array of one-enqueuer, multiple-dequeuer queues)?
+*** Add work stealing example, 2023 exam, workStealing.tex
+* local linearisable queue (array of one-enqueuer, multiple-dequeuer queues)?
+* Exercise, couting letter frequencies in documents, updating letter counts using locks??  Better to just update thread-local counts. 
 
 Chapter 10: Conditions: 
 - ?? Timed wait operators ??
@@ -33,6 +36,7 @@ Chapter 10: Conditions:
 - Talk about choreography -- done
 - improve section on other languages
 - more exercises 
+* Add publish/subscribe: this implies channels as publish/subscribe.
 
 Chapter 11: JVM Monitors
 - Add more exercises.

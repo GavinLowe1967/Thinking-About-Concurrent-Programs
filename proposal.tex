@@ -1,0 +1,175 @@
+\documentclass[12pt,a4paper]{article}
+
+\usepackage{url}
+\sloppy
+
+\title{Book Proposal: Thinking About Concurrent Programs}
+\author{Gavin Lowe\footnote{E-mail: \texttt{gavinlowe1@gmail.com}.}}
+
+\begin{document}
+\maketitle
+
+\subsection*{Book overview}
+
+This is a book about writing concurrent programs, and how to think about
+them.  
+
+
+Example-oriented.  Present patterns and techniques.  
+
+One theme of the book is modularisation\index{modularisation}.  Design
+decisions concerning concurrency within an object, which we refer to as a
+\emph{concurrent object}.  Operations on that object should be thread-safe,
+i.e.,~different threads do not interfere with one another.  Client code can
+use that object without knowing how the concurrency is implemented.
+
+
+Message passing first. 
+
+SCL
+
+Exercises.
+
+\begin{description}
+\item[Chapter 1, Introduction] introduces the topic, describing reasons why we
+  might want to use concurrency, and gives a brief overview of concurrent
+  architectures.  It explains why concurrent programming introduces extra
+  challenges by introducing race conditions.  It also describes problems
+  caused by cache inconsistency. 
+
+\item[Chapter 2, Message Passing using Channels] introduces the idea of
+  message-passing concurrency, and how to define and use channels in SCL.  It
+  illustrates the technique with a number of small examples, particularly
+  examples using fine-grained concurrency: the aim here is to get the reader
+  used to thinking concurrently.  It introduces a simple way of testing, by
+  generating random input data, and comparing the results of the concurrent
+  program with that from a simple sequential program.  It also describes how
+  to reason about the order of actions (using Lamport's ``happens-before''
+  notation).
+
+\item[Chapter 3, Example: Numerical Integration] describes a larger example,
+  namely numerical integration based on the trapezium rule, with different
+  workers estimating different parts of the integral.  It illustrates the
+  technique of a controller distributing tasks to workers, and combining
+  together the subresults into the final result (both using message passing).
+  It does this in two ways: where each worker is responsible for a fixed part
+  of the integral; and the bag-of-tasks pattern, where workers perform
+  multiple tasks, helping to smooth out variations in speed between workers.
+  The chapter talks a bit about tuning, so as to choose values of parameters
+  that make the program run quickly; in particular, it demonstrates how a
+  badly tuned concurrent program  can perform very poorly.  Finally, it talks
+  about encapsulation, and the idea of concurrent objects.
+
+\item[Chapter 4, Alternation] describes the technique of alternation, where a
+  thread can be willing to communicate on one of several channels, whichever
+  channel is ready first.  It describes how to achieve this in SCL, and
+  illustrates the idea with a number of small examples.  In particular, it
+  uses the classic Dining Philosophers example, and illustrates how a deadlock
+  can arise.  This leads into a discussion about debugging concurrent
+  programs, using logging, and also about how to avoid deadlocks in the first
+  place. 
+
+\item[Chapter 5, Clients and Servers] introduces the client-server paradigm,
+  where clients send requests to a server, which responds.  The paradigm is
+  illustrated using a resource server, discussing various techniques.  It is
+  also illustrated using a couple of synchronisation objects.  Finally, the
+  chapter discusses how to test these synchronisation objects, in particular
+  by logging the results of operations, and then checking that the log
+  represents a valid execution. 
+
+\item[Chapter 6, Interacting Peers] describes various topologies that can be
+  used to connect together peers: a centralised topology, a fully connected
+  topology, a ring topology, and a heap topology.  These are all illustrated
+  on the same simple example, to allow comparison.  Further, a couple of
+  distributed algorithms are presented: leadership election in a ring, and
+  building a spanning tree.  
+
+\item[Chapter 7, Concurrent Datatypes] describes encapsulation inside
+  concurrent datatypes.  These provide thread-safe implementations of standard
+  datatypes such as queues, stacks, sets and mappings.  The implementation of
+  the concurrent datatype is responsible for controlling the concurrency: but
+  reasoning about correctness is at a local level, so easier than global
+  reasoning.  Client code can mostly use the concurrent datatype much the same
+  as sequential code would use the corresponding sequential datatype.  We
+  present the standard correctness condition for such concurrent datatypes,
+  namely linearization; and we present a technique for testing for
+  linearization.  We illustrate the technique by using two concurrent
+  datatypes within a concurrent implementation of (near-)breadth-first
+  search. 
+
+\item[Chapter 8, Synchronous Parallel Programming] 
+
+combining barriers.
+
+
+\item[Chapter 9, Using Explicit Locks]
+
+lightweight locking, sharding
+
+\item[Chapter 10, Conditions and Signals]
+
+\item[Chapter 11, JVM Monitors]
+
+\item[Chapter 12, Semaphores] 
+\end{description}
+
+
+\subsection*{Prerequisites}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\paragraph{Competition.}
+
+I'll summarise here some other books with a similar approach.
+
+
+Concurrent Programming in Java: Design Principles and Patterns, Doug Lee.
+\url{https://www.anna.ase.ro/Java/resurse/Concurrent_Programming_in_Java.pdf} 
+I don't want to read this!!!
+
+Learn Concurrent Programming with Go,  James Cutajar.
+% https://github.com/ytx-readings/go-books/blob/main/books/Learn%20Concurrent%20Programming%20with%20Go%20(James%20Cutajar)%20(Z-Library).pdf
+In my opinion, this book covers the material rather slowly; as a result, it
+covers much less ground than the proposed book.  It describes various
+concurrency primitives, and illustrates them with toy examples; but it's
+lacking the bigger picture.  In particular, it seems not to cover the
+following topics from the proposed book: systematic testing; workers and
+controller pattern, including the bag-of-tasks pattern; tuning; encapsulation;
+logging for debugging and testing; synchronisation
+objects (beyond channels and barriers); different topologies for
+communications; concurrent datatypes; linearisation; ..........
+
+Moves rather slowly, and covers less ground.  Missing a lot of importatn
+topics I cover -- list.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection*{Manuscript information}
+
+The current draft is included with this proposal.  It is nearly complete, and
+currently nearly 300 pages long (excluding appendices).  I would expect the
+exercise solutions for students (included as Appendix C) to be available
+online, and the solutions for instructors (included as Appendix D) to be
+available from me.  The code would also be available online.
+
+Chapters 1--9 are basically complete, with the possible exception of extra
+exercises, and a couple of small items.  The later chapters, the preface, the
+appendices, and index need a more thorough review; in particular, a few more
+exercises need adding.  These shouldn't take more than a month or two.  The
+final chapter (if included) needs writing, which might take another month.  In
+addition, the code for online publication needs to be tidied up; this can be
+done in parallel with reviewing.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\subsection*{Brief biography}
+
+I am an Emeritus Professor of Computer Science at Oxford University, and an
+Emeritus Fellow of St Catherine's College, Oxford.  My research has been in
+the areas of Computer Security, Concurrency, Verification, and Concurrent
+Programming.  I have nearly 30 years' teaching experience.  In particular, I
+have lectured and tutored the subjects of this book, which has given me a very
+good understanding of what students find difficult, and has helped me develop
+ways of explaining the material.
+
+\end{document}

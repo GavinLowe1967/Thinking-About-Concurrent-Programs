@@ -138,6 +138,12 @@ with $\sm x = 1$.  All other interleavings give one of these three values.
 Returning to the program in Figure~\ref{fig:race}, it should now be clear how
 different interleavings can produce any result between $-1000$ and~$1000$.
 
+Each execution of |x = x+1| or |x = x-1| should be performed under
+\emph{mutual exclusion}\index{mutual exclusion}: only one thread should be
+performing such an update at a time.  When a piece of code requires mutual
+excluson, we say that it forms a \emph{critical section}\index{critical
+section}.
+
 More generally, two actions are \emph{independent}\index{independent actions}
 if their order may be reversed without changing the overall effect.  For
 example, two actions concerning distinct variables are independent, as are two

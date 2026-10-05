@@ -26,7 +26,8 @@ A lock has two principle operations:
 At most one thread can hold the lock at a time.  Hence this gives us a way to
 enforce \emph{mutual exclusion}\index{mutual exclusion}, where a \emph{single}
 thread at a time executes in a particular section of code.  This helps us to
-avoid races.
+avoid races.  Recall that when a section of code requires mutual exclusion, it
+forms a \emph{critical section}\index{critical section}.
 
 We will see other uses of locks in the next chapter. 
 %
@@ -34,12 +35,12 @@ Most other programming languages provide implementations of locks with a
 similar interface.
 
 Figure~\ref{fig:counter-lock0} gives a simple example, based on the counter
-example from Chapter~\ref{chap:intro}.  A lock is used to protect the counter
-variable~|c|.  Each operation accesses~|c| only when it is holding the lock.
-This means that it accesses~|c| under mutual exclusion: if one thread is
-operating on~|c|, another thread that calls an operation has to wait until the
-former thread releases the lock.  This means that two different operations
-cannot interfere.
+example from Chapter~\ref{chap:intro}.  Each increment or decrement of the
+shared variable~|c| is a critical section.  A lock is used to protect~|c|:
+each operation accesses~|c| only when it is holding the lock.  This means that
+it accesses~|c| under mutual exclusion: if one thread is operating on~|c|,
+another thread that calls an operation has to wait until the former thread
+releases the lock.  This means that two different operations cannot interfere.
 
 %%%%%
 
@@ -196,6 +197,7 @@ another operation.  Further, compiler optimisations must respect this
 semantics.  This means that if you are using |Lock|s correctly to protect
 against data races, you do not need to worry about cache
 consistency\index{cache consistency}.
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

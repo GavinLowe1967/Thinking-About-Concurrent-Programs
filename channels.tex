@@ -1,4 +1,4 @@
-\chapter{Message Passing using Channels} 
+\chapter{Message Passing Using Channels} 
 \label{chap:channels}
 
 \input{channels1} % Channels; multiples of 4; buffered channels
@@ -11,7 +11,11 @@
 
 In this chapter we have seen the basics of message-passing concurrency.  The
 idea is straightforward: threads can send messages to one another.  The
-technique originated with the work of Tony Hoare~\cite{Hoare78}.
+technique originated with the work of Tony Hoare~\cite{Hoare78}, who proposed
+an abstract language, Communicating Sequential Processes (CSP)\index{CSP}, for
+describing processes that send and receive messages over synchronous channels
+(the syntax ``|!|'' and ``|?|'' for sending and receiving is taken directly
+from CSP).
 
 We have arranged that threads have no shared variables.  This means that we
 avoid any memory races of the form that we saw in Chapter~\ref{chap:intro}.
@@ -119,7 +123,8 @@ an implementation  for Java.
 
 \input{Exercises/quicksort}
 
-\input{Exercises/sorting} % sorting using comparators
+\input{Exercises/primes} % Dynamic network to generate primes
 
+\input{Exercises/sorting} % sorting using comparators
 
 % More exercises: Bitonic part of sorting practical?

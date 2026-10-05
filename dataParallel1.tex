@@ -320,6 +320,33 @@ We can test the concurrent simulation using the standard technique of
 comparing it to the sequential simulation.  We generate some input data at
 random, run both simulations, and compare the results. 
 
+A slight variation of this program would involve animating the movement of the
+astronomical bodies, displaying them on the screen.  How could we do this?  It
+is easiest to use a separate thread to perform the rendering.  This thread
+would need to synchronise with the workers, so we can adapt the barrier
+appropriately: 
+%
+\begin{scala}
+  val barrier = new Barrier(numWorkers+1)
+\end{scala}
+%
+We  give the rendering thread the identity |numWorkers|.  This thread only
+needs to read the bodies' positions, and it can do this safely during the
+first subround of each round.  Hence the thread would have a definition of the
+following form, assuming a function |render| that does the actual rendering.
+%
+\begin{scala}
+  def render() = ... // Render astronomical bodies.
+  def renderer = thread("renderer"){
+    val me = numWorkers
+    for(step <- 0 until steps){
+      render(); barrier.sync(me)
+      barrier.sync(me) // Wait for workers to update positions.
+    }
+    render()
+  }   
+\end{scala}
+
 In previous chapters, we avoided shared variables other than read-only
 variables.  We have relaxed this restriction here, but avoided races by
 imposing rules on when different threads can read or write shared variables,
