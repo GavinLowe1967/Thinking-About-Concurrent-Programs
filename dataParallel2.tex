@@ -151,6 +151,37 @@ in the normal way.
 Exercise~\ref{ex:prefix-sums-shared} asks you to adapt the program so that the
 threads communicate via shared variables rather than channels.
 
+In the above implementation, we assumed that we had as many threads as entries
+in the given array~|a|.  This is probably unrealistic.  However, it is
+straightforward to adapt the implementation so that each thread is responsible
+for a block of entries in the result array.  With $n$ entries in the array and
+$p$ worker threads, each worker is responsible for $n/p$ entries, and each
+barrier synchronisation takes time $O(\log p)$, again with $\log
+n$ rounds.  Thus  the
+program runs in time $O((n/p + \log p) \log n)$.
+
+The prefix sum problem is an instance of a more general pattern, known as the
+\emph{scan pattern}\index{scan pattern}.  The idea of scan is that we are
+given some input, say in an array~|a|, and an associative function~$f$.  The
+goal is to set each entry in a result array~|r| such that for each~$i$
+\[\mstyle
+\sm r(i) = 
+ % f(f(\ldots f(a(0), a(1)), a(2)), \ldots a(i))
+ f(\sm a(0), f(\sm a(1), f(\sm a(2), \ldots  f(\sm a(i-1), \sm a(i)) \ldots ))).
+\]
+If we write $f$ as an infix operator $\oplus$, the above equation is more
+clearly written as
+\[\mstyle
+\sm r(i) = 
+ % f(f(\ldots f(a(0), a(1)), a(2)), \ldots a(i))
+ \sm a(0) \oplus (\sm a(1) \oplus(\sm a(2) \oplus \ldots  
+ (\sm a(i-1) \oplus \sm a(i)) \ldots  )),
+\]
+i.e.,~the result of combining the elements of $\sm a[0 \upto i]$
+using~$\oplus$ (or~$f$).  The prefix sum problem is an instance of the scan
+pattern where $f$ corresponds to addition.  It should be clear how to
+generalise the prefix sum code appropriately.
+
 %%%%%
 
 %% \begin{selfnote}

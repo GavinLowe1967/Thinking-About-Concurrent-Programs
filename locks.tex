@@ -29,7 +29,7 @@ a value to a variable when holding a lock, that value will be available to a
 subsequent thread that holds the lock.
 
 In many cases, it is enough to protect a concurrent object using a single
-thread.  However, if that object acts as a bottleneck, it can be appropriate
+lock.  However, if that object acts as a bottleneck, it can be appropriate
 to use a finer granularity of locking.  In particular, sharding provides a
 straightforward approach to implementing concurrent datatypes such as sets and
 mappings. 

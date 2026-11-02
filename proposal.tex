@@ -3,7 +3,10 @@
 \usepackage{url}
 \sloppy
 
-\title{Book Proposal: Thinking About Concurrent Programs}
+\title{Book Proposal: \\ 
+%\emph{Creating Concurrent Programs}}
+Concurrent Programming: \\ Principles, Techniques and Patterns}
+
 \author{Gavin Lowe\footnote{E-mail: \texttt{gavinlowe1@gmail.com}.}}
 
 \begin{document}
@@ -11,54 +14,87 @@
 
 \subsection*{Book overview}
 
-This is a book about writing concurrent programs, and how to think about
-them.  
+This is a book about designing and writing concurrent programs.  My experience
+is that other books on the subject present concurrency primitives, but do not
+adequately teach techniques whereby these primitives can be used effectively.
+The aim here is to present general patterns and techniques that can be reused,
+and so help the reader develop a deeper understanding.
 
+The book is aimed at readers who already have experience of writing sequential
+programs, but want to learn how to write concurrent programs.  It could be
+read either by students or professional programmers.  In Oxford, the course
+corresponds to a second-year undergraduate course, although some universities
+may prefer to teach the material in a later year.
 
-Example-oriented.  Present patterns and techniques.  
+The book is example-oriented.  Examples that introduce new concurrency
+techniques are deliberately simple, to help the reader understand how the
+technique works.  But these lead onto larger, more realistic examples, so that
+the reader can see how to use the techniques.  The book emphasises various
+patterns.  Exercises are used to help reinforce those patterns. 
 
-One theme of the book is modularisation\index{modularisation}.  Design
-decisions concerning concurrency within an object, which we refer to as a
-\emph{concurrent object}.  Operations on that object should be thread-safe,
-i.e.,~different threads do not interfere with one another.  Client code can
-use that object without knowing how the concurrency is implemented.
+The book also includes more foundational material, to help the reader
+understand underlying principles, what the correctness criteria are, and how
+to avoid pitfalls such as deadlocks.
 
+One theme of the book is modularisation, particularly using \emph{concurrent
+  objects}.  Operations on such objects should be thread-safe, i.e.,~different
+threads do not interfere with one another.  Client code can use that object
+without knowing how the concurrency is implemented, and is often very similar
+to corresponding code in a sequential program.  This modularisation makes
+development easier: it requires local reasoning about a single object at a
+time, rather than global reasoning.
 
-Message passing first. 
+Another theme that runs throughout the book is \emph{testing}, a topic that
+most other books ignore.  How can we test concurrent programs?  How can we
+perform unit testing on a concurrent object?  Often this requires different
+techniques from those for sequential programs or objects.
 
-SCL
+The book makes use of the Scala programming language, together with my own
+Scala Concurrency Library (SCL).  These, together, remove much of the
+boiler-plate code present in many other languages, so that the programmer can
+concentrate on the main ideas.  However, the techniques are readily
+translatable to other languages, given suitable concurrency primitives.  An
+appendix describes relevant parts of the Scala language; my aim is that
+reasonably experienced programmers should need to refer to the appendix only
+occasionally, for specific language features.
 
-Exercises.
+The book describes message-passing concurrency first, because I think that
+this is the most intuitive style of concurrency.  However, this paradigm is
+used to introduce other techniques and patterns of concurrent programs.  The
+book then progresses onto synchronous parallel programming, and subsequently
+describes monitors and semaphores.
 
+In more detail, chapters cover the following topics.
+%
 \begin{description}
-\item[Chapter 1, Introduction] introduces the topic, describing reasons why we
-  might want to use concurrency, and gives a brief overview of concurrent
-  architectures.  It explains why concurrent programming introduces extra
-  challenges by introducing race conditions.  It also describes problems
-  caused by cache inconsistency. 
+\item[Chapter 1, Introduction] introduces the subject, describing reasons why
+  we might want to use concurrency, and gives a brief overview of concurrent
+  architectures.  It explains why concurrent programming entails extra
+  challenges, by introducing race conditions and problems caused by cache
+  inconsistency.
 
 \item[Chapter 2, Message Passing using Channels] introduces the idea of
-  message-passing concurrency, and how to define and use channels in SCL.  It
+  message-passing concurrency, and how to define and use channels in SCL{}.  It
   illustrates the technique with a number of small examples, particularly
   examples using fine-grained concurrency: the aim here is to get the reader
-  used to thinking concurrently.  It introduces a simple way of testing, by
-  generating random input data, and comparing the results of the concurrent
-  program with that from a simple sequential program.  It also describes how
-  to reason about the order of actions (using Lamport's ``happens-before''
-  notation).
+  used to thinking concurrently.  It also includes examples of recursive
+  parallelism.  It introduces a simple way of testing, by generating random
+  input data, and comparing the results of the concurrent program with that
+  from a simple sequential program.  It also describes how to reason about the
+  order of actions (using Lamport's ``happens-before'' notation).
 
 \item[Chapter 3, Example: Numerical Integration] describes a larger example,
-  namely numerical integration based on the trapezium rule, with different
-  workers estimating different parts of the integral.  It illustrates the
+  namely numerical integration based on the trapezium rule.  Different worker
+  threads calculate different parts of the integral.  It illustrates the
   technique of a controller distributing tasks to workers, and combining
   together the subresults into the final result (both using message passing).
   It does this in two ways: where each worker is responsible for a fixed part
-  of the integral; and the bag-of-tasks pattern, where workers perform
+  of the integral; and the \emph{bag-of-tasks pattern}, where workers perform
   multiple tasks, helping to smooth out variations in speed between workers.
   The chapter talks a bit about tuning, so as to choose values of parameters
   that make the program run quickly; in particular, it demonstrates how a
-  badly tuned concurrent program  can perform very poorly.  Finally, it talks
-  about encapsulation, and the idea of concurrent objects.
+  badly tuned concurrent program can perform very poorly.  Finally, it talks
+  about encapsulation, and the idea of \emph{concurrent objects}.
 
 \item[Chapter 4, Alternation] describes the technique of alternation, where a
   thread can be willing to communicate on one of several channels, whichever
@@ -66,98 +102,263 @@ Exercises.
   illustrates the idea with a number of small examples.  In particular, it
   uses the classic Dining Philosophers example, and illustrates how a deadlock
   can arise.  This leads into a discussion about debugging concurrent
-  programs, using logging, and also about how to avoid deadlocks in the first
+  programs using logging, and also about how to avoid deadlocks in the first
   place. 
 
 \item[Chapter 5, Clients and Servers] introduces the client-server paradigm,
   where clients send requests to a server, which responds.  The paradigm is
-  illustrated using a resource server, discussing various techniques.  It is
-  also illustrated using a couple of synchronisation objects.  Finally, the
-  chapter discusses how to test these synchronisation objects, in particular
-  by logging the results of operations, and then checking that the log
-  represents a valid execution. 
+  illustrated using a resource server; various techniques are described.  The
+  paradigm is also illustrated using a couple of \emph{synchronisation
+    objects} (where two or more threads synchronise, possibly exchanging
+  data).  Finally, the chapter discusses how to test these synchronisation
+  objects, in particular by logging the results of operations, and then
+  checking that the log represents a valid execution.
 
 \item[Chapter 6, Interacting Peers] describes various topologies that can be
   used to connect together peers: a centralised topology, a fully connected
   topology, a ring topology, and a heap topology.  These are all illustrated
   on the same simple example, to allow comparison.  Further, a couple of
   distributed algorithms are presented: leadership election in a ring, and
-  building a spanning tree.  
+  building a spanning tree in a general graph.  
 
 \item[Chapter 7, Concurrent Datatypes] describes encapsulation inside
-  concurrent datatypes.  These provide thread-safe implementations of standard
-  datatypes such as queues, stacks, sets and mappings.  The implementation of
-  the concurrent datatype is responsible for controlling the concurrency: but
-  reasoning about correctness is at a local level, so easier than global
-  reasoning.  Client code can mostly use the concurrent datatype much the same
-  as sequential code would use the corresponding sequential datatype.  We
-  present the standard correctness condition for such concurrent datatypes,
-  namely linearization; and we present a technique for testing for
-  linearization.  We illustrate the technique by using two concurrent
-  datatypes within a concurrent implementation of (near-)breadth-first
-  search. 
+  \emph{concurrent datatypes}.  These provide thread-safe implementations of
+  standard datatypes such as queues, stacks, sets and mappings.  The
+  implementation of the concurrent datatype is responsible for controlling the
+  concurrency: but reasoning about correctness is at a local level, so easier
+  than global reasoning.  Client code can mostly use the concurrent datatype
+  much the same as sequential code would use the corresponding sequential
+  datatype.  The chapter presents both total datatypes (where each operation
+  can return in every state), and partial datatypes (where operations may
+  block until a natural precondition holds).  It presents the standard
+  correctness condition for such concurrent datatypes, namely
+  \emph{linearization}.  Further, it presents a technique for testing for
+  linearization (encapsulated inside SCL, to make the testing
+  straightforward).  The paradigm is illustrated by using two concurrent
+  datatypes within a concurrent implementation of (near-)breadth-first search.
 
-\item[Chapter 8, Synchronous Parallel Programming] 
+\item[Chapter 8, Synchronous Parallel Programming] considers programs that
+  proceed in rounds, with a synchronisation between all threads---known as a
+  \emph{barrier synchronisation}---at the end of each round.  The technique of
+  a barrier synchronisation is extended to allow threads to combine values at
+  the end of each round, for example to decide whether to terminate.  The
+  technique is illustrated with several examples.  Two variants of the pattern
+  are considered.  In one variant, each round is split into a subround where
+  shared variables are read, and a subround where variables are written, with
+  an additional barrier synchronisation between.  The second variant uses two
+  copies of the data, one being read and one being written, with their roles
+  swapping at the end of each round.
 
-combining barriers.
+\item[Chapter 9, Using Explicit Locks] considers how to use explicit locks
+  (specifically, locks in the SCL library).  Their use is illustrated by the
+  implementation of some concurrent objects.  The chapter then considers
+  \emph{fine-grained locking} and \emph{sharding}, both techniques that 
+  improve scaling as the number of threads grows.
 
+\item[Chapter 10, Conditions and Signals] describes techniques to allow one
+  thread to send a signal to another, via a \emph{condition}.  The technique
+  is introduced using examples of a partial queue and a bounded partial queue;
+  exercises ask students to adapt the ideas to stacks.  The technique is also
+  illustrated in implementations of several synchronisation objects: a
+  synchronous channel, an exchanger,  a barrier synchronisation, and a readers
+  and writers lock.  Finally they are used in a classical synchronisation
+  problem, namely the sleeping barber problem. 
 
-\item[Chapter 9, Using Explicit Locks]
+\item[Chapter 11, JVM Monitors] describes the concurrency primitives within
+  the JVM, providing locking and signalling.  These are used to implement a
+  number of concurrent objects (including using fine-grained locking).  They
+  are compared with corresponding primitives within SCL.
 
-lightweight locking, sharding
+\item[Chapter 12, Semaphores] describes how to use semaphores in concurrent
+  code, both for mutual exclusion and for signalling.  Again, the ideas are
+  presented using a number of examples, particularly of concurrent objects.
+  The chapter emphasises the technique of \emph{passing the baton}.  It also
+  describes counting semaphores.
 
-\item[Chapter 10, Conditions and Signals]
+\item[Chapter 13, Conclusions] gives an overview, and briefly discusses some
+  other techniques (atomics, and the related property of lock freedom;
+  futures; and competition parallel).  (This chapter is less developed than
+  others;  I might yet decide to remove it.) 
 
-\item[Chapter 11, JVM Monitors]
+\item[Appendix A, A Brief Introduction to Scala] describes enough Scala for a
+  reader unfamiliar with the language to understand the rest of the book.  The
+  body of the book includes references to this appendix where appropriate.  My
+  aim is that most readers will only have to refer occasionally to the
+  appendix. 
 
-\item[Chapter 12, Semaphores] 
+\item[Appendix B, Experimental Design] gives a brief overview about designing
+  tuning experiments.  
 \end{description}
 
 
-\subsection*{Prerequisites}
+%% I might add an additional final chapter, giving an overview of more advanced
+%% concurrency techniques, particularly compare-and-set operations, and the
+%% properties of lock freedom and wait freedom.  I don't want to treat these
+%% topics in full detail, because they are already very well covered by Herlihy
+%% and Shavit (discussed below), and because I don't want the book to get much
+%% longer.  ...........
+
+The draft contains two additional appendices, containing answers to exercises.
+I propose that Appendix~C will be provided online (covering exercises labelled
+with ``$\dag$''); and Appendix~D will be available from me, for bona fide
+instructors only.
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\paragraph{Competition.}
+\subsection*{Competition}
 
-I'll summarise here some other books with a similar approach.
+I discuss here some other books on concurrent programming.
+%
+Some books concentrate on a particular programming language, typically named
+in the title.  My view is that a textbook should teach general techniques,
+rather than concentrate on a particular language.  Certainly, a programming
+language is very useful in order to make examples concrete; but it should be
+straightforward for the reader to translate those techniques to other
+languages (given suitable concurrency primitives).
 
+\emph{Concurrent Programming in Java: Design Principles and Patterns}, Doug
+Lee, Addison Wesley.
+%\url{https://www.anna.ase.ro/Java/resurse/Concurrent_Programming_in_Java.pdf}
+%
+%I  think the book is badly written.  
+I find that this book does not explain the ideas well, and is rather
+confusing.  It is over-dense, and feels like a ``brain-dump''.
+%% There are a number of technical issues that I disagree with (or, at least,
+%% are likely to be misunderstood).
+%The main ideas do not come across well: 
+In a number of places, I struggled to
+understand what the author was trying to say; somebody who is not already
+familiar with the material would surely struggle more.
+%
+Monitors and semaphores are described; but I don't think there are enough
+examples or enough explanation for readers to understand the patterns, and so
+be able to write similar programs. 
+%
+Channels are mentioned, but not used in meaningful examples (the one
+half-meaningful example is the dining philosophers).  
+% Sec 4.5.1
+Synchronous data parallel programming is described briefly, with a single
+example. 
+% Sec 4.4.3
+Concurrent objects are used; but there doesn't seem to be sufficient
+discussion of what correctness means; there is no mention of linearization.
+% 
+It also does not seem to cover the following topics from the proposed book:
+systematic testing; tuning; logging for debugging and testing; synchronisation
+objects (beyond channels and barriers); sharding.
 
-Concurrent Programming in Java: Design Principles and Patterns, Doug Lee.
-\url{https://www.anna.ase.ro/Java/resurse/Concurrent_Programming_in_Java.pdf} 
-I don't want to read this!!!
+%%%%%
 
-Learn Concurrent Programming with Go,  James Cutajar.
+\emph{Learn Concurrent Programming with Go},  James Cutajar, Manning.
 % https://github.com/ytx-readings/go-books/blob/main/books/Learn%20Concurrent%20Programming%20with%20Go%20(James%20Cutajar)%20(Z-Library).pdf
-In my opinion, this book covers the material rather slowly; as a result, it
-covers much less ground than the proposed book.  It describes various
-concurrency primitives, and illustrates them with toy examples; but it's
-lacking the bigger picture.  In particular, it seems not to cover the
-following topics from the proposed book: systematic testing; workers and
-controller pattern, including the bag-of-tasks pattern; tuning; encapsulation;
-logging for debugging and testing; synchronisation
+In my opinion, this book covers the material rather slowly (although is mostly
+clear); as a result, it covers much less ground than the proposed book.  It
+describes various concurrency primitives, and illustrates them with toy
+examples; but it's lacking the bigger picture.  I don't think there are enough
+examples for the reader to spot the patterns.
+%
+In particular, it seems not to cover the
+following topics from the proposed book: systematic testing; 
+%% workers and controller pattern, including the bag-of-tasks pattern;
+tuning; encapsulation; logging for debugging and testing; synchronisation
 objects (beyond channels and barriers); different topologies for
-communications; concurrent datatypes; linearisation; ..........
+communications; concurrent datatypes; linearization; synchronous parallel
+programming; fine-grained locking; sharding.
 
-Moves rather slowly, and covers less ground.  Missing a lot of importatn
-topics I cover -- list.
+%%%%%
+
+\emph{The Art of Multiprocessor Programming}, Maurice Herlihy and Nir Shavit,
+Morgan Kaufmann.  
+%
+This is a more advanced book than the proposed book.  As one point of
+comparison, in Oxford, the proposed book corresponds to a second-year
+undergraduate course, whereas Herlihy and Shavit's book corresponds to a
+fourth-year/master's level course.  In common with the proposed book, it
+places an emphasis on concurrent objects, with linearizability as the
+correctness condition.  It has less material on how to use those concurrent
+objects in complete programs.  It does not cover the following topics from the
+proposed book: message passing (Chapters 2--6 of the proposed book);
+bag-of-tasks pattern; systematic testing; tuning; logging; synchronous
+parallel programming; sharding; semaphores.  Instead, the emphasis is on
+atomic variables, and lock-free or wait-free operations.  I consider this to
+be a very good book: one of the best in Computer Science, and a suitable
+follow-on to the proposed book.
+
+%%%%%
+
+\emph{Concurrent Programming: Principles and Practice}, Gregory R. Andrews,
+Pearson.  This is a classic book; but it is now rather dated (1991), and also
+out of print.  The book uses pseudocode, which makes the material less
+concrete, and creates a disconnect from real programs; in particular, it makes
+it harder for an instructor to set practical programming exercises.  There are
+a number of topics in common with the proposed book, although it includes much
+less on message passing.  It does not include the following topics in the
+proposed book: systematic testing; tuning; logging; encapsulation and
+concurrent objects; linearization; fine-grained locking; sharding; conditions
+(in the sense of the proposed book).
+
+\emph{Principles of Concurrent and Distributed Programming}, M.~Ben-Ari,
+Addison Wesley.\footnote{Note: this discussion is based on looking through
+  the 1992 edition, and the table of contents of the 2005 edition.}  This is
+another classic book, but is again rather dated.  I consider it broader but
+shallower than the proposed book.  It covers semaphores,
+monitors and message passing (each fairly briefly, with few examples).  It
+does not seem to cover the following topics from the proposed book: systematic
+testing; workers and controller pattern, including the bag-of-tasks pattern;
+tuning; encapsulation; logging for debugging and testing; synchronisation
+objects (beyond channels and barriers); different topologies for
+communications; concurrent datatypes; linearization; synchronous parallel
+programming; fine-grained locking; sharding.
+%
+Instead, it covers in more detail topics such as the critical section problem
+(effectively building a lock from scratch), verification, the Linda
+tuple-spaces paradigm, distributed algorithms, consensus, real-time systems.
+
+\emph{Structured Parallel Programming}, Michael McCool, Arch D. Robison and
+James Reinders, Morgan Kaufmann.
+%
+This book concentrates on ``high-level patterns'', by which they mean patterns
+in specifications, rather than implementations.  They present ways of tackling
+these patterns using various parallel libraries and compiler technologies.  In
+particular, the book targets technologies produced by Intel (who employ all
+three authors). My objection to this approach is that many problems fall
+outside these patterns: programmers should know how to tackle problems
+directly.  Further, the patterns considered are not difficult to tackle
+directly: the proposed book includes examples of nearly all of them, and I
+would expect readers to be able to implement the others for themselves.
+%
+The book seems to have negligible overlap with the proposed book: locks are
+mentioned very briefly (less than three pages), as are barriers (less than one
+page, with no examples); message-passing and semaphores seem not to be
+covered.  None of the following topics is covered: systematic testing;
+workers and controller pattern, including the bag-of-tasks pattern; tuning;
+encapsulation; logging for debugging and testing; synchronisation objects;
+different topologies for communications; concurrent datatypes; linearization;
+sharding.
+%
+The writing style is very uneven: in some places it is over-dense, and seems
+to assume a lot more programming experience than a typical student has; in
+other places, it is rather plodding and repetitive.
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsection*{Manuscript information}
 
 The current draft is included with this proposal.  It is nearly complete, and
-currently nearly 300 pages long (excluding appendices).  I would expect the
-exercise solutions for students (included as Appendix C) to be available
+currently about 300 pages long (excluding Appendices~C and~D).  I would expect
+the exercise solutions for students (included as Appendix C) to be available
 online, and the solutions for instructors (included as Appendix D) to be
 available from me.  The code would also be available online.
 
-Chapters 1--9 are basically complete, with the possible exception of extra
-exercises, and a couple of small items.  The later chapters, the preface, the
-appendices, and index need a more thorough review; in particular, a few more
-exercises need adding.  These shouldn't take more than a month or two.  The
-final chapter (if included) needs writing, which might take another month.  In
-addition, the code for online publication needs to be tidied up; this can be
-done in parallel with reviewing.
+Chapters 1--9 are basically complete, with the exception of a few small items,
+and maybe some extra exercises.  Chapters 10--12, the preface,  appendices,
+and index need a more thorough review; in particular, a few more exercises
+need adding.  The final chapter is currently little more than a first draft.
+I think completion should take about three months.  In addition, the code for
+online publication needs to be tidied up; this could be done in parallel with
+editing.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -167,9 +368,10 @@ done in parallel with reviewing.
 I am an Emeritus Professor of Computer Science at Oxford University, and an
 Emeritus Fellow of St Catherine's College, Oxford.  My research has been in
 the areas of Computer Security, Concurrency, Verification, and Concurrent
-Programming.  I have nearly 30 years' teaching experience.  In particular, I
+Programming.  I have over 30 years' teaching experience.  In particular, I
 have lectured and tutored the subjects of this book, which has given me a very
 good understanding of what students find difficult, and has helped me develop
-ways of explaining the material.
+ways of explaining the material.  I recently published the book \emph{Thinking
+  About Programs} with ACM Press. 
 
 \end{document}

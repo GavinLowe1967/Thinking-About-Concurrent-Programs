@@ -126,17 +126,18 @@ object), and how many times that thread holds the lock.
 \section{Conditions}
 
 Building on the previous section, we now implement a mechanism similar to SCL
-|Condition|s.  The implementation is in Figure~\ref{fig:JVM-Condition}.  Each
-|Condition| is associated with a |Lock| |lock|, which is provided as a
-parameter of the class.  Each of the operations on the |Condition| should be
-called while holding |lock|. 
+|Condition|s, and which we also call |Condition|s.  The implementation is in
+Figure~\ref{fig:JVM-Condition}.  Each |Condition| is associated with a |Lock|
+|lock|, which is provided as a parameter of the class.  Each of the operations
+on the |Condition| should be called while holding |lock|.
 
 %%%%%
 
 \begin{figure}
 \begin{scala}
 class Condition(lock: Lock){
-  /** An object that allows a single thread to wait to receive a signal. */
+  /** An object that allows a single thread to wait to receive a single
+  signal. */
   private class Signal{
     /** Has there been a signal? */
     private var done = false
@@ -181,13 +182,14 @@ class Lock{
 
 %%%%%
 
-The implementation is based around an inner class |Signal|, which allows a
-single thread to wait to receive a signal.  Each |Signal| object acts as a
-monitor: the uses of |synchronized|, |wait| and |notify| are on that |Signal|
-object, and are independent of |lock|.  The |Signal| contains a boolean
-variable |done| that indicates whether a signal has been sent on the object.
-A waiting thread simply waits for |done| to become true.  A signalling thread
-sets |done| to true, and notifies the waiting thread.
+The implementation is based around an inner class |Signal|, a one-shot
+signalling object that allows a single thread to wait to receive a single
+signal.  Each |Signal| object acts as a monitor: the uses of |synchronized|,
+|wait| and |notify| are on that |Signal| object, and are independent of
+|lock|.  The |Signal| contains a boolean variable |done| that indicates
+whether a signal has been sent on the object.  A waiting thread simply waits
+for |done| to become true.  A signalling thread sets |done| to true, and
+notifies the waiting thread.
 
 Each |Condition| object encapsulates a queue of |Signal| objects, one for each
 thread that is currently waiting.  Each operation on the queue is done while

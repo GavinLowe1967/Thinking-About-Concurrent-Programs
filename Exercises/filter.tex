@@ -1,0 +1,79 @@
+\begin{questionS}
+A common pattern is that of a \emph{filter}, which selects all elements of a
+collection that satisfy some property~|p|.  On an array, a sequential
+implementation could use an |ArrayBuffer| as follows:
+\begin{scala}
+  import scala.collection.mutable.ArrayBuffer
+  def filter[A](a: Array[A], p: A => Boolean): Array[A] = {
+    val ab = new ArrayBuffer[A]
+    for(i <- 0 until a.length; if p(a(i))) ab += a(i)
+    ab.toArray
+  }
+\end{scala}
+
+Write a concurrent implementation, using |numWorkers| workers, according to
+the following signature:
+%
+\begin{scala}
+class Filter[A: scala.reflect.ClassTag](
+    a: Array[A], p: A => Boolean, numWorkers: Int){
+  def apply(): Array[A] = ...
+}
+\end{scala}
+%
+Each worker can be responsible for filtering a segment of~|a|.  However, they
+need to each copy their sub-result into a single result array, for which they
+need to know an appropriate offset. 
+\end{questionS}
+
+%%%%%
+
+\begin{answerS}
+My code is below.  The workers use the prefix sums pattern to calculate the
+offset for each thread's contribution.  We arrange for worker |numWorkers-1| to
+create the result array, as this worker knows the desired size. 
+%
+\begin{scala}
+class Filter[A: scala.reflect.ClassTag](
+    a: Array[A], p: A => Boolean, numWorkers: Int){
+  private val n = a.length
+
+  /** Barrier to synchronise workers. */
+  private val barrier = new Barrier(numWorkers)
+
+  /** Channels to workers, indexed by the recipient's identity. */
+  private val toWorkers = Array.fill(numWorkers)(new OnePlaceBuffChan[Int])
+
+  /** Array that holds the final result. */
+  private var result: Array[A] = null
+
+  /** A single worker. */
+  private def worker(me: Int) = thread{
+    val start = me*n/numWorkers; val end = (me+1)*n/numWorkers
+    val ab = new ArrayBuffer[A]
+    for(i <- start until end; if p(a(i))) ab += a(i)
+    val len = ab.length; var r = 0; var gap = 1; var s = len
+    // Use prefix sum pattern to find sum of £len£ values for threads up to
+    // £me£.  Writing £len(i)£ for the £len£ value of £worker(i)£, we have £$\sm{gap} = 2^{\ss{r}}$£
+    // and £$\sm s = \sum \sm{len}(\sm{me}-\sm{gap}\upto\sm{me}]$£ (with the normal fictitious values).
+    while(gap < numWorkers){
+      if(me+gap < numWorkers) toWorkers(me+gap)!s
+      if(gap <= me) s += toWorkers(me)?()
+      r += 1; gap += gap; barrier.sync(me)
+    }
+    // Worker £numWorkers$-1$£ creates the array.
+    if(me == numWorkers-1) result = new Array[A](s)
+    barrier.sync(me) // Wait for above to happen.
+    // Copy £ab£ into £result$\interval{\sm s - \sm{len}}{s}$£.
+    val offset = s-len  
+    for(i <- 0 until len) result(offset+i) = ab(i)
+  }
+
+  /** Calculate the filter. */
+  def apply(): Array[A] = {
+    run(|| (for(i <- 0 until numWorkers) yield worker(i)))
+    result
+  }
+}
+\end{scala}
+\end{answerS}

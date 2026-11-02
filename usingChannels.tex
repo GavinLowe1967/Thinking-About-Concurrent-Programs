@@ -49,7 +49,8 @@ function outputs~|x1| and then signals |endOfStream| on |out|.
 We now consider the case where the input stream contains at least two values,
 starting with~|x1| and~|x2|.  We create two recursive |mergesort|
 threads that will each sort about half of the inputs.  In addition, a
-controller thread ties things together.  The controller:
+controller thread ties things together. 
+The controller:
 %
 \begin{itemize}
 \item Passes the first two values, |x1| and |x2|, to the two recursive
@@ -102,9 +103,12 @@ The code in Figure~\ref{fig:mergesort} implements this strategy.
 %% (We describe
 %% below the |merge| function that merges the streams from the recursive
 %% threads.) 
-Thus, when the input stream contains at least two elements, the
-|mergesort| function runs the parallel composition of the controller and the
-results of two recursive calls to |mergesort|.
+Thus, when the input stream contains at least two elements, the |mergesort|
+function runs the parallel composition of the controller and the results of
+two recursive calls to |mergesort|.  This pattern---where a thread creates
+another thread, running the same code---is known as \emph{recursive
+  parallelism}\index{recursive parallelism}.
+
 
 \begin{figure}
 \begin{scala}
@@ -230,6 +234,18 @@ sorting circuits.  They can be tested in the same way.
 \begin{instruction}
 Study the details of the testing program.
 \end{instruction}
+
+As when testing sequential programs, it is important to include tests for
+corner cases.  The code in Figure~\ref{fig:mergesort-test} is very likely to
+cover corner cases such as an empty array, a singleton array, or a longer
+array that is increasing or decreasing.
+
+Of course, testing cannot be guaranteed to find all bugs.  If we are unlucky,
+then our tests will fail to trigger the precise circumstances necessary to
+display the bug.  However, my experience is that a good testing program can be
+very effective.  Verification of concurrent programs is an active research
+area, but beyond the scope of this book.
+ 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

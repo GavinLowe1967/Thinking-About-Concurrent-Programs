@@ -276,9 +276,10 @@ to
 This is a fairly standard form of rewrite: it avoids rereading the variable
 |done| on each iteration.  Now, this thread can read |done = false| and loop
 forever: the program gets stuck!  In fact, on my machine, the program runs for
-a few hundred iterations and then gets stuck: I think the just-in-time
-compiler (which optimises Java bytecode to native machine code, while the
-program is running) performs an optimisation equivalent to the one above.
+a few hundred iterations of the loop in |main|, and then gets stuck: I think
+the just-in-time compiler (which optimises Java bytecode to native machine
+code, while the program is running) performs an optimisation equivalent to the
+one above.
 
 When a program does get stuck in this way, typing \texttt{Ctrl}+$\backslash$
 (i.e.~holding down the \texttt{Ctrl} key, and pressing the backslash key) in

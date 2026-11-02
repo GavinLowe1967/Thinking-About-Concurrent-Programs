@@ -218,13 +218,13 @@ We can adapt the linearizability tester to test this implementation.  The
 enqueue operation on the sequential specification datatype needs to be adapted
 to capture the operation's precondition, as follows:
 %
-\begin{mysamepage}
+%\begin{mysamepage}
 \begin{scala}
   def seqEnqueue(x: Int)(q: SeqQueue) : (Unit, SeqQueue) = {
     require(q.length < bound); ((), q.enqueue(x))
   }
 \end{scala}
-\end{mysamepage}
+%\end{mysamepage}
 %
 When testing the implementation, it is best to pick a fairly small value for
 |bound| (on, at least, a good proportion of the runs).  This makes it likely

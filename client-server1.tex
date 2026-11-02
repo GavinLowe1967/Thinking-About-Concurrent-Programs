@@ -34,7 +34,9 @@ their operations at the same time.  For example, a synchronous channel is a
 synchronisation object, because the send and receive operations happen at the
 same time.  More precisely, there is an overlap between the time periods during
 which the threads execute their operations.  Synchronisation is a useful tool
-in coordinating threads.
+in coordinating threads.  (The word ``synchronisation'' is sometimes used more
+generally, for any technique to coordinate threads, including where the
+relevant operations are asynchronous; I consider such usage to be incorrect.) 
 
 Towards the end of this chapter we will use a client-server pattern to
 implement two \emph{synchronisation objects}: an \emph{exchanger}\index{label}
@@ -52,6 +54,7 @@ the datatype.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{A Resource Allocation Server}
+\label{sec:resource-server-1}
 
 We consider the example of a server that is responsible for managing and
 allocating multiple resources of the same kind.  Such servers are common in

@@ -15,7 +15,7 @@ this procedure many times.
 Algorithms for searching for the corresponding sequential history have been
 investigated by Wing and Gong~\cite{wing-gong}, and by
 me~\cite{gavin:lin-testing}.  The SCL library includes the latter, which can
-be used without understanding the underlying algorithms.  The linearisability
+be used without understanding the underlying algorithms.  The linearizability
 testing framework encapsulates most of the boiler-plate code involved in the
 testing: the programmer only has to provide the essentials, the sequential
 specification object and  the worker threads.
@@ -252,6 +252,15 @@ It is worth reiterating that the sequential specification object must be
 immutable: its state should not change.  Failing to respect this requirement
 is a fairly common error.
 
+It is also worth reiterating that the strings used in logging semantically
+different operations should be distinct.  My normal style is to use a string
+that looks like the syntax of the operation call, including any parameters:
+this is what is most useful in debugging output if an error of linearizability
+is found.  But also these strings are used internally as an optimisation which
+assumes such distinct strings (the tester records the effect of each
+sequential operation on the specification object, using the string as a key;
+this avoids repeating the same operation on the same specification object).
+
 It is beneficial to ensure that the specification object has a natural
 definition for equality, and an associated hash code.  This is true for the
 immutable |Queue|s we used here: two such objects are equal if they contain
@@ -262,14 +271,127 @@ the search graph it has seen previously, so as to avoid repeating work.  For
 this to be effective, it needs to be able to identify when two sequential
 specification objects represent the same state.
 
-It is also worth reiterating that the strings used in logging semantically
-different operations should be distinct.  My normal style is to use a string
-that looks like the syntax of the operation call, including any parameters:
-this is what is most useful in debugging output if an error of linearizability
-is found.  But also these strings are used internally as an optimisation which
-assumes such distinct strings (the tester records the effect of each
-sequential operation on the specification object, using the string as a key;
-this avoids repeating the same operation on the same specification object).
+To illustrate the above point, we give another example, this time testing the
+total resource server from Section~\ref{sec:resource-server-1} for
+linearizability.  In Figures~\ref{fig:RATest-1} and~\ref{fig:RATest-2}, we
+used an ad hoc algorithm to traverse a log.  However, we can also consider
+this as an instance of linearization, where the sequential specification
+object can be considered as a set, namely the set of resources that are
+currently free.
+
+\begin{figure}
+\begin{scala}
+  /** The specification object.  £free£ records which resources are free. */
+  class SeqAlloc(val free: Array[Boolean]){
+    /** Produce a new £SeqAlloc£ from this by updating so £r£ maps to £b£. */
+    def update(r: Int, b: Boolean): SeqAlloc = {
+      val free1 = free.clone; free1(r) = b; new SeqAlloc(free1)
+    }
+
+    /* Override equality and hashCode. */
+    override def equals(that: Any) = that match{
+      case s: SeqAlloc => s.free.sameElements(free)
+    }
+
+    override def hashCode = {
+      var h = 0; var i = 0
+      while(i < numResources){ h *= 2; if(free(i)) h += 1; i += 1 }
+      h
+    }
+  }
+
+  /** A sequential request. */
+  def seqRequest(s: SeqAlloc): (Option[Resource], SeqAlloc) = {
+    var r = 0; val free = s.free
+    while(r < numResources && !free(r)) r += 1
+    if(r == numResources) (None, s) else (Some(r), s.update(r, false))
+  }
+
+  /** A sequential return. */
+  def seqReturn(r: Resource)(s: SeqAlloc): (Unit, SeqAlloc) = 
+    ((), s.update(r, true))
+\end{scala}
+\caption{Linearizability testing for a resource allocation server (part~1).}
+\label{fig:RALinTest-1}
+\end{figure}
+
+%%%%%
+
+Figure~\ref{fig:RALinTest-1} gives the type |SeqAlloc| of sequential
+specification objects.  These objects use a bitmap |free| to record the free
+resources.  The default equality test on such objects would be reference
+equality.  We therefore override this definition to define equality as value
+equality of the bitmaps.  We also override the hash code, effectively
+converting the bitmap into a binary number.  
+%
+The helper function |update| produces a new |SeqAlloc| object, updating the
+bitmap in one location: recall that the specification object needs to be
+immutable, so it would be an error to simply update |free|.  
+%
+The sequential operations are then described by the |seqReuest| and
+|seqReturn| functions.  The former assumes that the resource server returns
+the first free resource, which is the case with our earlier implementation. 
+
+%%%%%
+
+\begin{figure}
+\begin{scala}
+  /** A worker for the LinTesters */
+  def worker(me: Int, log: LinearizabilityLog[SeqAlloc, RAServer]) = {
+    val random = new scala.util.Random
+    var got = new scala.collection.mutable.Queue[Resource]()
+    for(_ <- 0 until iters){
+      if(random.nextInt(2) == 0){ // Acquire new resource.
+        // £res£ will hold the result of the request, to allow the worker to
+        // record which resources it holds.
+        var res: Option[Resource] = None
+        log(rs => {res = rs.requestResource(me); res}, "request", seqRequest)
+        res match{ case Some(r) => got.enqueue(r); case None => {} }
+      }
+      else if(!got.isEmpty){     // Return resource,
+	val r = got.dequeue()
+        log(_.returnResource(me, r), s"return($r)", seqReturn(r))
+      }
+    }
+  }
+
+  /** Do a single test. */
+  def doTest() = {
+    val ra = new RAServer1(numWorkers, numResources) 
+    val s = new SeqAlloc(Array.fill(numResources)(true))
+    val tester = 
+      LinearizabilityTester[SeqAlloc, RAServer](s, ra, numWorkers, worker _)
+    assert(tester() > 0)
+    ra.shutdown() // Terminate server.
+\end{scala}
+\caption{Linearizability testing for a resource allocation server (part~2).}
+\label{fig:RALinTest-2}
+\end{figure}
+
+%%%%%
+
+Figure~\ref{fig:RALinTest-2}  performs linearizability testing.  The
+definition of a worker is similar to that in Figure~\ref{fig:RATest-1}, using
+a queue |got| to store the resources it currently holds.  There is a wrinkle
+however: the worker needs the result of a successful call to
+|requestResource|, in order to add it to |got|.  This is handled within the
+|log| operation.  The expression 
+\begin{scala}
+  rs => {res = rs.requestResource(me); res}
+\end{scala}
+represents a function that, given a resource server~|rs|, performs the
+|request|\-|Resource| on~|rs|, stores the result in the variable |res|, and
+returns that result.  The worker can subsequently use |res| to store the
+resource, if the operation was successful.  The |doTest| function performs a
+single test: this is straightforward.  The main function calls |doTest| many
+times. 
+
+
+\begin{instruction}
+Study the details of the linearizability tester.
+\end{instruction}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 We mentioned above that the problem of deciding whether a given history is
 linearizable is NP-complete in general\index{linearizability
@@ -298,6 +420,8 @@ object Spec{
   def get: Int = sum 
 }
 \end{scala}
+The |get| operation returns the sum of values previously added by the |add|
+operation. 
 (If using the linearization testing framework, we would have to produce an
 immutable version.)
 %% \begin{scala}
@@ -335,11 +459,11 @@ h & = & \langle\,
 This is illustrated in Figure~\ref{fig:subset-sum} for the case $S =
 \set{1,2,3}$ and $t = 5$.
 %
-Then $h$ is linearisable with respect to~|Spec| precisely if the subset-sum
-problem should return |true|: if $h$ is linearisable, then $t$ equals the sum
-of the $x_i$ values whose |add| operation is linearised before the |get|.  In
-Figure~\ref{fig:subset-sum}, linearisation points are indicated by~|X|s; this
-is a correct linearisation, because $2+3 = 5$, indicating a solution to the
-subset-sum problem in this case.  If we could decide linearisability in
+Then $h$ is linearizable with respect to~|Spec| precisely if the subset-sum
+problem should return |true|: if $h$ is linearizable, then $t$ equals the sum
+of the $x_i$ values whose |add| operation is linearized before the |get|.  In
+Figure~\ref{fig:subset-sum}, linearization points are indicated by~|X|s; this
+is a correct linearization, because $2+3 = 5$, indicating a solution to the
+subset-sum problem in this case.  If we could decide linearizability in
 polynomial time, we could also decide the subset-sum problem in polynomial
 time; hence deciding if a history is linearizable is NP-hard.

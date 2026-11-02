@@ -11,7 +11,8 @@ JVM_MON_SRC_DIR = ../11.JVMMonitors
 
 EXERCISES = $(DIR)/ServerCombiningBarrier.class $(DIR)/BarrierLog.class	\
   $(DIR)/PrefixSumsShared.class $(DIR)/ArrayMax.class			\
-  $(DIR)/SmoothSharedTest.class $(DIR)/LargestComponent.class
+  $(DIR)/SmoothSharedTest.class $(DIR)/LargestComponent.class		\
+  $(DIR)/Filter.class
 
 all: $(DIR)/PrefixSumsTest.class $(DIR)/JacobiTest.class	\
   $(DIR)/JacobiExperiment.class $(DIR)/BFSGraphSearch.class	\

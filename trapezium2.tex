@@ -24,6 +24,9 @@ I'll also briefly mention similar experiments on a a 32-core server, with two
 enabled (hyperthreading is a hardware technique that allows a single physical
 core to act like two logical cores, executing two threads concurrently).
 %
+Incidentally, the number of processors can be obtained in Scala
+using the expression |Runtime.getRuntime.availableProcessors|.
+%
 In each case, the program calculated approximations to the integral 
 $\int_{-100000}^{+100000} x^2 \cos x \, \mbox{d}x$.
 

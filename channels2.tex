@@ -297,7 +297,8 @@ will be output and passed to |+1|.  The |+1| component will pass~|1| back to
 |prefix 0|, via which it will be output and passed round the circuit.  And so
 on.  In particular, it is important that |prefix 0| can send \emph{before} it
 receives any value.  If every component started by trying to receive a value,
-none would succeed, and the circuit would be deadlocked. 
+none would succeed, and the circuit would be deadlocked\index{deadlock}: all
+components would be stuck.
 
 \begin{instruction}
 Make sure you understand how the circuit works, and how values propagate

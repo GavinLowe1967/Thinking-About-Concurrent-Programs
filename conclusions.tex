@@ -1,0 +1,281 @@
+\chapter{Conclusions}
+
+\framebox{Note:} this is very much a first draft.
+
+This book has presented a number of tools and techniques for constructing
+concurrent programs.  
+
+We have advocated constructing concurrent programs around concurrent objects.
+Each concurrent object can be developed and tested in isolation: thinking
+about a single object at a time is much more straightforward than global
+reasoning.  The client code can then use these concurrent objects much the
+same as sequential code.  We have seen patterns, such as the bag-of-tasks
+pattern, that directly use this technique.
+
+We have seen various techniques for implementing a concurrent object: message
+passing (using the client-server pattern); explicit locks and signals (either
+SCL or JVM monitors); or semaphores.  Message passing can be more
+straightforward, particularly for synchonisation objects, where a single
+thread---the server---can decide how to proceed.  However, if out-and-out
+performance is important, then JVM monitors tend to be faster.  If a
+particular concurrent object turns out to be a bottleneck, then fine-grained
+locking or sharding can prove effective. 
+
+A concurrent object can be tested in isolation.  Typically, this involves
+logging interactions with the object, and then analysing the log for
+correctness.  In particular, for concurrent datatypes, this can be done within
+the linearisability framework. 
+
+It is often necessary to provide extra coordination between threads.  For
+programs that proceed in rounds, this can be achieved using a barrier
+synchronisation at the end of each round, possibly with extra synchronisations
+between different stages of a round.  Alternatively, coordination can be
+achieved via message passing, or a special purpose synchronisation object.
+
+In the remainder of this chapter, we briefly discuss some other patterns for
+concurrent programs. 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Atomics}
+
+In a concurrent program, particularly one with many threads, certain
+components can act as a bottleneck.  For example, if a concurrent object uses
+locking, then when one thread holds the lock, others have to wait.
+
+An alternative approach is not to use locking.  However, how can we then avoid
+races of the form we discussed back in Chapter~\ref{chap:intro}?  The answer
+is that we need to make use of additional operations provided by the hardware.
+In particular, we can use an operation |compareAndSet| (CAS) on a memory
+location, which can be described in code as follows, where |current| is the
+location in question, and ``|atomically|'' is intended to indicate that the
+operation is performed atomically.
+%
+\begin{scala}
+  def compareAndSet(expected: Int, newValue: Int): Boolean = atomically{
+    if(current == expected){ current = newValue; true } else false
+  }
+\end{scala}
+%
+The operation takes parameters |expected|, which represents the value the
+client code expects the location to have, and |newValue|, which is a desired
+new value.  If the current value is indeed the expected value, then it is
+updated to |newValue|, and the operation returns |true|; otherwise the
+operation returns |false|.
+
+In Scala (and Java) these operations are encapsulated in objects from the
+package |java.util.concurrent.atomic|.  In particular, each object from the
+class |AtomicInteger| encapsulates an |Int|, and each object from the class
+|AtomicReference[A]| encapsulates a reference to an object of type~|A|.  These
+objects provide the |compareAndSet| operation, a |get| operation to get the
+current value, and more.
+
+For example, we could increment an |AtomicInteger| using the following
+function. 
+%
+\begin{scala} 
+  def increment(x: AtomicInteger) = {
+    var done = false
+    while(!done){
+      val oldX = x.get
+      done = x.compareAndSet(oldX, oldX+1)
+    }
+  }
+\end{scala}
+%
+This reads the current value of~|x| into |oldX|, and then tries to use a CAS
+to change the value of~|x| from |oldX| to~|oldX+1|.  If this succeeds, it is
+done.  Otherwise, some other thread has changed the value of~|x| in the
+meantime, so that it no longer equals |oldX|; the operation retries in this
+case.
+
+An operation is said to be \emph{lock-free}\index{lock-free} if, whenever
+there is a pending operation call, some such call eventually returns.  The
+above |increment| operation is lock-free: if the CAS of one thread fails, some
+other thread must have updated~|x|, and that other thread can return. 
+
+%%  On the other hand, an operation that uses a lock is (unsurprisingly) not
+%% lock-free: if one thread obtains the lock and is permanently suspended,
+%% then other threads will be blocked attempting to obtain the lock, and so no
+%% operation call will return.  (In practice, threads don't get permanently
+%% suspended; however, they can be suspended for a period, and this can block
+%% other threads.)
+
+
+As a larger example, Figure~\ref{fig:lock-free-stack} give the definition of a
+lock-free stack.  The implementation is built around a linked list, built from
+|Node|s.  It maintains a reference |top| to the first node in that list.  The
+|push| operation creates a new |Node|, and sets it to point to the current
+|top|.  It then attempts to update |top| using a CAS to point to the new node.
+If this fails, some other thread has updated |top| in the meantime, so it no
+longer equals |oldTop|, so this thread retries.  If the |pop| operation finds
+that |top| holds |null|, the stack is empty, so it returns |None|.  Otherwise,
+it tries to update |top| using a CAS to point to the next node; if this fails,
+again some other thread has updated |top|, so this thread retries.
+
+
+\begin{figure}
+\begin{scala}
+class LockFreeStack[A] extends TotalStack[A]{
+  /** Nodes in the linked list. */
+  private class Node(val value: A){
+    var next: Node = null
+  }
+
+  /** Atomic reference to the top of the stack. */
+  private val top = new AtomicReference[Node](null)
+
+  /** Push £value£ onto the stack. */
+  def push(value: A) = {
+    val node = new Node(value); var done = false
+    while(!done){
+      val oldTop = top.get; node.next = oldTop
+      // Try to add node to the stack.
+      done = top.compareAndSet(oldTop, node) 
+    } 
+  }
+
+  /** Pop a value from the stack. Return £None£ if the stack is empty.  */ 
+  def pop: Option[A] = {
+    var result: Option[A] = None; var done = false
+    while(!done){
+      val oldTop = top.get
+      if(oldTop == null) done = true // Empty stack; return £None£.
+      else{
+        val newTop = oldTop.next
+        // Try to remove £oldTop£ from the list.
+        if(top.compareAndSet(oldTop, newTop)){
+          result = Some(oldTop.value); done = true
+        }
+      }
+    }
+    result
+  }
+}
+\end{scala}
+\caption{A lock-free total stack (implementing the {\scalastyle TotalStack}
+  trait from Figure~\protect\ref{fig:immutable-stack}).}
+\label{fig:lock-free-stack}
+\end{figure}
+
+%%%%%
+
+\begin{instruction}
+Make sure you understand the details of the implementation, including why it
+is necessary to retry if a CAS fails. 
+\end{instruction}
+
+An operation that uses a lock is (unsurprisingly) not lock-free: if one thread
+obtains the lock and is permanently suspended, then other threads will be
+blocked attempting to obtain the lock, and so no operation call will return.
+In practice, threads don't get permanently suspended; however, they can be
+suspended for a period, and this can block other threads.  As we saw in
+Section~\ref{sec:Amdahl}, when we discussed Amdahl's Law, this can mean that
+the performance improves only slightly as the number of processors increases.
+On the other hand, if an operation is lock-free, it is likely to scale better:
+while a particular thread might have to retry repeatedly because of actions by
+other threads, the delay is likely to be less than that caused by having to
+wait to obtain a lock.  Having said that, correctly implementing lock-free
+objects is considerably harder than using locks. 
+
+%  spin lock??
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Futures}
+
+A \emph{future} is a value that is computed in parallel with the main
+computation, to be used at some time in the future.  For example:
+%
+\begin{scala}
+  val x = new Future(...) // some lengthy computation. 
+  ...
+  val y = f(x())
+\end{scala}
+%
+The computation of the value, encapsulated in~|x|, is started in the first
+line.  The expression \SCALA{x()} (calling the |apply| method on~|x|; see
+Section~\ref{sec:scala-misc}) returns the result of the computation, waiting
+until it is complete if necessary.  (Of course, it is still necessary to avoid
+race conditions.)
+
+Figure~\ref{fig:future} gives an implementation of futures using a JVM
+monitor.  It forks a separate thread to calculate the value required; a call
+of the |apply| method has to wait until that calculation is complete.
+%
+\begin{instruction}
+Study the details of the implementation. 
+\end{instruction}
+
+%%%%%
+
+\begin{figure}
+\begin{scala}
+class Future[A](exp: => A){
+  /** Variable to hold the result. */
+  private var result = null.asInstanceOf[A]
+
+  /** Is the result valid? */
+  private var done = false
+
+  /** Server thread to calculate the result. */
+  private def server = thread{
+    synchronized{ result = exp; done = true; notifyAll() }
+  }
+
+  fork(server)
+
+  /** Get the value of £exp£. */
+  def apply(): A = synchronized{ while(!done) wait(); result }
+}
+\end{scala}
+\caption{An implementation of futures using a JVM monitor.}
+\label{fig:future}
+\end{figure}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Competition parallel}
+
+The idea of competition parallel\index{competition parallel} is to choose two
+(or more) different algorithms for a problem, and to run them independently in
+parallel; once one finishes, the others can be interrupted.
+
+This works well on the boolean satisfiability problem.  Here, one is given a
+boolean formula, such as $(b_1 \lor b_3) \land (\lnot b_1 \lor \lnot b_3)
+\land (\lnot b_1 \lor b_2 \lor b_3)$, and one has to find if there are values
+for the boolean variables that makes the formula true (e.g.,~$b_1 = b_2 =
+true$,\, $b_3 = false$ in the above example).  The problem is NP-complete.
+However, there are a number of SAT-solving algorithms that work well in many
+cases.  But all known algorithms have cases where they perform badly, and
+different algorithms perform badly on different cases.  Therefore running two
+algorithms in competition with one another can give better average results
+than parallelising a single algorithm.
+
+%% Competition parallel can also be used effectively when searching, for example
+%% in a breadth-first or depth-first search.  Such searches can be done in two
+%% ways.  In a \emph{graph search}, the algorithm keeps track of previously
+%% visited nodes, to avoid repeating work; this is the role of the |seen| set in
+%% Figure~\ref{fig:bfs-seq}.  In a \emph{tree search}, the algorithm does not keep
+%% track of those nodes.
+
+
+I have used competition parallel effectively within linearisability testing.
+Recall that here one has to test whether a given concurrent history is
+linearisable with respect to a sequential specification object.  This is done
+by a depth-first search.  Such searches can be done in two ways.  In a
+\emph{graph search}, the algorithm keeps track of previously visited nodes, to
+avoid repeating work (this is the role of the |seen| set in the breadth-first
+search of Figure~\ref{fig:bfs-seq}).  In a \emph{tree search}, the algorithm
+does not keep track of those nodes.  It turns out that, for linearisabilty
+testing, the tree search works better for most histories, because it avoids
+the additional cost of maintaining the set of nodes, and normally doesn't
+repeat too much work.  However, the tree search sometimes hits a very bad
+case, where the search does not terminate within a reasonable time, because it
+repeatedly expands the same nodes.  Running these two algorithms in
+competition parallel works well: for most histories, the tree search finishes
+quickly; but when the tree search hits a bad case, the graph search still
+finishes quite quickly.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

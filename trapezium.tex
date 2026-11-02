@@ -35,7 +35,8 @@ the number of workers and the number of tasks.  The main mistake one can make
 here is to make tasks  too small.  This leads to the channels becoming
 bottlenecks, and the program being inefficient.  It can be best to run fewer
 threads than the number of machine threads available, so as to avoid these
-bottlenecks.  Each task should be large enough that workers spend nearly all
+bottlenecks.  
+Each task should be large enough that workers spend nearly all
 their time actually performing the tasks, as opposed to trying to send and
 receive messages.
 

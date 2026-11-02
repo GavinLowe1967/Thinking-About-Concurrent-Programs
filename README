@@ -1,18 +1,25 @@
-Prface: add prerequisites; how to rad the book; how to teach using the book.
+*** Title: Creating/constructing/building/developing Concurrent Programs ???
+Concurrent Programs: Design, Techniques
+
+
+Preface
+** add  how to teach using the book??
+
 
 Chapter 1: Introduction
 - reasons for concurrency.  
-- concurrent architectures: TO DO: GPUs
+** concurrent architectures: TO DO: GPUs
 - correctness properties
 - races
 
-Chaper 2: Message passing using channels.
-* More about CSP.  ? and ! notation?
-** Exercise: generating primes using dynamic pipeline.
+Chaper 2: Message passing using channels
 
 Chapter 3: Example: Numerical Integration
 * Maybe more exercises.
 ** Running time O(numTasks + n/numWorkers)
+* Figure (timeline?) showing times of different tasks, and how smaller tasks
+  help (?).
+* Mention map-reduce.
 
 Chapter 4: Alternation
 
@@ -26,9 +33,12 @@ Chapter 7: Concurrent Datatypes
 Chapter 8: Data Parallel
 
 Chapter 9: Locks
-*** Add work stealing example, 2023 exam, workStealing.tex
+** Add work stealing example, 2023 exam, workStealing.tex
 * local linearisable queue (array of one-enqueuer, multiple-dequeuer queues)?
 * Exercise, couting letter frequencies in documents, updating letter counts using locks??  Better to just update thread-local counts. 
+** Say more about scaling -- important as number of threads grows. 
+** Deadlocks
+** Optimise critical sections (re Amdahl's Law)
 
 Chapter 10: Conditions: 
 - ?? Timed wait operators ??
@@ -37,6 +47,7 @@ Chapter 10: Conditions:
 - improve section on other languages
 - more exercises 
 * Add publish/subscribe: this implies channels as publish/subscribe.
+** Lin testing for partial queue -- cf Fig 7.7. 
 
 Chapter 11: JVM Monitors
 - Add more exercises.
@@ -47,8 +58,12 @@ Chapter 12: Semaphores:
 - Counting semaphore exercise: when testing, use small n. 
 --  Incorrect solution to men & women -- handwritten on tute sheet
 
-?? Final chapter ??
-- Lock-free datatypes, CAS. 
+Chapter 13, Conclusions
+- Summary: concurrent datatypes; coordination between threads (barriers);
+  testing; message passing vs. locking.
+- Lock-free datatypes, atomics, CAS
+- Futures, competition parallel
+** Map-reduce? 
 
 Appendices
 
@@ -69,5 +84,8 @@ Check capitals in comments.
 
 Provide default implementations of shutdown? 
 
+Thoughout: "modularisation" vs "encapsulation". 
+
+Check "mutual exclusion" defined; and "critical section". 
 
 SCL: 
