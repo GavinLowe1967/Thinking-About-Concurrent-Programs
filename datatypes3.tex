@@ -330,7 +330,9 @@ immutable, so it would be an error to simply update |free|.
 %
 The sequential operations are then described by the |seqReuest| and
 |seqReturn| functions.  The former assumes that the resource server returns
-the first free resource, which is the case with our earlier implementation. 
+the first free resource, which is the case with our earlier implementation
+(recall that the specification object must be deterministic, so we can't allow
+the operation to return an \emph{arbitrary} free resource). 
 
 %%%%%
 

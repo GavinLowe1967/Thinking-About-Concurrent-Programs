@@ -50,6 +50,11 @@ type~|B|.  For example, \SCALA{Int => Boolean} is the type of functions from
 Scala object, implementing a trait |Function|.)
 %% \end{scalaBox}
 
+If |A| is a type, then |=> A| is the type of a computation that, when
+executed, produces a result of type~|A|.  Such a type is used for a parameter
+of a function that is passed by name, and so is evaluated only when the body
+of the function refers to it.  
+
 %%%%%
 
 %\pagebreak[3]

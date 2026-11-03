@@ -28,6 +28,10 @@ can acquire it.  Locks provide suitable memory guarantees: if a thread writes
 a value to a variable when holding a lock, that value will be available to a
 subsequent thread that holds the lock.
 
+Using multiple locks can lead to deadlocks.  However, there is a simple rule
+to avoid deadlocks: order the locks, and ensure that if a thread acquires
+multiple locks, it does so in increasing order.
+
 In many cases, it is enough to protect a concurrent object using a single
 lock.  However, if that object acts as a bottleneck, it can be appropriate
 to use a finer granularity of locking.  In particular, sharding provides a

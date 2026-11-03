@@ -2,9 +2,10 @@
 \label{sec:conditionsReadersWriters}
 
 Different systems have different access requirements.  Threads should be
-allowed to execute a particular part of the code, known as the \emph{critical
-  section}, only under particular circumstances.  In this section we study a
-classic access-control problem, the \emph{readers and writers problem}.
+allowed to execute a particular part of the code, the \emph{critical
+  section}\index{critical section}, only under particular circumstances.  In
+this section we study a classic access-control problem, the \emph{readers and
+  writers problem}.
 
 Consider a database, shared by a number of threads that carry out transactions
 on the database.  We do not want different transactions to interfere with one
@@ -16,15 +17,15 @@ to perform transactions concurrently; nor should we allow a reader and writer
 concurrently.
 
 We require an object to mediate access to the database, which we call a
-\emph{readers and writers lock}.  We will take this
-object to have the interface in Figure~\ref{fig:readers-writers}.  Each thread
+\emph{readers and writers lock}\index{readers and writers lock}.  This object
+will have the interface in Figure~\ref{fig:readers-writers}.  Each thread
 should call the relevant operation before and after using the database.  For
 example:
 \begin{scala}
   ... // Operations not using the database.
-  rw.readerEnter // Entry protocol.
+  rw.readerEnter // Enter the database.
   ...// Operations reading the database.
-  rw.readerLeave // Exit protocol.
+  rw.readerLeave // Leave the database.
 \end{scala}
 %
 The |readerEnter| and |writerEnter| operations should each block until it is
@@ -130,12 +131,13 @@ current numbers of readers and writers, and that maintains the above
 invariant.  Figure~\ref{fig:rw-seq-spec} gives a class~|SRW| of suitable
 sequential specification objects, together with corresponding sequential
 operations.  The initial ``|val SRW(r,w) = s|'' statements simply unpack the
-sequential specification object.  The two entry operations have |require|
+sequential specification object to obtain, binding the names~|r| and~|w| to
+the number of readers and writers.  The two entry operations have |require|
 statements that allow the operations to happen only when they will not break
 the invariant.  The exit operations have |assert| statements that provide a
-check that the threads are indeed calling the operations in an intended order.
-Each operation returns an updated |SRW| object.  The rest of the definition of
-the linearizability tester is then standard.
+sanity check that the threads are indeed calling the operations in an intended
+order.  Each operation returns an updated |SRW| object.  The rest of the
+definition of the linearizability tester is then standard.
 
 %%%%%
 
@@ -177,20 +179,20 @@ represents the period that it is inside |writerEnter|.
 %
 \begin{center}
 \begin{tikzpicture}
-\draw (0,0) node{reader 1};
+\draw (0,0) node{\codecolour reader 1:};
 \draw[|-|] (1,0) -- (2.5,0); \draw[|-|] (3.0,0) -- (4.5,0); 
 \draw[|-|] (5.0,0) -- (6.5,0); \draw (7.0,0) node{\ldots};
-\draw (0,-1) node{reader 2}; 
+\draw (0,-1) node{\codecolour reader 2:}; 
 \draw[|-|] (2.0,-1) -- (3.5,-1); \draw[|-|] (4.0,-1) -- (5.5,-1); 
 \draw[|-|] (6.0,-1) -- (7.5,-1); \draw (8.0,-1) node{\ldots};
-\draw (0,-2) node{writer}; 
+\draw (0,-2) node{\codecolour writer:}; 
 \draw[|-] (1.5,-2) -- node[above]{\small\scalashape writerEnter} (7.7,-2);
 \draw (8.0,-2) node{\ldots};
 \end{tikzpicture}
 \end{center}
 %
-The writer is starved: each time it receives a signal, if finds $\sm{readers}
-> 0$, so has to wait again. 
+The writer is starved: each time it obtains the lock after receiving a signal,
+if finds $\sm{readers} > 0$, so has to wait again.
 
 Our second implementation avoids this problem.  The idea is that once a writer
 calls |writerEnter|, no further reader will enter the critical region until a
@@ -201,7 +203,7 @@ The implementation is in Figures~\ref{fig:readers-writers-monitor-1} and
 \ref{fig:readers-writers-monitor-2}. It maintains variables counting the
 number of readers and writers currently waiting, so that exiting threads know
 where to direct signals.  It uses two |Condition|s, for signalling to readers
-or a writer that they can now enter.
+or a writer, respectively, that they can now enter.
 
 %%%%%
 

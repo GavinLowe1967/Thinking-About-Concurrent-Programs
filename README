@@ -29,6 +29,7 @@ Chaper 5: Clients and Servers
 Chapter 6: Interacting Peers
 
 Chapter 7: Concurrent Datatypes
+** In resource server example, remind that spec deterministic  
 
 Chapter 8: Data Parallel
 
@@ -36,9 +37,6 @@ Chapter 9: Locks
 ** Add work stealing example, 2023 exam, workStealing.tex
 * local linearisable queue (array of one-enqueuer, multiple-dequeuer queues)?
 * Exercise, couting letter frequencies in documents, updating letter counts using locks??  Better to just update thread-local counts. 
-** Say more about scaling -- important as number of threads grows. 
-** Deadlocks
-** Optimise critical sections (re Amdahl's Law)
 
 Chapter 10: Conditions: 
 - ?? Timed wait operators ??

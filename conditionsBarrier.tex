@@ -7,12 +7,12 @@ those identities, but we want to give the different implementations of a
 barrier the same interface).  Each calls to |sync| should block until all |n|
 threads have called it, and then all should return.  
 
-One challenge we face is to stop two different synchronisations interfering:
-threads might call |sync| for one synchronisation before all threads have
-returned from the previous one.  To this end, we will split each
+One challenge we face is to stop two different barrier synchronisations
+interfering: threads might call |sync| for one synchronisation before all
+threads have returned from the previous one.  To this end, we will split each
 synchronisation into two phases: \emph{entering} and \emph{leaving}.  If a
 thread calls |sync| during the leaving phase of the previous synchronisation,
-it waits for that phase to complete.   
+it waits for that phase to complete.
 
 %%%%%
 
@@ -60,14 +60,17 @@ class ConditionsBarrier(n: Int) extends BarrierT{
 
 The implementation is in Figure~\ref{fig:ConditionsBarrier}.  The variable
 |leaving| indicates whether the system is in the leaving phase; the variable
-|count| records how many threads are part of the current synchronisation.  We
-use a condition |continue| during the entering phase: threads wait on it until
-all the threads have called |sync|.  The last (|n|th) thread to enter starts
-the leaving phase, and signals to all the threads waiting on |continue|.  We
-use a condition |enter| during the leaving phase: threads wait on it until all
-threads from the previous synchronisation have returned.  The last thread to
-leave starts the entering phase, and signals to all the threads waiting on
-|enter|.
+|count| records how many threads are part of the current synchronisation.  
+
+We use a condition |continue| during the entering phase.  Threads wait on it
+until all the threads have called |sync|.  The last (|n|th) thread to enter
+starts the leaving phase, and signals to all the threads waiting on
+|continue|.
+
+We use a condition |enter| during the leaving phase.  Threads for the next
+synchronisation wait on |enter| until the leaving phase is complete.  The last
+thread to leave starts the entering phase, and signals to all the threads
+waiting on |enter|.
 
 \begin{instruction}
 Study the details of the implementation. 

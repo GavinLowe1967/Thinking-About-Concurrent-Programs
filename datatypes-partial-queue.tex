@@ -177,7 +177,7 @@ class TerminatingPartialQueue[A](numWorkers: Int){
   /** Shut down this queue. */
   def shutdown() = { enqueueChan.close(); dequeueChan.close() }
 
-  /** The server process. */
+  /** The server thread. */
   private def server = thread("server"){ ... } // See Figure £\ref{fig:terminating-queue-server}£.
 
   fork(server)

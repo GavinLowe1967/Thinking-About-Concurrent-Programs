@@ -39,12 +39,13 @@ good idea to assert the property, as a form of documentation, but also to
 catch any behaviours you hadn't thought about.
 
 Designing synchronisation objects, in particular, can be tricky.  Be clear
-about the order in which steps should be taken (the choreography), e.g.~the
-order of reads and writes of shared variables, and signals between threads.
-It is often best to enforce a fixed order, rather than allowing multiple
-different orders: it means less to think about.  It is normally necessary to
-use shared variables to record whether a thread of a particular role is
-waiting, or how many such threads are waiting.
+about the order in which steps should be taken (the choreography), for
+example, the order of
+%% reads and writes of shared variables, and
+signals between threads.  It is often best to enforce a fixed order, rather
+than allowing multiple different orders: it means less to think about.  It is
+often necessary to use shared variables to record whether a thread of a
+particular role is waiting, or how many such threads are waiting.
 
 %% \begin{itemize}
 %% \item Conditions and targeted signals;
@@ -57,16 +58,18 @@ waiting, or how many such threads are waiting.
 %%   at the start of an operation. 
 %% \end{itemize}
 
-Most other languages provide a mechanism similar to conditions.  For example
+Most other languages provide a mechanism similar to conditions.  For example,
+Java provides implementations of the interface
+|java.|\linebreak[1]|util.|\linebreak[1]|concurrent.|\linebreak[1]|locks.Condition|,
+and C++ provides |condition_variable|s.
 %
-\begin{itemize}
-\item Implementations of the Java interface
-  |java.util.concurrent.locks.Condition|;
+Note that both of the above may suffer from spurious wakeups: a thread may
+resume after waiting, without having received a signal!  (We will discuss
+spurious wakeups in the context of JVM monitors in
+Chapter~\ref{chap:JVMMonitors}.) 
 
-\item C++ |condition_variable|s.
-\end{itemize}
-%
-Note that both of the above may suffer from spurious wake-ups.  \framebox{IMPROVE}
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

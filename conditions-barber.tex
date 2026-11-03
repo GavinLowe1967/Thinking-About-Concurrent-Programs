@@ -1,23 +1,23 @@
 \section{The Sleeping Barber}
 
-Different concurrent programs produce different synchronisation problems.
-Often these are presented in terms of colourful real-life scenarios.  One such
-example is the sleeping barber.
+Different concurrent programs produce different synchronisation and
+coordination problems.  Often these are presented in terms of colourful
+real-life scenarios.  One such example is the sleeping barber.
 
 A small barbershop is run by a single barber, and has several chairs.  When
 there are no customers, the barber sleeps in his chair.  When a customer
 arrives and finds the barber sleeping, he wakes up the barber, sits in the
 chair, and sleeps while the barber cuts his hair.  If another customer arrives
 in the meantime, he sleeps in one of the other chairs.  When the barber
-finishes the haircut, he wakes up the customer, holds the door open, and waits
-for him to leave.  If there are waiting customers, he wakes one up and waits
-for him to sit in the chair; otherwise, he goes back to sleep.
+finishes the haircut, he wakes up the customer, and waits for him to leave.
+If there are waiting customers, he wakes one up and waits for him to sit in
+the chair; otherwise, he goes back to sleep.
 
 %%%%%
 
 
 We will implement a synchronisation object to solve this synchronization
-problem.  The synchronisation object will extend the trait in
+problem.  The synchronisation object will extend the trait |BarberT| in
 Figure~\ref{fig:BarberT}, with the following operations:
 %
 \begin{description}
@@ -79,14 +79,14 @@ Figure~\ref{fig:sleeping-barber-threads} also gives barber and customer
 threads that could be used in a simulation of the sleeping barber example.
 
 One way to approach the design of the |BarberT| object is to realise that each
-iteration involves two independent synchronisations.  We can treat these
-separately, with a different synchronisation object for each.  In fact, we can
-capture each synchronisation as an instance of the same synchronisation
-pattern.  Suppose we have multiple threads of type~$A$, and a single thread of
-type~$B$: we can design a synchronisation object to allow an $A$-thread to
-synchronise with the $B$-thread.  In each synchronisation of the sleeping
-barber problem, we can take type~$A$ to be the customers, and type~$B$ to be
-the barber.
+iteration involves two independent synchronisations, at the start and end of
+the hair cut.  We can treat these separately, with a different synchronisation
+object for each.  In fact, we can capture each synchronisation as an instance
+of the same synchronisation pattern.  Suppose we have multiple threads of
+type~$A$, and a single thread of type~$B$: we can design a synchronisation
+object to allow an $A$-thread to synchronise with the $B$-thread.  In each
+synchronisation of the sleeping barber problem, we can take type~$A$ to be the
+customers, and type~$B$ to be the barber.
 
 
 %%%%%
@@ -128,16 +128,16 @@ class Sync{
 %%%%%
 
 Figure~\ref{fig:barber-Sync} gives such a synchronisation object.  This uses a
-pair of conditions for signalling.  Initially, the
-$A$-thread waits to receive a signal on |bReadyC|.  In addition, we use a
-boolean variable |bReady| to record whether the $B$-thread has signalled: this
-is necessary for the case that the $B$-thread signals before an $A$-thread is
+pair of conditions for signalling.  Initially, the $A$-thread waits to receive
+a signal on~|bReadyC|.  In addition, we use a boolean variable |bReady| to
+record whether the $B$-thread is ready and has signalled: this is
+necessary for the case that the $B$-thread signals before an $A$-thread is
 waiting.  The $A$-thread needs to recheck |bReady| when it receives a signal,
 in case another $A$-thread has run in the meantime.  Subsequently, the
 $B$-thread waits to receive a signal back from the $A$-thread on |aReadyC|.
 There is no need for an additional boolean variable at this point, because the
 $A$-thread cannot signal before the $B$-thread releases the lock, and only a
-single $A$-thread can progress past the first signal at a time.  
+single $A$-thread can progress past the first signal at a time.
 
 
 \begin{instruction}
@@ -146,8 +146,9 @@ Make sure you understand the implementation of the synchronisation object.
 
 The class |Sync| can be tested by running suitable threads that call the
 operations and write into a log before and after each operation execution.  We
-can then traverse the log and check that the number of times |sync1| returns
-does not exceed the number of times that |sync2| is called, and vice versa.
+can then traverse the log and check that, at each point, the number of times
+|sync1| has returned does not exceed the number of times that |sync2| has been
+called, and vice versa.
 
 Figure~\ref{fig:Barber2} then gives a straightforward implementation of the
 main synchronisation object that encapsulates two |Sync| objects.  Each
@@ -203,10 +204,10 @@ in nearly twice as much code.
 
 Synchronisation problems like this can be difficult.  In order to come up with
 a correct and understandable design, it is useful to use state variables that
-indicate which processes are in different states.  In the |Sync| objects, the
+indicate which threads are in different states.  In the |Sync| objects, the
 variable |bReady| indicates that a $B$-thread is waiting for a signal.  In
 other synchronisation problems, it can be useful to keep track of how many
-processes are in particular states, as we did in the barrier synchronisation
+threads are in particular states, as we did in the barrier synchronisation
 object.
 
 To track down bugs, it can be useful to write plenty of assertions: if nothing

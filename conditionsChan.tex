@@ -124,7 +124,7 @@ We require three conditions for signals between threads:
 Figure~\ref{fig:syncChan-seqDiagram} illustrates the sequence of signals.
 
 The sender waits, on |slotEmptied|, until the previous exchange is complete.
-Note that it needs to recheck |full| when it receives a signal on, in case
+Note that it needs to recheck |full| when it receives a signal, in case
 another sender has run in the meantime and filled the slot.  It then deposits
 its value, and signals to a waiting receiver on |slotFull|.  Finally, it waits
 for a signal back on |continue|.  Note that there is no need to recheck |full|
@@ -133,7 +133,7 @@ at this point, as this thread cannot be preempted by another sender.
 The receiver waits, on |slotFull|, for a value to be deposited.  It again
 needs to recheck |full| when it receives a signal, in case another receiver
 has run in the meantime and taken the value.  It then signals back to the
-sender on |continue|, clears the slot, and then signals to the next sender on
+sender on |continue|, clears the slot, and signals to the next sender on
 |slotEmptied|. 
 
 Note that for each operation, the |full| variable is needed for two slightly
@@ -149,9 +149,9 @@ different purposes.
   because there was no waiting sender at that point.  In each case, the value
   of |full| reflects the earlier signal. 
 
-\item When the thread receives a signal, the value of |full| indicates whether
-  the thread can now proceed, or whether it has been preempted and so must
-  wait again.
+\item When a waiting thread receives a signal, the value of |full| indicates
+  whether the thread can now proceed, or whether it has been preempted and so
+  must wait again.
 \end{itemize}
 %
 It is common to use a boolean variable in combination with a |Condition| in
@@ -171,22 +171,22 @@ to allow branching and so multiple different orders: this means there is less
 to think about, and makes it easier to check that the code indeed enforces the
 chosen order.
 %
-I like to compare this process with choreography: a group of dancers needs to
-follow a clear plan of steps, to avoid treading on each other's toes; and a
-group of threads needs to follow a clear plan of steps, to avoid disrupting
-one another.
+I like to compare this process with choreography, defining a sequence of
+steps: a group of dancers needs to follow a clear plan of steps, to avoid
+treading on each other's toes; and a group of threads needs to follow a clear
+plan of steps, to avoid disrupting one another.
 
 We can test this implementation by running some threads that perform sends and
 receives, and log the call and return of each operation.  For simplicity, we
 arrange that every send is of a different value.  This makes it easy to
-identify matching sends and receives in the log(if they exist).  We then check
+identify matching sends and receives in the log (if they exist).  We then check
 that each invocation is matched by an invocation of the other operation, and
 that the two invocations overlap.
 
 As in Section~\ref{sec:exchanger}, it is sound to assume the values sent are
-all different, because the implementation is \emph{data independent} in the
-type |A| of data: values of this type are stored, read, and returned; but no
-operation (e.g.~|==|) is done on them.  This means that for any erroneous
-history, there would be a corresponding erroneous history using distinct
-values.
+all different, because the implementation is \emph{data
+  independent}\index{data independence} in the type |A| of data: values of
+this type are stored, read, and returned; but no operation (e.g.~|==|) is done
+on them.  This means that for any erroneous history, there would be a
+corresponding erroneous history using distinct values.
 

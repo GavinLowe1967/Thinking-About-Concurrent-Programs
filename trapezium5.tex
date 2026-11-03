@@ -126,7 +126,7 @@ class BagOfTasksChannels(
   /** Get a task.  Return £null£ if there are no more tasks. */
   def getTask(): Task = toWorkers?() 
 
-  /** A server process that distributes tasks. */
+  /** A server thread that distributes tasks. */
   private def server = thread("bag of tasks"){
     val delta = (b-a)/n; var remainingIntervals = n; var left = a
     for(i <- 0 until nTasks){

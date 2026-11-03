@@ -355,6 +355,52 @@ degrades less than with the earlier implementation.  The speedups are
 because each operation execution requires less computation, but also because 
 each is less likely to be blocked by another thread.  
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Locks and Deadlocks}
+
+In a program with multiple locks, there is a danger of introducing deadlocks.
+For example, consider the following code.
+%
+\begin{scala}
+  val lock1 = new Lock; val lock2 = new Lock
+  def thread1 = thread{ lock1.mutex{ ...; lock2.mutex{ ... }; ... } }
+  def thread2 = thread{ lock2.mutex{ ...; lock1.mutex{ ... }; ... } } 
+  run(thread1 || thread2)
+\end{scala}
+%
+Here, |thread1| could acquire |lock1|, and |thread2| could acquire |lock2|.
+But when each reaches the inner |mutex| block, they will deadlock: each will
+be stuck waiting for the other thread to release the relevant lock. 
+
+The deadlocked state represents a waiting cycle: |thread1| is waiting for
+|thread2|, and |thread2| is waiting for |thread1|.  We saw waiting cycles
+previously in Section~\ref{sec:avoid-deadlocks}, when we studied deadlocks in
+the context of message passing concurrency.  Similarly to there, a deadlock
+involving locks corresponds to a waiting cycle.
+
+Fortunately, there is a simple rule that, when followed, avoids
+deadlocks.  Introduce an ordering over locks, which we will denote $\prec$.
+Whenever a thread tries to acquire a lock, it should not already hold a lock
+that is higher under the ordering; in other words, a thread should obtain
+locks in increasing order.  There is no ordering for which the above program
+obeys this rule: if we take $\sm{lock2} \prec \sm{lock1}$, then |thread1|
+breaks the rule; if we take $\sm{lock1} \prec \sm{lock2}$, then |thread2|
+breaks the rule.  
+
+However, if the rule is obeyed, then there is no waiting cycle, and hence no
+deadlock.  Suppose we could get a waiting cycle, say where thread~$t_1$ holds
+lock~$l_1$ and is trying to obtain lock~$l_2$, thread~$t_2$ holds lock~$l_2$
+and is trying to obtain lock~$l_3$, and so on up to thread~$t_n$ which holds
+lock~$l_n$ and is trying to obtain lock~$l_1$; we can denote this as follows:
+\[\mstyle
+t_1 \waitingFor_{l_2} t_2 \waitingFor_{l_3} t_3 \ldots t_n \waitingFor_{l_1}
+t_1 .
+\]
+Then if every thread obeys the rule, we have $l_1 \prec l_2 \prec l_3 \ldots
+l_n \prec l_1$, which is a contradiction. 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% ** I don't think this really fits here.  
 

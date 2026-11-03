@@ -37,9 +37,7 @@ value when $\sm{stage} = \sm{Exchanging}$, and is invalid when $\sm{stage} =
 \begin{figure}
 \begin{scala}
 class MonitorExchanger[A] extends tacp.clientServer.Exchanger1T[A]{  
-  private val Empty = 0
-  private val Filled = 1
-  private val Exchanging = 2
+  private val Empty = 0; private val Filled = 1; private val Exchanging = 2
   private var stage = Empty // Current stage of the exchange.
 
   /** A piece of data currently being exchanged. */
@@ -108,14 +106,14 @@ class MonitorExchanger[A] extends tacp.clientServer.Exchanger1T[A]{
 
 %%%%%
 
-We use a |Lock| to provide mutual exclusion, together with two conditions
-for signalling.  The condition |canStart| is used to prevent a third thread
+We use a |Lock| to provide mutual exclusion, together with two conditions for
+signalling.  The condition |canStart| is used to prevent a third thread
 interfering with an exchange: a signal on this condition indicates that that
-thread can now start an exchange (unless $\sm{stage} = \sm{Exchanging}$,
-i.e.~unless it has been preempted by another thread).  The condition |swapped|
-is used by the second thread to signal that it has swapped values.
-Figure~\ref{fig:exchanger-seqDiagram} illustates the sequence of signals: the
-choreography of the exchange.
+thread can now start an exchange, unless it finds $\sm{stage} =
+\sm{Exchanging}$ (i.e.,~unless it has been preempted by another thread).  The
+condition |swapped| is used by the second thread to signal that it has swapped
+values.  Figure~\ref{fig:exchanger-seqDiagram} illustates the sequence of
+signals: the choreography of the exchange.
 
 In the |exchange| operation, a thread starts by waiting, on |canStart|, for
 the previous exchange to finish, i.e.~until $\sm{stage} \ne \sm{Exchanging}$. 

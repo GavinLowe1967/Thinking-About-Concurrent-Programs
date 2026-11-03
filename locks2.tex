@@ -84,6 +84,19 @@ must be executed sequentially.  For example, if we take $t = 1$ and $t_s =
 \]
 We can't reduce the running time by even 50\%, however many threads we use!
 
+The question of scaling becomes more important as the number of threads and
+processors increases, as is the trend in modern computer architectures.  A
+design that gives a decent speedup---close to the number of threads---for a
+small number of threads, may give modest subsequent speedups as the number of
+threads grows further.
+
+An obvious way to get better speedup is to reduce the amount of time that
+threads spend in the critical section.  Sometimes it is possible to move some
+calculations outside the critical section, as we did in the |getTask|
+operation in Figure~\ref{fig:BagOfTasksLock}---but beware of introducing races!
+Further, low-level code optimisation inside the critical section can
+produce better improvements than elsewhere. 
+
 
 \begin{figure}
 \begin{scala}
@@ -107,8 +120,8 @@ class FineGrainedCounterArray(n: Int) extends CounterArray(n){
 
 %%%%%
 
-The class |FineGrainedCounterArray| in
-Figure~\ref{fig:FineGrainedCounterArray} gives better performance.  The
+An alternative approach is to use multiple locks, as illustrated by the class
+|FineGrainedCounterArray| in Figure~\ref{fig:FineGrainedCounterArray}.  The
 crucial observation is that operations on \emph{different} counters can be
 executed concurrently, because they will not interfere.  To achieve this, we
 use an array of |n| |Lock|s, where each lock |locks(i)| protects the
