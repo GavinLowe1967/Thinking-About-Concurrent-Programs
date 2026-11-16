@@ -30,3 +30,5 @@ HeapBarrier.scala: Barrier synchronisation objects, implemented using a heap
 and lightweight signalling objects.
 
 JVMMonitorBoundedPartialStack.scala: A bounded partial stack. 
+
+MonitorGraphSearch: Concurrent breadth-first search.

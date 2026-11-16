@@ -98,6 +98,15 @@ programs that have a fixed number of stages, say two stages: threads can
 perform a synchronisation between stages to ensure all threads have completed
 one stage before starting the next. 
 
+When using shared variables, it is important to consider cache consistency.
+Conveniently, cache consistency is guaranteed when programs correctly use
+either barrier synchronisations or channel communications to coordinate
+threads.  When threads perform a barrier synchronisation, each is subsequently
+guaranteed to see values written by the other threads before the
+synchronisation.  The same is true for communications using a synchronous
+channel.  And for a buffered channel, the receiver is subsequently guaranteed
+to see values written by the sender before the send.
+
 
 
 %% \begin{itemize}

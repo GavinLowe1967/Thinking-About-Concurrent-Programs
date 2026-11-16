@@ -2,8 +2,9 @@ In the last two chapters, we looked at the support for monitors provided by
 SCL, namely locks and conditions.  In~this chapter, we look at similar
 mechanisms provided by the Java Virtual Machine (JVM).  The fact that these
 mechanisms are built in to the JVM makes them more efficient: the SCL
-implementations require another layer of interpretation.  However, they have
-disadvantages that make them harder to use: we will discuss these shortly.
+implementations require another layer of interpretation.  However, the JVM
+implementations have disadvantages that make them harder to use: we will
+discuss these shortly.
 
 As with SCL monitors, there are two aspects to JVM monitors: mutual exclusion,
 and a wait/signal mechanism.  We start with mutual exclusion in the next
@@ -17,10 +18,11 @@ The mechanism the JVM provides to ensure mutual exclusion is the
 \SCALA{synchronized} method.  
 %
 If |o| is a reference object and \SCALA{e} is an expression or command, then
-|o.synchronized{e}| acts much like \SCALA{e}, except that at most
-one thread can be active within the \SCALA{synchronized} expressions of the
-object~|o| at any time.  When an object is used like this, we will refer to it
-as a \emph{monitor}. 
+|o.synchronized{e}| acts much like \SCALA{e}, except that at most one thread
+can be active within the \SCALA{synchronized}%
+\index{synchronized@\SCALA{synchronized}} expressions of the object~|o|
+at any time.  When an object is used like this, we will refer to it as a
+\emph{monitor}\index{monitor}.
 
 If a thread tries to execute a \SCALA{synchronized} expression while another
 thread is within a |synchronized| block on the same monitor, then the former
@@ -66,10 +68,10 @@ class MonitorTotalQueue[T] extends TotalQueue[T]{
   /** The current state of the queue. */
   private val queue = new Queue[T]
 
-  /** Enqueue x. */
+  /** Enqueue £x£. */
   def enqueue(x: T) = synchronized{ queue.enqueue(x) }
 
-  /** Try to dequeue.  Return None if the queue is empty. */
+  /** Try to dequeue.  Return £None£ if the queue is empty. */
   def dequeue(): Option[T] = synchronized{ 
     if(queue.isEmpty) None else Some(queue.dequeue()) 
   }
@@ -102,16 +104,19 @@ object Obj{
 \end{mysamepage}
 %
 If a thread is inside~|f|, it holds the lock on the monitor.  When it
-calls~|g|, it obtains the lock for a second time.  When |g| returns, it still
-holds the lock once.  Only when |f| returns can another thread obtain the
-lock.
+calls~|g|, it obtains the lock for a second time.  When |g| returns, the
+thread still holds the lock once.  Only when |f| returns can another thread
+obtain the lock.
 
-Correct use of |synchronized| blocks avoids problems with cache consistency.
-When a thread leaves a |synchronized| block, it \emph{publishes} the values in
-its cache, making them available to other threads.  When a thread enters a
-|synchronized| block, it \emph{subscribes} to all variables published by
-other threads on the monitor.  This means that if all accesses to a variable
-are protected by |synchronized| blocks on the same monitor, as in
+|synchronized| blocks give very similar guarantees concerning cache
+consistency\index{cache consistency} as |Lock|s.
+% Correct use of |synchronized| blocks avoids problems with cache consistency.
+When a thread leaves a |synchronized| block, it
+\emph{publishes}\index{publish} the values in its cache, making them available
+to other threads.  When a thread enters a |synchronized| block, it
+\emph{subscribes}\index{subscribe} to all variables published by other threads
+on the monitor.  This means that if all accesses to a variable are protected
+by |synchronized| blocks on the same monitor, as in
 Figure~\ref{fig:counter-monitor} and~\ref{fig:totalQueue-JVM-monitor}, then
 any read of the variable is guaranteed to see the most-recent value written by
 another operation.  Further, compiler optimisations must respect this
@@ -119,10 +124,10 @@ semantics.  This means that if you are using |synchronized| blocks correctly
 to protect against data races, you do not need to worry about memory
 consistency.
 
-The examples we have seen so far have used coarse-grained locking, with a
-single monitor object.  However, it is also possible to use finer-grained
-locking, with multiple monitors, so long as operations using different
-monitors do not interfere.
+The examples we have seen so far use coarse-grained locking, with a single
+monitor object.  However, it is also possible to use finer-grained locking,
+with multiple monitors, so long as operations using different monitors do not
+interfere.
 
 For example, Figure~\ref{fig:StripedCounterArray-JVM} uses striped locking to
 protect an array of counters, in a very similar style to the implementation in
@@ -131,14 +136,13 @@ abstract class from Figure~\ref{fig:CounterArray}). As with the earlier
 example, each monitor |locks(j)| protects all counters |a(i)| such that $\sm i
 \% \sm{stripes} = \sm{j}$, so each |a(i)| is protected by
 \SCALA{locks(i\%stripes)}.  Recall that a monitor can be any reference object,
-i.e.~any subclass of |AnyRef|.  It makes sense here to use the simplest such
-class, i.e.~|AnyRef| itself.
+i.e.,~any subclass of |AnyRef|.  It makes sense here to use the simplest such
+class, i.e.,~|AnyRef| itself.
 %%%%%
 
 \begin{figure}
 \begin{scala}
-class StripedCounterArray(n: Int, stripes: Int) 
-    extends tacp.locks.CounterArray(n){
+class StripedCounterArray(n: Int, stripes: Int) extends tacp.locks.CounterArray(n){
   require(stripes > 0)
 
   /** Locks.  £locks(j)£ protects all £a(i)£ such that £i\%stripes $=$ j£. */
@@ -155,14 +159,12 @@ class StripedCounterArray(n: Int, stripes: Int)
 \label{fig:StripedCounterArray-JVM}
 \end{figure}
  
-
 %%%%%
-
 
 \begin{figure}
 \begin{scala}
 class MonitorShardedSet[A](shards: Int) extends Sharding[A](shards) with Set[A]{
-  /** The shards.  This ShardedSet object represents the union of £sets£. */ 
+  /** The shards.  This object represents the union of £sets£. */ 
   protected val sets = 
     Array.fill(shards)(new scala.collection.mutable.HashSet[A])
 
@@ -188,7 +190,7 @@ class MonitorShardedSet[A](shards: Int) extends Sharding[A](shards) with Set[A]{
 
 %%%%%
 
-Figure~\ref{fig:MonitorShardedSet} gives a sharded set implemented using JVM
+Figure~\ref{fig:MonitorShardedSet} implements a sharded set using JVM
 monitors.  Recall that the set is implemented in terms of some number of
 smaller sets, known as shards.  Here we use |shards| |HashSet|s, stored in an
 array |sets|.  A value~|x| is stored in the shard with index |shardFor(x)|
@@ -200,6 +202,11 @@ Figure~\ref{fig:StripedCounterArray-JVM}.  However, a simpler method is to use
 the |HashSet| objects themselves, as they are reference objects.  Hence each
 operation on |set(s)| is protected by a |synchronized| block on |sets(s)|
 itself.
+
+\begin{instruction}
+Study the details of the implementation.
+\end{instruction}
+
 
 However, it is not possible to re-implement the example from
 Section~\ref{sec:linked-list-fine-grained} of a linked list using fine-grained

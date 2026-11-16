@@ -5,7 +5,7 @@ Use a monitor to implement a bounded partial stack with signature
 class MonitorBoundedPartialStack[T](bound: Int) extends PartialStack[T]
 \end{scala}
 where |ParitalStack| is as in Exercise~\ref{ex:partialStack}.  The |push|
-operation should block while the stack is full, i.e.~contains |bound|
+operation should block while the stack is full, i.e.,~contains |bound|
 elements.
 
 Test your implementation using the linearizability testing framework.
@@ -43,14 +43,14 @@ class MonitorBoundedPartialStack[T](bound: Int) extends PartialStack1[T]{
 
   /** Push £x£.  Blocks while the queue is full. */
   def push(x: T) = lock.mutex{
-    notFull.await(stack.length < bound) // Wait for a signal. (1)
+    notFull.await(stack.length < bound) // Wait for a signal (1).
     stack.push(x)
     notEmpty.signal() // Signal to a £pop£ at (2).
   }
 
   /** Dequeue a value.  Blocks until the queue is non-empty. */
   def pop(): T = lock.mutex{
-    notEmpty.await(stack.nonEmpty) // Wait for a signal. (2)
+    notEmpty.await(stack.nonEmpty) // Wait for a signal (2).
     val result = stack.pop()
     notFull.signal() // Signal to a £push£ at (1).
     result

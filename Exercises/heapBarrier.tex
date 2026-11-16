@@ -6,7 +6,7 @@ operations {\scalastyle wait}\-|For|\-|Signal|\-|Up| and |signalDown|.  The
 |waitForSignalUp| operation blocks until the child calls
 |signal|\-|Up|\-|And|\-|Wait|.  The |signalUpAndWait| operation blocks until
 the parent calls |signal|\-|Down|.  Thus such an object can be used to
-repeatedly send two signals, one in each direction.  Implement a class of such
+send two signals, one in each direction, repeatedly.  Implement a class of such
 objects with the following signature.
 %
 \begin{scala}
@@ -61,21 +61,21 @@ communications with operations on the |Signal|s.
 %
 \begin{scala}
 class HeapBarrier(n: Int){
-  /** The objects used for signalling.  £signals(i)£ is used for signalling between 
+  /** The objects used for signalling: £signals(i)£ is used for signalling between 
     * thread £i£ and its parent. */
   private val signals = Array.fill(n)(new Signal)
 
   /** Perform a barrier synchronisation.
-    * @param me the unique identity of this thread. */
+    * @param £me£ the unique identity of this thread. */
   def sync(me: Int) = {
     require(0 <= me && me < n)
     val child1 = 2*me+1; val child2 = 2*me+2
-    // Wait for children
+    // Wait for children.
     if(child1 < n) signals(child1).waitForSignalUp()
     if(child2 < n) signals(child2).waitForSignalUp()
-    // Signal to parent and wait for signal back
+    // Signal to parent and wait for signal back.
     if(me != 0) signals(me).signalUpAndWait()
-    // Signal to children
+    // Signal to children.
     if(child1 < n) signals(child1).signalDown()
     if(child2 < n) signals(child2).signalDown()
   }

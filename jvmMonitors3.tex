@@ -9,7 +9,7 @@ Figure~\ref{fig:JVM-syncChan-seqDiagram}.
 \item The sender  deposits its value, and signals to a receiver;
 
 \item The receiver signals back to the sender, to provide a
-  synchronisation, and returns the sender's value; 
+  synchronisation; it returns the sender's value; 
 
 \item The sender signals to a sender for the next synchronisation.
 \end{enumerate}
@@ -45,8 +45,9 @@ Figure~\ref{fig:JVM-syncChan-seqDiagram}.
 
 The implementation in Figure~\ref{fig:JVM-SyncChan} uses a variable |value| to
 store the sender's value.  It also uses a variable |stage| to record the
-current stage of the synchronisation: whether |value| is (logically) empty,
-has been filled, or  has been read by the receiver.
+current stage of the synchronisation: whether |value| is (logically) empty
+($\sm{stage} = \sm{Empty}$), has been filled ($\sm{stage} = \sm{Filled}$), or
+has been read by the receiver ($\sm{stage} = \sm{Read}$).
 
 %%%%%
 
@@ -200,7 +201,7 @@ A millisecond is rather a long time for a thread to wait for another thread.
 for a network communication.)  We therefore use this latter form, and measure
 the timeout time for the exchanger in nanoseconds.  The class has an |Int|
 parameter |delay| that defines the delay, so the maximum delay will be
-|Int.MaxValue| $= 2^{31}-1$\, ns, about two seconds.
+|Int.MaxValue| $= 2^{31}-1$\,ns, about two seconds.
 
 Our implementation is in Figure~\ref{fig:TimeoutExchanger}.  It is somewhat
 similar to the exchanger in Figure~\ref{fig:MonitorExchanger}.  It uses a
@@ -238,7 +239,9 @@ class TimeoutExchanger[A](delay: Int){
     else if(stage == Filled){  // Take value in £slot£; deposit my value there.
       val result = slot; slot = x; stage = Exchanging; notify(); Some(result)
     }
-    else{ assert(stage == Exchanging); None } // Another exchange is under way.
+    else{ // Another exchange is under way.
+      assert(stage == Exchanging); None 
+    } 
   }
 }
 \end{scala}
@@ -252,13 +255,14 @@ If a thread finds that $\sm{stage} = \sm{Empty}$, it is the first thread in
 the exchange.  It stores its value, sets $\sm{stage} = \sm{Filled}$, and waits
 for up to |delay|\,ns.  When it wakes up, if $\sm{stage} = \sm{Exchanging}$,
 another thread has deposited a value, so it can return that value, resetting
-for the next round.  In fact, it acts the same way if it times out just before
-another thread deposits its value; this behaviour seems appropriate.
-Alternatively, if it finds that |stage| is still |Filled| when it wakes up, it
-has failed to exchange, so resets for the next stage, and returns |None|.
-This latter behaviour would also result from a spurious wakeup; we consider
-this behaviour acceptable: to detect the spurious wakeup would require
-comparing the system time before and after the |wait|, which is awkward.
+for the next round.  In fact, it acts the same way if it times out, but
+another thread deposits its value before the former thread obtains the
+|synchronized| lock; this behaviour seems appropriate.  Alternatively, if it
+finds that |stage| is still |Filled| when it wakes up, it has failed to
+exchange, so resets for the next stage, and returns |None|.  This latter
+behaviour could also result from a spurious wakeup; we consider this behaviour
+acceptable: to detect the spurious wakeup would require comparing the system
+time before and after the |wait|, which is awkward.
 
 If the thread initially finds that $\sm{stage} = \sm{Filled}$, it is the
 second thread in the exchange.  It swaps its value with the value stored by

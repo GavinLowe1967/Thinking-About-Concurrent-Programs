@@ -38,6 +38,79 @@ thread signals, it keeps the lock: the thread that receives the signal must
 wait for the signaller to release the lock, and then needs to compete with
 other threads to re-acquire the lock. 
 
+The implementation of conditions is fair: when a thread signals, that
+signal is received by the thread that has been waiting longest. 
+
+There is also a timed version of the |await| operation.  The operation
+|awaitNanos(nanos)|\SCLIndex{awaitNanos}, where |nanos| is a |Long|, waits for
+at most |nanos|~ns.  It returns a boolean that indicates if a signal was
+received.  This operation can be used to implement timeouts; but we will not
+use it subsequently in this book.
+
+In Figure~\ref{fig:thread-states} we gave a diagram describing different
+states that a thread can be in.  Figure~\ref{fig:thread-states-2} augments
+this to include consideration of locks and conditions.  The ``Blocked'' state
+corresponds to a thread blocking to obtain a lock, whereas the state ``IO
+Blocked'' corresponds to a thread blocking for input or output.  The
+``Waiting'' state corresponds to a thread that is performing |await()|; note
+that when it receives a signal, it becomes blocked, and has to wait to obtain
+the lock.
+
+%%%%%
+
+\begin{figure}
+\begin{center}
+%\tikzstyle{every node}=[minimum height = 9mm]
+\tikzstyle{place}=[draw, rounded corners, minimum height = 7mm]
+%\def\nodeHeight{minimum height = 9mm}
+\begin{tikzpicture}[xscale = 1.2, yscale = 1.25]
+\draw(0,0) node[place](runnable){Runnable};
+\draw[<-] (runnable) -- node[above]{start} (-3,0);
+%%% Running
+\draw(6,0) node[place](running){Running};
+\draw[->] ([yshift = 1.5mm] runnable.east) -- node[above]{schedule} 
+  ([yshift = 1.5mm] running.west);
+\draw[->] ([yshift = -1.5mm] running.west) -- node[below]{deschedule} 
+  ([yshift = -1.5mm] runnable.east);;
+%%% Finished
+\draw (0, -3) node[place](finished){Finished};
+\draw[->] (runnable) -- node[below, sloped]{stop} (finished);
+\draw[->] (running) -- node[above, sloped, near end]{terminate} 
+  node[below, sloped, near end]{stop} ([yshift = 1.5mm] finished.east); %%%
+%%% IO Blocked
+\draw(6, -3) node[place](blocked){IO Blocked};
+\draw[->] ([xshift = 1mm] running.south) -- 
+  node[above, sloped]{block for IO} ([xshift = 1mm] blocked.north);
+\draw[->] (blocked) --  node[below, sloped, pos = 0.29]{complete IO} 
+  ([yshift = -3mm] runnable.east); 
+%%% Blocked
+\draw(6, 3) node[place](LBlocked){Blocked};
+\draw[->] ([xshift = -1mm] running.north) -- 
+  node[above, sloped]{block for lock} ([xshift = -1mm] LBlocked.south);
+\draw[->] ([xshift = 1mm] LBlocked.south) -- node[above, sloped]{obtain lock} 
+  ([xshift = 1mm] running.north);
+%%% Waiting
+\draw (2,3) node[place](waiting){Waiting};
+\draw[->] (running) -- 
+  node[above, sloped]{\scalashape await()}   ([yshift = -1.5mm] waiting.east); 
+\draw[->]  (waiting) -- node[above, sloped]
+  {receive signal}  (LBlocked);
+%% \draw[->] ([xshift = 1mm] waiting.south) -- node[below, sloped]
+%%   {spurious wake-up} ([xshift = 1mm] runnable.north)
+\end{tikzpicture}
+\end{center}
+\caption{Thread states.}
+\label{fig:thread-states-2}
+\end{figure}
+
+Recall from the previous chapter that when a thread releases a |Lock|,
+it \emph{publishes}\index{publish} the values in the cache, making them
+available to other threads, and when a thread aquires a |Lock|, it
+\emph{subscribes}\index{subscribe} to all variables published by other threads
+on the same |Lock|.  The same is true when a thread releases a |Lock| at the
+start of an |await|, and reacquires a lock after an |await|.  Thus correct use
+of these operations ensures cache consistency. 
+
 The rest of this chapter illustrates the use of conditions in
 examples. 
 

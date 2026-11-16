@@ -37,11 +37,11 @@ must be sent a signal.
 
 A disadvantage of the |wait|/|notify| system, compared with |Condition|s, is
 that signals cannot be targeted.  If threads can be waiting in two or more
-places in the code, a |notify| may not be received at the intended place.  We
-therefore need to use a |notifyAll|, which is less efficient.  I therefore
-recommend normally using |Condition|s when threads can wait in two of more
-places.  However, as |wait| and |notify| are implemented within the JVM, they
-can be more efficient than |Condition|s in other circumstances. 
+places in the code, a |notify| may not be received at the intended place.
+Hence we usually need to use a |notifyAll|, which is less efficient.  I
+therefore recommend normally using |Condition|s when threads can wait in two
+of more places.  However, as |wait| and |notify| are implemented within the
+JVM, they can be more efficient than |Condition|s in other circumstances.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -62,6 +62,7 @@ can be more efficient than |Condition|s in other circumstances.
 
 \input{Exercises/mod3M} % mod 3 example
 
+\input{Exercises/BFS}
 
 terminating partial queue, concurrent graph search -- sheet 3, Q8.
 

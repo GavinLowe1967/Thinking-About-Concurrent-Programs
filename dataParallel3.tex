@@ -304,7 +304,7 @@ class JacobiMP0(p: Int) extends Jacobi{
 
   def solve(a: Matrix, b: Vector): Vector = {
     val n = a.length; require(a.forall(_.length == n) && b.length == n)
-    /* The start of the segment calculated by thread id. */
+    /* The start of the segment calculated by thread £id£. */
     @inline def startFor(id: Int) = id*n/p
     var result: Vector = null // Ends up storing the final result.
 
@@ -389,12 +389,42 @@ consistent version of the current approximation.
 Make sure you understand the implementation.
 \end{instruction}
 
-The above version is a bit inefficient, because it involves copying the data
-that is received into~\SCALA{x}; this copying takes time $O(\sm n)$ per
-iteration.  We can replace \SCALA{x}, in each worker, by a two-dimensional
-array \SCALA{xs}.  Each row of~|xs| corresponds to the segment operated on by
-a particular worker.  Thus, the array~|xs| represents the vector |x| formed by
-concatenating the rows of |xs|.
+%%%%%
+
+We should consider, again, the question of cache consistency\index{cache
+consistency}.  
+%
+In this program, each thread writes into the memory locations of its |newX|
+array, and sends a reference to that array to other threads.  When another
+thread reads from that array (named |hisX|), is it guaranteed to see the
+result of those writes?  In Section~\ref{sec:astronomical-bodies}, we said
+that when there is a barrier synchronisation between a write and a read, cache
+consistency is guaranteed.  However, there is no barrier synchronisation
+between the writes and reads of~|newX|.  It turns out that the use of the
+channel provides a similar guarantee.
+
+When a thread sends on a channel, it \emph{publishes}\index{publish} the
+values in its cache, making them available to other threads.  When a thread
+receives on a channel, it \emph{subscribes}\index{subscribe} to all memory
+locations published by the sender.  The effect is that each subsequent read
+made by the receiver is guaranteed to see the result of each write made by the
+sender before it sent the message.  Again, compiler optimisations must respect
+this semantics.  This means that cache consistency is guaranteed in Jacobi
+iteration program.  
+
+In fact, when using a synchronous channel, a stronger guarantee is provided:
+when two threads perform a communication, each subsequent read made by
+\emph{either} of the two threads is guaranteed to see the result of each write
+made by the other thread before the communication.
+
+%%%%%
+
+The above implementation of Jacobi iteration is a bit inefficient, because it
+involves copying the data that is received into~\SCALA{x}; this copying takes
+time $O(\sm n)$ per iteration.  We can replace \SCALA{x}, in each worker, by a
+two-dimensional array \SCALA{xs}.  Each row of~|xs| corresponds to the segment
+operated on by a particular worker.  Thus, the array~|xs| represents the
+vector |x| formed by concatenating the rows of |xs|.
 %%  That is, we have the abstraction:
 %% \[
 %% \sm{x} = \sm{xs.flatten}.

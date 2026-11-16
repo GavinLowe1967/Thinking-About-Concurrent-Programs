@@ -1,7 +1,7 @@
 package tacp.channels
 import ox.scl._
 
-object Primes1{
+object Primes{
   /** Component that passes values from `in` to `out`, removing multiples of
     * `n`. */
   private def filter(in: ??[Int], out: !![Int], k: Int) = thread{

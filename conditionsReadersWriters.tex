@@ -5,7 +5,7 @@ Different systems have different access requirements.  Threads should be
 allowed to execute a particular part of the code, the \emph{critical
   section}\index{critical section}, only under particular circumstances.  In
 this section we study a classic access-control problem, the \emph{readers and
-  writers problem}.
+  writers problem}\index{readers and writers problem}.
 
 Consider a database, shared by a number of threads that carry out transactions
 on the database.  We do not want different transactions to interfere with one
@@ -24,7 +24,7 @@ example:
 \begin{scala}
   ... // Operations not using the database.
   rw.readerEnter // Enter the database.
-  ...// Operations reading the database.
+  ... // Operations reading the database.
   rw.readerLeave // Leave the database.
 \end{scala}
 %
@@ -62,15 +62,16 @@ writers currently in the critical section.  It aims to maintain the invariant
 That is, there are not simultaneously readers and writers, and not more than
 one writer. 
 
+
 %%%%% 
 
 \begin{figure}
 \begin{scala}
 class MonitorReadersWriters0 extends ReadersWritersLock{
-  /** Number of readers currently in the critical region. */
+  /** Number of readers currently in the critical section. */
   private var readers = 0
 
-  /** Number of writers currently in the critical region. */
+  /** Number of writers currently in the critical section. */
   private var writers = 0
 
   /* Invariant: £$(\sm{readers} = 0 \lor \sm{writers = 0}) \land \sm{writers} \le 1$£. */
@@ -104,6 +105,10 @@ class MonitorReadersWriters0 extends ReadersWritersLock{
 
 %%%%%
 
+Note that there are two levels of locking here: the |Lock| |lock| locks the
+|ReadersWritersLock| object, to protect the shared variables |readers| and
+|writers|; the |ReadersWritersLock| protects the database.  
+
 The implementation uses a single |Condition| for signalling.
 Each of the entry operations waits until the relevant condition holds, and
 records its own entry.  Each of the exit operations records its exit, and
@@ -114,11 +119,11 @@ might be threads wanting in |readerEnter|, |writerEnter|, or both.  Without
 additional state, there is no way for the exiting writer thread to know which
 threads to signal to.  The only option, then, is to use |signalAll|.  If there
 are both waiting readers and writers, it is nondeterministic which will
-subsequently acquire the lock first.  If a writer goes first, it will enter
-the critical section, setting $\sm{writers} = 1$, but all other readers and
-writers will have to wait.  If a reader goes first, it will enter, setting
-$\sm{readers} = 1$, all the other readers will subsequently enter, but the
-writers will have to wait again.
+subsequently acquire |lock| first.  If a writer goes first,
+it will enter the critical section, setting $\sm{writers} = 1$, but all other
+readers and writers will have to wait.  If a reader goes first, it will enter,
+setting $\sm{readers} = 1$, all the other readers will subsequently enter, but
+the writers will have to wait again.
 
 \begin{instruction}
 Make sure you understand the details of the implementation.
@@ -131,20 +136,20 @@ current numbers of readers and writers, and that maintains the above
 invariant.  Figure~\ref{fig:rw-seq-spec} gives a class~|SRW| of suitable
 sequential specification objects, together with corresponding sequential
 operations.  The initial ``|val SRW(r,w) = s|'' statements simply unpack the
-sequential specification object to obtain, binding the names~|r| and~|w| to
-the number of readers and writers.  The two entry operations have |require|
-statements that allow the operations to happen only when they will not break
-the invariant.  The exit operations have |assert| statements that provide a
-sanity check that the threads are indeed calling the operations in an intended
-order.  Each operation returns an updated |SRW| object.  The rest of the
-definition of the linearizability tester is then standard.
+sequential specification object, binding the names~|r| and~|w| to the number
+of readers and writers.  Each entry operation has a |require| statement that
+allows the operation to happen only when it will not break the invariant.
+Each exit operation has an |assert| statement that provides a sanity check
+that the threads are indeed calling the operations in an intended order.  Each
+operation returns an updated |SRW| object.  The rest of the definition of the
+linearizability tester is then standard.
 
 %%%%%
 
 \begin{figure}
 \begin{scala}
   /** The type of sequential specification objects, recording the number of
-    * readers and writers currently in the critical region. */
+    * readers and writers currently in the critical section. */
   case class SRW(readers: Int, writers: Int)
 
   def seqReaderEnter(s: SRW): (Unit, SRW) = {
@@ -168,14 +173,14 @@ definition of the linearizability tester is then standard.
 %%%%%
 
 Unfortunately, this implementation has a deficiency, namely that all writers
-may be permanently blocked from entering the critical region. 
+may be permanently blocked from entering the critical section. 
 %
 Consider a scenario where readers repeatedly enter and leave the critical
-region, and such that there is always at least one reader in it (even though
-no single reader remains in the database for ever).  This is depicted in the
-timeline below, where each horizontal line for a reader represents a period
-that it is in the critical section, and the horizontal line for the writer
-represents the period that it is inside |writerEnter|.
+section, and such that there is always at least one reader in it (even though
+no single reader remains in the critical section for ever).  This is depicted
+in the timeline below, where each horizontal line for a reader represents a
+period that it is in the critical section, and the horizontal line for the
+writer represents the period that it is inside |writerEnter|.
 %
 \begin{center}
 \begin{tikzpicture}
@@ -195,15 +200,39 @@ The writer is starved: each time it obtains the lock after receiving a signal,
 if finds $\sm{readers} > 0$, so has to wait again.
 
 Our second implementation avoids this problem.  The idea is that once a writer
-calls |writerEnter|, no further reader will enter the critical region until a
-writer enters and leaves.  Under the reasonable assumption that each current
-reader eventually leaves, this will eventually allow a writer to enter.
+executes in |writerEnter|, no new reader will enter the critical section
+until a writer enters and leaves.  Under the reasonable assumption that each
+current reader eventually leaves, this will eventually allow a writer to
+enter.  To this end, we maintain a variable |writersWaiting|
+(Figure~\ref{fig:readers-writers-monitor-1}) that records the number of
+writers that are waiting.  If a new reader finds that this is positive, it will
+wait.  When the final reader leaves the critical section, it will signal
+specifically to a writer.
 
-The implementation is in Figures~\ref{fig:readers-writers-monitor-1} and
-\ref{fig:readers-writers-monitor-2}. It maintains variables counting the
-number of readers and writers currently waiting, so that exiting threads know
-where to direct signals.  It uses two |Condition|s, for signalling to readers
-or a writer, respectively, that they can now enter.
+A similar issue concerns starvation for readers.  With the code in
+Figure~\ref{fig:readers-writers-monitor0}, if there are both readers and
+writers waiting, it is possible that every time |cond.signalAll| is performed,
+a writer obtains the lock first, and so the readers are starved.  To avoid
+this, we arrange that a writer that leaves the critical section will signal to
+the waiting readers, if there are any, and otherwise will signal to a
+waiting writer.  To achieve this, we also maintain a variable |readersWaiting|
+that records the number of readers that are waiting.
+
+However, there is another wrinkle.  Suppose after an exiting writer has
+signalled to all the waiting readers, one reader obtains the lock, enters the
+critical section, and then exits, before any other reader has completed the
+entry operation.  We don't want the exiting reader to signal to a writer in
+this case, since we want the remaining readers to enter the critical section,
+first.  We therefore maintain a variable |readersToEnter| that records the
+number of readers that have received a signal, but have not yet completed the
+entry operation.  If an exiting reader finds that this is positive, it doesn't
+signal.
+
+For a similar reason, when a writer tries to enter, if it finds that another
+writer is waiting, it also waits, even if it could otherwise enter
+immediately.  In this case, one of the other writers will have received a
+signal, but not yet completed the entry operation: we need to allow that
+writer to proceed before the new writer.
 
 %%%%%
 
@@ -213,11 +242,15 @@ class MonitorReadersWriters extends ReadersWritersLock{
   private var readers = 0
   private var writers = 0
 
+  /** Number of writers waiting to enter. */
+  private var writersWaiting = 0
+
   /** Number of readers waiting to enter. */
   private var readersWaiting = 0
 
-  /** Number of writers waiting to enter. */
-  private var writersWaiting = 0
+  /** Number of readers that have received a signal, but have not yet
+    * entered. */
+  private var readersToEnter = 0
 
   private val lock = new Lock
 
@@ -236,14 +269,10 @@ class MonitorReadersWriters extends ReadersWritersLock{
 
 %%%%%
 
-In each entry operation, if the thread has to wait it records that fact.  When
-a reader exits, if it is the last reader to do so, and there is a writer
-waiting, it signals to such a writer.  If this isn't the case, there is no
-need to signal to a reader, because there can be no waiting reader at this
-point: a reader waits only when $\sm{writers} > 0$ or $\sm{writersWaiting} >
-0$, neither of which can be true.  When a writer exits, it prioritises
-signalling to the waiting readers; but if there are none, it signals to a
-waiting writer if there is one.
+The implementation is in Figures~\ref{fig:readers-writers-monitor-1} and
+\ref{fig:readers-writers-monitor-2}.  It maintains variables as described
+above.  In addition, it uses two |Condition|s, for signalling to readers or a
+writer, respectively, that they can now enter.
 
 %%%%%
 
@@ -251,33 +280,36 @@ waiting writer if there is one.
 \begin{scala}
   def readerEnter() = lock.mutex{
     if(writers > 0 || writersWaiting > 0){ // Reader has to wait.
-      readersWaiting += 1
-      readerEnterC.await(writers == 0)
-      readersWaiting -= 1
+      readersWaiting += 1; readerEnterC.await()
+      assert(writers == 0); readersToEnter -= 1
     }
     readers += 1
   }
 
   def readerExit() = lock.mutex{
-    readers -= 1; assert(writers == 0)
-    if(readers == 0 && writersWaiting > 0) writerEnterC.signal()
+    assert(writers == 0); readers -= 1 
+    if(readers == 0 && writersWaiting > 0 && readersToEnter == 0)
+      writerEnterC.signal()
   }
 
   def writerEnter() = lock.mutex{
-    if(readers > 0 || writers > 0){ // Writer has to wait.
-      writersWaiting += 1
-      writerEnterC.await(readers == 0 && writers == 0)
-      writersWaiting -= 1
+    if(readers > 0 || writers > 0 || readersWaiting > 0 || readersToEnter > 0 ||
+        writersWaiting > 0){  // Writer has to wait
+      writersWaiting += 1; writerEnterC.await() 
+      assert(readers == 0 && writers == 0); writersWaiting -= 1
     }
     writers += 1
   }
 
   def writerExit() = lock.mutex{
-    writers -= 1; assert(writers == 0 && readers == 0)
-    if(readersWaiting > 0) readerEnterC.signalAll()
+    assert(writers == 1 && readers == 0); writers -= 1 
+    if(readersWaiting > 0){
+      assert(readersToEnter == 0)
+      readersToEnter = readersWaiting; readersWaiting = 0
+      readerEnterC.signalAll()
+    }
     else if(writersWaiting > 0) writerEnterC.signal()
   }
-
 \end{scala}
 \caption{Improved implementation of a readers and writers lock (part~2).}
 \label{fig:readers-writers-monitor-2}
@@ -285,19 +317,152 @@ waiting writer if there is one.
 
 %%%%%
 
+In each entry operation, if the thread has to wait, it records that fact.  When
+a reader exits, if it is the last reader to do so, there is a writer waiting,
+and there is no reader that has received a signal in the entry operation, then
+it signals to a waiting writer.  If this isn't the case, there is no need to
+signal to a reader: a reader waits only when $\sm{writers} > 0$ or
+$\sm{writersWaiting} > 0$; the former cannot be true; and if the latter is
+true, then the writer should take priority over any new readers.
+
+When a writer exits, it prioritises signalling to the waiting readers,
+updating |readersToEnter| and |readersWaiting|, appropriately.  Each reader
+that receives the signal subsequently decrements |readersToEnter|.  If no
+reader is waiting, the exiting writer signals to a waiting writer if there is
+one.
+
+\begin{instruction}
+Study the details of the implementation.
+\end{instruction}
+
 This implementation is fair to writers.  Suppose there are one or more writers
-waiting, but readers are currently in the critical region.  Then no more
+waiting, but readers are currently in the critical section.  Then no more
 readers will enter, and, by our earlier assumption, each of the current
 readers will eventually leave.  The last such reader will signal to allow a
 writer to enter.  This process will continue, so more writers will
-subsequently enter.  In fact, the implementation of SCL |Condition|s is fair:
-waiting threads will receive signals in the same order as they started
+subsequently enter.  Recall that the implementation of SCL |Condition|s is
+fair: waiting threads receive signals in the same order as they started
 waiting.  This means that \emph{each} waiting writer will eventually enter the
-critical region.  
+critical section.
 
-The implementation is not quite fair to readers.  It is possible that when a
-writer exits the critical region and signals to waiting readers, another
-writer obtains the lock first, and so enters the critical region, preempting
-the readers; the readers will wait again.  This process could repeat, so that
-readers are starved.  However, this requires particularly unfortunate timing,
-so seems unlikely.
+The implementation is also fair to readers.  If there are waiting readers then
+eventually an exiting writer will signal to them, and all those readers will
+enter the critical section. 
+
+It is tempting to use the guarded form of the |await| operation,
+i.e.,~including a boolean test that is performed before waiting and each time
+the thread receives a signal.  However, this is not easy to get right.
+Replacing the |await| in |readerEnter| by |readerEnterC.await(writers == 0)|
+would mean that the reader wouldn't wait at all in the case that $\sm{writers}
+= 0$ and $\sm{writersWaiting} > 0$, negating the tactic we're trying to use for
+fairness towards writers.  Alternatively, using
+\SCALA{readerEnterC.await(writers == 0 && writersWaiting == 0)} would mean
+that readers can be starved if writers repeatedly try to use the database.
+
+We will see a more straightforward solution using semaphores in
+Chapter~\ref{chap:semaphores}. 
+
+
+%%%%%%%%%% OLD VERSION %%%%%%%%%
+
+%% The implementation is in Figures~\ref{fig:readers-writers-monitor-1} and
+%% \ref{fig:readers-writers-monitor-2}. It maintains variables counting the
+%% number of readers and writers currently waiting, so that exiting threads know
+%% where to direct signals.  It uses two |Condition|s, for signalling to readers
+%% or a writer, respectively, that they can now enter.
+
+%% %%%%%
+
+%% \begin{figure}
+%% \begin{scala}
+%% class MonitorReadersWriters extends ReadersWritersLock{
+%%   private var readers = 0
+%%   private var writers = 0
+
+%%   /** Number of readers waiting to enter. */
+%%   private var readersWaiting = 0
+
+%%   /** Number of writers waiting to enter. */
+%%   private var writersWaiting = 0
+
+%%   private val lock = new Lock
+
+%%   /** Condition to signal to a waiting reader that it can now enter. */
+%%   private val readerEnterC = lock.newCondition
+
+%%   /** Condition to signal to a waiting writer that it can now enter. */
+%%   private val writerEnterC = lock.newCondition
+
+%%   ... // Continued in Figure £\sl\ref{fig:readers-writers-monitor-2}.£
+%% }
+%% \end{scala}
+%% \caption{Improved implementation of a readers and writers lock (part~1).}
+%% \label{fig:readers-writers-monitor-1X}
+%% \end{figure}
+
+%% %%%%%
+
+%% In each entry operation, if the thread has to wait it records that fact.  When
+%% a reader exits, if it is the last reader to do so, and there is a writer
+%% waiting, it signals to such a writer.  If this isn't the case, there is no
+%% need to signal to a reader, because there can be no waiting reader at this
+%% point: a reader waits only when $\sm{writers} > 0$ or $\sm{writersWaiting} >
+%% 0$, neither of which can be true.  When a writer exits, it prioritises
+%% signalling to the waiting readers; but if there are none, it signals to a
+%% waiting writer if there is one.
+
+%% %%%%%
+
+%% \begin{figure}
+%% \begin{scala}
+%%   def readerEnter() = lock.mutex{
+%%     if(writers > 0 || writersWaiting > 0){ // Reader has to wait.
+%%       readersWaiting += 1
+%%       readerEnterC.await(writers == 0)
+%%       readersWaiting -= 1
+%%     }
+%%     readers += 1
+%%   }
+
+%%   def readerExit() = lock.mutex{
+%%     readers -= 1; assert(writers == 0)
+%%     if(readers == 0 && writersWaiting > 0) writerEnterC.signal()
+%%   }
+
+%%   def writerEnter() = lock.mutex{
+%%     if(readers > 0 || writers > 0){ // Writer has to wait.
+%%       writersWaiting += 1
+%%       writerEnterC.await(readers == 0 && writers == 0)
+%%       writersWaiting -= 1
+%%     }
+%%     writers += 1
+%%   }
+
+%%   def writerExit() = lock.mutex{
+%%     writers -= 1; assert(writers == 0 && readers == 0)
+%%     if(readersWaiting > 0) readerEnterC.signalAll()
+%%     else if(writersWaiting > 0) writerEnterC.signal()
+%%   }
+%% \end{scala}
+%% \caption{Improved implementation of a readers and writers lock (part~2).}
+%% \label{fig:readers-writers-monitor-2X}
+%% \end{figure}
+
+%% %%%%%
+
+%% This implementation is fair to writers.  Suppose there are one or more writers
+%% waiting, but readers are currently in the critical region.  Then no more
+%% readers will enter, and, by our earlier assumption, each of the current
+%% readers will eventually leave.  The last such reader will signal to allow a
+%% writer to enter.  This process will continue, so more writers will
+%% subsequently enter.  In fact, the implementation of SCL |Condition|s is fair:
+%% waiting threads will receive signals in the same order as they started
+%% waiting.  This means that \emph{each} waiting writer will eventually enter the
+%% critical region.  
+
+%% The implementation is not quite fair to readers.  It is possible that when a
+%% writer exits the critical region and signals to waiting readers, another
+%% writer obtains the lock first, and so enters the critical region, preempting
+%% the readers; the readers will wait again.  This process could repeat, so that
+%% readers are starved.  However, this requires particularly unfortunate timing,
+%% so seems unlikely.

@@ -19,14 +19,14 @@ QUEUES = $(DTDIR)/MonitorTotalQueue.class	\
    $(DTDIR)/JVMMonitorBoundedPartialQueue.class
 
 EXERCISES = $(DIR)/Mod3M.class $(DTDIR)/JVMMonitorShardedMap.class	\
-  $(DIR)/HeapBarrier.class $(DTDIR)/JVMMonitorBoundedPartialStack.class
+  $(DIR)/HeapBarrier.class $(DTDIR)/JVMMonitorBoundedPartialStack.class	\
+  $(DIR)/MonitorGraphSearch.class
 
 all: $(QUEUES) $(DIR)/Counter.class $(DTDIR)/MonitorShardedSet.class	\
   $(DIR)/JVMMonitorSyncChan.class $(DIR)/Lock.class			\
   $(DIR)/JVMMonitorBarrier.class $(DIR)/TimeoutExchanger.class $(EXERCISES)
 
 ######### Straightforward examples
-
 
 striped: $(DIR)/StripedCounterArray.class
 
@@ -72,8 +72,6 @@ $(DTDIR)/Map.class: $(LOCK_SRC_DIR)/Map.scala
 
 maps: $(DTDIR)/JVMMonitorShardedMap.class
 
-
-
 ######### Synchronisation objects
 # Synchronous channel
 
@@ -101,6 +99,13 @@ lock: $(DIR)/Lock.class
 # Mod3
 
 mod3: $(DIR)/Mod3M.class
+
+########## Graph search
+
+graphSearch: $(DIR)/MonitorGraphSearch.class
+
+$(DIR)/MonitorGraphSearch.class: $(DTDIR)/GraphSearch.class \
+  $(DTDIR)/MonitorShardedSet.class
 
 ########## Standard recipes
 

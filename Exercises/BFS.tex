@@ -1,0 +1,121 @@
+\begin{question}
+Adapt the |TerminatingPartialQueue| class from
+Figure~\ref{fig:terminating-queue} so as to use a monitor. 
+
+%%  (If you like, you
+%% can change the signature, if it's more convenient for the following part.)
+
+Now adapt the concurrent graph search program from
+Figure~\ref{fig:graph-search-conc} so as to use shared variables and a
+monitor.
+%
+Test your code by adapting the word path program from the course website.
+\end{question}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{answerS}
+My code for the terminating partial queue is below.  This maintains, in
+|waiting|, a count of the number of threads that are currently waiting to
+perform a |dequeue|.  If a thread attempts a |dequeue|, and all the other
+threads are waiting, it shuts down the queue, and all the threads return
+|None|. 
+%
+\begin{scala}
+class MonitorTerminatingPartialQueue[A](numWorkers: Int){
+  /** The queue itself. */
+  private val queue = new Queue[A]
+
+  /** The number of threads currently waiting to perform a £dequeue£. */
+  private var waiting = 0
+
+  /** Has the queue been shut down? */
+  private var done = false
+
+  /** Enqueue £x£. */
+  def enqueue(x: A) = synchronized{ 
+    if(!done){
+      queue.enqueue(x)
+      if(waiting > 0) notify()
+    }
+  }
+
+  /** Attempt to dequeue a value.  
+    * @return £None£ if the queue has been shut down, or it the queue is empty
+    * and all threads are trying to dequeue. */
+  def dequeue(): Option[A] = synchronized{
+    if(!done && queue.isEmpty){
+      if(waiting == numWorkers-1) shutdown() // System should terminate.
+      else{ // This thread needs to wait.
+        waiting += 1
+        while(queue.isEmpty && !done) wait()
+        waiting -= 1
+      }
+    }
+    if(done) None 
+    else Some(queue.dequeue())
+  }
+
+  /** Shut down this queue. */
+  def shutdown() = synchronized{ done = true; notifyAll() }
+}
+\end{scala}
+
+%%%%%
+
+My code is below.  This is mostly a straightforward adaptation of the earlier
+version.  
+
+The previously seen nodes are stored in a sharded set.  Recall that we require
+the number of shards to be a power of~$2$; we choose the smallest power of~$2$
+that is at least $4 \times \sm{numShards}$.
+
+The variable |result| ends up holding the result of the search.  To avoid
+races, we protect this by a |synchronized| block. 
+
+If a worker thread finds a path, and it is the first worker to do so, it sets
+|result|, and shuts down the terminating queue so that the other threads
+terminate.
+%
+\begin{scala}
+class MonitorGraphSearch[N](g: Graph[N], numWorkers: Int) 
+    extends GraphSearch[N](g){
+  /** Try to find a path in £g£ from £start£ to a node that satisfies £isTarget£. */
+  def apply(start: N, isTarget: N => Boolean): Option[List[N]] = {
+    // The number of shards to use: a power of £2£, at least £$4 \times \sm{numShards}$£.
+    var numShards = 4; while(numShards < 4*numWorkers) numShards *= 2
+    // All nodes seen so far.
+    val seen = new MonitorShardedSet[N](numShards); seen.add(start)
+    // Queue storing edges and the path leading to that edge.
+    val queue = new MonitorTerminatingPartialQueue[(N, List[N])](numWorkers)
+    queue.enqueue((start, List(start)))    
+    // Variable that ends up holding the result; protected by £synchronized£
+    // block.
+    var result: Option[List[N]] = None
+
+    // A single worker.
+    def worker = thread("worker"){
+      var done = false
+      while(!done) queue.dequeue() match{
+        case Some((n, path)) =>
+          for(n1 <- g.succs(n)){
+            if(isTarget(n1)) synchronized{
+              if(result.isEmpty){ // This is the first thread to find a result.
+                result = Some(path :+ n1) // Store result.
+                queue.shutdown() // Cause others to terminate.
+                done = true
+              }
+            }
+            else if(seen.add(n1)) queue.enqueue((n1, path :+ n1))
+          } 
+        case None => done = true // Termination case.
+      } // end of £while£ loop.
+    }
+
+    // Release the workers. 
+    run(|| (for(_ <- 0 until numWorkers) yield worker))
+    result
+  }
+}
+\end{scala}
+\end{answerS}

@@ -15,7 +15,7 @@ class JVMMonitorBoundedPartialStack[T](bound: Int) extends PartialStack[T]{
   /** The current state of the stack. */
   private val stack = new scala.collection.mutable.Stack[T]
 
-  /** Push x. */
+  /** Push £x£. */
   def push(x: T) = synchronized{ 
     while(stack.length == bound) wait() // Wait for a space (1).
     stack.push(x)

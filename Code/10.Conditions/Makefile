@@ -24,7 +24,8 @@ QUEUES = $(DTDIR)/MonitorPartialQueue.class	\
 
 all: $(QUEUES) $(DIR)/MonitorSyncChan.class $(DIR)/MonitorExchanger.class	\
   $(DIR)/ConditionsBarrier.class $(DIR)/BarberC.class				\
-  $(DIR)/ReadersWritersLock.class $(EXERCISES)
+  $(DIR)/ReadersWritersLock.class $(DIR)/MonitorReadersWriters.class		\
+  $(EXERCISES)
 
 # Partial queue
 

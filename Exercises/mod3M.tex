@@ -49,7 +49,7 @@ doing so, i.e., |current| is divisible by~3.  It would be ok to do a
 |notifyAll| at this point; however, that is quite likely to wake up several
 threads, and often only one of them will be able to enter.  Instead, it's more
 efficient to do a |notify|.  However, this means that the entering thread
-should maybe signal to another waiting thread. 
+should also maybe signal to another waiting thread.
 
 
 %% Alternatively, one can note that the following is invariant: at most one
@@ -61,7 +61,7 @@ For testing, we can follow the hint and use a |Set[Int]| as the specification
 object.  The sequential operations are then as follows.
 %
 \begin{scala}
-  type S = Set[Int]
+  type S = scala.collection.immutable.Set[Int]
   def seqEnter(id: Int)(current: S): (Unit, S) = {
     require(current.sum%3 == 0); ((), current+id)
   }

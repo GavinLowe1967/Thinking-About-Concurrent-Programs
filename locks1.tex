@@ -186,7 +186,9 @@ obtain an out-of-date version; when a thread writes to a shared variable,
 initially the write happens only in the thread's cache, so the new value might
 not be available to other threads.
 
-Correct use of a |Lock| avoids these problems.  When a thread releases a
+We saw in Chapter~\ref{chap:dataParallel} that correct use of a barrier
+synchronisation or channel communication can avoid these problems.  Correct
+use of a |Lock| can also avoids these problems.  When a thread releases a
 |Lock|, it \emph{publishes}\index{publish} the values in the cache, making
 them available to other threads.  When a thread aquires a |Lock|, it
 \emph{subscribes}\index{subscribe} to all variables published by other threads

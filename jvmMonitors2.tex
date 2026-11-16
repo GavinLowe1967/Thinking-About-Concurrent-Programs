@@ -2,30 +2,55 @@
 
 We now consider the second aspect of JVM monitors, namely the wait/signal
 mechanism.  If |o| is a reference object, then it has the following
-operations, each of which can be performed only inside a |synchronized| block
-on~|o|:
+operations:
+%
 \begin{itemize}
-\item |o.wait()|: suspend, giving up the lock on~|o|; wait for a signal, and
-  then re-acquire the lock;
+\item |o.wait()|:\index{wait@\SCALA{wait}} suspend, giving up the lock
+  on~|o|; wait for a signal, and then re-acquire the lock;
 
-\item |o.notify()| : signal to a thread waiting on~|o|, if there is
-  one (if there is no thread waiting, the operation has no effect);
+\item |o.notify()|:\index{wait@\SCALA{notify}} signal to a thread waiting
+  on~|o|, if there is one (if there is no thread waiting, the operation has no
+  effect);
 
-\item |o.notifyAll()|: signal to all threads waiting on~|o|. 
+\item |o.notifyAll()|:\index{wait@\SCALA{notifyAll}} signal to all threads
+  waiting on~|o|.  
 \end{itemize}
 %
 Each operation should be performed while holding the lock on~|o|, i.e.~from
 inside a |synchronized| block on~|o|.  When a thread signals, it keeps the
 lock: the thread that receives the signal must wait for the signaller to
 release the lock, and then needs to compete with other threads to re-acquire
-the lock.  This also ensures memory consistency. 
+the lock.  
+% This also ensures memory consistency. 
 
 The operation |wait()| is shorthand for |this.wait()|, i.e.~where the thread
 waits on the current object.  The operations |notify()| and |notifyAll()| are
 similar.  Thus these forms go together with |synchronized| blocks on the
 current object.
 
-% \section{Implementing a Lock}
+When a thread performs a |wait|, giving up the lock, it
+\emph{publishes}\index{publish} the values in its cache, making them available
+to other threads.  When a thread, after receiving a signal, subsequently
+re-acquires the lock, it \emph{subscribes}\index{subscribe} to all variables
+published by other threads on the monitor.  Thus cache consistency is ensured.
+
+In fact, SCL |Lock|s, |Condition|s, and barrier synchronisation objects are
+implemented using JVM monitors; and SCL channels are implemented using |Lock|s
+and |Condition|s.  The cache consistency rules we've given here ensure the
+cache consistency rules for those primitives that we gave in earlier
+chapters. 
+
+%% There are also two timed version of the |wait| operation.  The operation
+%% |wait(millis)|\index{wait@\SCALA{wait}}, where |millis| is a |Long|, waits for
+%% at most |millis|~ms.  The operation |wait(millis, nanos)|, where |millis| is a
+%% |Long| and |nanos| is an |Int|, waits for at most |millis|~ms plus |nanos|~ns.
+%% These operations can be used to implement timeouts; but we will not use them
+%% subsequently in this book.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Implementing a Lock}
+\label{sec:jvm-lock}
 
 We illustrate the technique by using a JVM monitor to implement a simple lock.
 The implementation in Figure~\ref{fig:jvmMonitorLock} uses a boolean variable
@@ -67,7 +92,7 @@ object, to protect the shared variable |locked|, and to ensure that the
 threads execute in a one-at-a-time order.  However, the |Lock| object provides
 a lock that can be used by client code.  It is reasonable to suppose that each
 thread that acquires the |Lock| will hold it for a reasonable amount of time,
-longer that the time a thread spends running in the |acquire| or |release|
+longer than the time a thread spends running in the |acquire| or |release|
 operations.  Thus the |synchronized| blocks act as a short-term lock, but each
 |Lock| object acts as a longer term lock.
 
@@ -79,12 +104,13 @@ what we had to do in several examples that use |Condition|s.
 However, there is another reason why the |acquire| operation needs to perform
 this check, which would hold even if there were no other thread that could
 attempt |acquire|.  Sometimes a call of |wait| wakes up even if no other
-thread has signalled!  This is known as a \emph{spurious wakeup}.  I consider
-this a bug (apparently it is caused by a similar feature in operating system
-threading implementations; but it is a feature that the JVM fails to deal
-with).  Nevertheless, we have to deal with it.  That means that whenever a
-call of |wait| wakes up, the thread should recheck the relevant condition, in
-case it has received a spurious wakeup.
+thread has signalled!  This is known as a \emph{spurious
+  wakeup}\index{spurious wakeup}.  I consider this a bug (apparently it is
+caused by a similar feature in operating system threading implementations; but
+it is a feature that the JVM fails to mitigate).  Nevertheless, we have to
+deal with it.  That means that whenever a call of |wait| wakes up, the thread
+should recheck the relevant condition, in case it has received a spurious
+wakeup.
 
 \begin{instruction}
 Study the details of the implementation.
@@ -121,113 +147,6 @@ To do so, the implementation would have to record which thread currently holds
 the lock (the SCL implementation stores the relevant |java.lang.Thread|
 object), and how many times that thread holds the lock.  
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\section{Conditions}
-
-Building on the previous section, we now implement a mechanism similar to SCL
-|Condition|s, and which we also call |Condition|s.  The implementation is in
-Figure~\ref{fig:JVM-Condition}.  Each |Condition| is associated with a |Lock|
-|lock|, which is provided as a parameter of the class.  Each of the operations
-on the |Condition| should be called while holding |lock|.
-
-%%%%%
-
-\begin{figure}
-\begin{scala}
-class Condition(lock: Lock){
-  /** An object that allows a single thread to wait to receive a single
-  signal. */
-  private class Signal{
-    /** Has there been a signal? */
-    private var done = false
-
-    /** Wait for a signal. */
-    def await() = synchronized{ while(!done) wait() }
-
-    /** Signal to the waiting thread. */
-    def signal() = synchronized{ done = true; notify() }
-  }
-
-  /** Queue of waiting £Signal£ objects, protected by £lock£. */
-  private val queue = new scala.collection.mutable.Queue[Signal]
-
-  /** Wait for a signal.  Precondition: this thread holds £lock£. */
-  def await(): Unit = {
-    val mySignal = new Signal; queue.enqueue(mySignal); lock.release()
-    mySignal.await(); lock.acquire()
-  }
-
-  /** Signal to a waiting thread.  Precondition: this thread holds £lock£. */
-  def signal() = {
-    if(queue.nonEmpty){ val sig = queue.dequeue(); sig.signal() }
-  }
-
-  /** Signal to all waiting threads.  Precondition: this thread holds £lock£. */
-  def signalAll() = {
-    while(queue.nonEmpty){ val sig = queue.dequeue(); sig.signal() }
-  }
-}
-
-class Lock{
-  // ... As earlier.
-
-  /** Get a £Condition£ associated with this. */
-  def newCondition = new Condition(this)
-}
-\end{scala}
-\caption{A {\scalashape Condition} implemented using a JVM monitor.}
-\label{fig:JVM-Condition}
-\end{figure}
-
-%%%%%
-
-The implementation is based around an inner class |Signal|, a one-shot
-signalling object that allows a single thread to wait to receive a single
-signal.  Each |Signal| object acts as a monitor: the uses of |synchronized|,
-|wait| and |notify| are on that |Signal| object, and are independent of
-|lock|.  The |Signal| contains a boolean variable |done| that indicates
-whether a signal has been sent on the object.  A waiting thread simply waits
-for |done| to become true.  A signalling thread sets |done| to true, and
-notifies the waiting thread.
-
-Each |Condition| object encapsulates a queue of |Signal| objects, one for each
-thread that is currently waiting.  Each operation on the queue is done while
-holding |lock|, to avoid races.
-
-A thread performs |await| by creating a new |Signal| and adding it to the
-queue.  It then releases |lock| (to allow other threads to run), and waits on
-the |Signal|.  Finally, it reacquires |lock|.  The |signal| operation simply
-signals on the first |Signal| object in the queue, if there is one.  The
-|signalAll| operation signals on all the |Signal| objects in the queue.
-
-Finally, we add an operation |newCondition| to |Lock|, to obtain a new
-|Condition| associated with that |Lock|.
-
-The |done| variable in each |Signal| serves two purposes.  First, it deals
-with spurious wakeups: if a thread does perform a spurious wakeup, when there
-was no signal, then it will find $\sm{done} = \sm{false}$, and so wait again.
-Second, it protects against a possible race.  Suppose a thread~$t$ in |await|
-enqueues its |Signal|, releases |lock|, but is then suspended.  Then it is
-possible that another thread sends a signal before $t$ is waiting on the
-|Signal|.  But in this case, when $t$ does resume, it will find $\sm{done} =
-\sm{true}$, and immediately continue.
-
-\begin{instruction}
-Study the details of the implementation.  Make sure you understand the
-different orders in which threads can wait or signal on the |Signal|, and
-acquire or release the |Lock|. 
-\end{instruction}
-
-The use of a queue gives an additional benefit: threads receive signals
-in the same order in which they start to wait (although they may reacquire the
-lock in a different order).  This provides a degree of fairness. 
-
-Perhaps the easiest way to test this implementation is to edit one of the
-examples from Chapter~\ref{chap:conditions} to use this implementation of
-locks and conditions in place of the SCL implementation, and then to check
-that it still passes its tests.
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -238,11 +157,11 @@ Figure~\ref{fig:partial-queue-JVM-monitor}.  The |dequeue| operation has to
 wait if the queue is empty.  An |enqueue| operation performs a |notify|, to
 wake up a waiting |dequeue|.
 %
-As with the implementation using a |Condition| in
-Figure~\ref{fig:MonitorPartialQueue}, a waiting |dequeue| needs to recheck
-whether the queue is empty when it receives a signal, for two reasons: it is
-possible that some other thread has performed a |dequeue| in the meantime and
-emptied the queue; and it needs to guard aganist a spurious wakeup.
+A waiting |dequeue| needs to recheck whether the queue is empty when it
+receives a signal.  As with the implementation using a |Condition| in
+Figure~\ref{fig:MonitorPartialQueue}, it is possible that some other thread
+has performed a |dequeue| in the meantime and emptied the queue.  Further, in
+this case the check is also necessary to guard against a spurious wakeup.
 
 %%%%%
 
@@ -274,16 +193,6 @@ class JVMMonitorPartialQueue[T] extends PartialQueue[T]{
 %%%%%
 
 
-%% However, there is another reason why it needs to perform this check, which
-%% would hold even if there were no other thread that could attempt a |dequeue|.
-%% Sometimes a call of |wait| wakes up even if no other thread has signalled!
-%% This is known as a \emph{spurious wakeup}.  I consider this a bug (apparently
-%% it is caused by a similar feature in operating system threading
-%% implementations; but it is a feature that the JVM fails to deal with).
-%% Nevertheless, we have to deal with it.  That means that whenever a call of
-%% |wait| wakes up, it should recheck the relevant condition, in case it has
-%% received a spurious wakeup.
-
 \begin{instruction}
 Study the details of the implementation.
 \end{instruction}
@@ -310,11 +219,10 @@ This is illustrated in Figure~\ref{fig:bounded-partial-queue-JVM-monitor}, to
 implement a bounded partial queue.  Again, a |dequeue| has to wait when the
 queue is empty; in addition, an |enqueue| has to wait when the queue is full.
 An |enqueue| signals to a waiting |dequeue|; but it has to perform
-|notifyAll()|, in case there are both |enqueue|s and |dequeue|s waiting.
+|notifyAll|, in case there are both |enqueue|s and |dequeue|s waiting.
 Likewise, a |dequeue| signals to a waiting |enqueue|, but again has to perform
-|notifyAll()|.  (In fact, when we use |notifyAll|, we can't have enqueues and
-dequeues waiting simultaneously, because the waiting conditions are disjoint;
-but we could if we used |notify|.)
+|notifyAll|.  
+
 
 %%%%%
 
@@ -345,6 +253,34 @@ class JVMMonitorBoundedPartialQueue[T](bound: Int) extends PartialQueue[T]{
 \caption{A bounded partial queue implemented using a JVM monitor.}
 \label{fig:bounded-partial-queue-JVM-monitor}
 \end{figure}
+
+%%%%%
+
+You might be wondering whether the above scenario---where there are both
+|enqueue|s and |dequeue|s waiting---can actually happen.  In fact, when we use
+|notifyAll|, it can't, because the waiting conditions are disjoint.  However,
+if we replace the two instances of |notifyAll| with |notify|, the following
+can happen (starting with an empty queue).
+%
+\begin{enumerate}
+\item Initially, $2 \times \sm{bound}$ |dequeue|s run, and all wait;
+
+\item Then |bound| |enqueue|s run, and each notifies a waiting |dequeue|; the
+  queue is now full;
+
+\item\label{step:3} Another |enqueue| runs, and has to wait;
+
+\item\label{step:4} The |bound| awoken |dequeue|s run, and each notifies
+  another |dequeue|; the queue is now empty;
+
+\item The latter |dequeue|s run, find the queue empty, so wait again;
+
+\item At this point, the queue is empty, but the |enqueue| from
+  step~\ref{step:3} is still waiting when it should be able to continue.
+\end{enumerate}
+%
+We would like one of the |dequeue|s at step~\ref{step:4} to have been received
+by the |enqueue| from step~\ref{step:3}; but this can't be guaranteed.
 
 %%%%%
 
@@ -387,3 +323,113 @@ such cases, it is probably better to use |Condition|s, which allow targeted
 signalling.
 
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Implementing Conditions}
+
+Building on Section~\ref{sec:jvm-lock}, we now implement a mechanism similar
+to SCL |Condition|s, and which we also call |Condition|s.  The implementation
+is in Figure~\ref{fig:JVM-Condition}.  Each |Condition| is associated with a
+|Lock| |lock|, which is provided as a parameter of the class.  Each of the
+operations on the |Condition| should be called while holding |lock|.
+
+%%%%%
+
+\begin{figure}
+\begin{scala}
+class Condition(lock: Lock){
+  /** An object that allows a single thread to wait to receive a single signal. */
+  private class Signal{
+    /** Has there been a signal? */
+    private var done = false
+
+    /** Wait for a signal. */
+    def await() = synchronized{ while(!done) wait() }
+
+    /** Signal to the waiting thread. */
+    def signal() = synchronized{ done = true; notify() }
+  }
+
+  /** Queue of waiting £Signal£ objects, protected by £lock£. */
+  private val queue = new scala.collection.mutable.Queue[Signal]
+
+  /** Wait for a signal.  Precondition: this thread holds £lock£. */
+  def await(): Unit = {
+    val mySignal = new Signal; queue.enqueue(mySignal); lock.release()
+    mySignal.await(); lock.acquire()
+  }
+
+  /** Signal to a waiting thread.  Precondition: this thread holds £lock£. */
+  def signal() = 
+    if(queue.nonEmpty){ val sig = queue.dequeue(); sig.signal() }
+
+  /** Signal to all waiting threads.  Precondition: this thread holds £lock£. */
+  def signalAll() = 
+    while(queue.nonEmpty){ val sig = queue.dequeue(); sig.signal() }
+}
+
+class Lock{
+  // ... As earlier.
+
+  /** Get a £Condition£ associated with this. */
+  def newCondition = new Condition(this)
+}
+\end{scala}
+\caption{A {\scalashape Condition} implemented using a JVM monitor.}
+\label{fig:JVM-Condition}
+\end{figure}
+
+%%%%%
+
+The implementation is based around an inner class |Signal|.  Each |Signal|
+object is a provides one-shot signalling object that allows a single thread to
+wait to receive a single signal.  (The operations on the |Signal| object are
+also called |await| and |signal|, and are used by the identically named
+operations on the |Condition| object.)  Each such object acts as a monitor:
+the uses of |synchronized|, |wait| and |notify| are on that |Signal| object,
+and are independent of |lock|.  The |Signal| contains a boolean variable
+|done| that indicates whether a signal has been sent on the object.  A waiting
+thread simply waits for |done| to become true.  A signalling thread sets
+|done| to true, and notifies the waiting thread.
+
+Each |Condition| object encapsulates a queue of |Signal| objects, one for each
+thread that is currently waiting.  Each operation on the queue is done while
+holding |lock|, to avoid races.
+
+A thread performs |await| by creating a new |Signal| and adding it to the
+queue.  It then releases |lock| (to allow other threads to run), and waits on
+the |Signal|.  Finally, it reacquires |lock|.  The |signal| operation simply
+signals on the first |Signal| object in the queue, if there is one.  The
+|signalAll| operation signals on all the |Signal| objects in the queue.
+
+Finally, we add an operation |newCondition| to |Lock|, to obtain a new
+|Condition| associated with that |Lock|.
+
+The |done| variable in each |Signal| serves two purposes.  First, it deals
+with spurious wakeups: if a thread does perform a spurious wakeup when there
+was no signal, then it will find $\sm{done} = \sm{false}$, and so wait again.
+Second, it protects against a possible race.  Suppose a thread~$t$ in |await|
+enqueues its |Signal|, releases |lock|, but is then suspended before it enters
+the |synchronized| block on the |Signal| object.  Then it is possible that
+another thread sends a signal before $t$ is waiting on the |Signal|.  But in
+this case, when $t$ does resume, it will find $\sm{done} = \sm{true}$, and
+immediately continue.
+
+\begin{instruction}
+Study the details of the implementation.  Make sure you understand the
+different orders in which threads can wait or signal on the |Signal|, and
+acquire or release the |Lock|. 
+\end{instruction}
+
+The use of a queue gives an additional benefit: threads receive signals
+in the same order in which they start to wait (although they may reacquire the
+lock in a different order).  This provides a degree of fairness. 
+
+Perhaps the easiest way to test this implementation is to edit one of the
+examples from Chapter~\ref{chap:conditions} to use this implementation of
+locks and conditions in place of the SCL implementation, and then to check
+that it still passes its tests.
+
+The Java API contains an interface |java.util.concurrent.locks.Condition| of
+condition objects.  However, implementations of this interface may allow
+spurious wakeups, unlike the implementation we have given here.

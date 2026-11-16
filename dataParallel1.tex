@@ -105,7 +105,7 @@ are not allowed to break this property.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{Example: Simulating Astronomical Bodies}
-
+\label{sec:astronomical-bodies}
 
 In this section we illustrate this style of synchronous programming by
 implementing a concurrent simulation of astronomical bodies, such as stars,
@@ -315,6 +315,29 @@ class ConcurrentSimulation(bodies: Array[AstronomicalBody]){
 \begin{instruction}
 Study the implementation of the concurrent simulation.
 \end{instruction}
+
+%%%%%
+
+In Chapter~\ref{chap:intro}, we described the problem of cache
+consistency\index{cache consistency}: if one thread writes to a shared
+variable, and then another thread reads that variable, it is possible that the
+write has not propagated from the first thread's cache to the second thread's
+cache.  Is this a problem for our concurrent simulation, where different
+threads read and write shared variables in the |AstronomicalBody| objects?  It
+turns out that the simulation works correctly, because of the barrier
+synchronisations.  When a thread performs a barrier synchronisation,
+it \emph{publishes}\index{publish} the values in its cache, making them
+available to other threads.  Further, the
+thread \emph{subscribes}\index{subscribe} to all variables published by other
+threads in that synchronisation.  The effect of this is that each read made by
+a thread after a barrier synchronisation is guaranteed to see the result of
+each write made by another thread before the synchronisation, provided both
+threads take part in that synchronisation.  Further, compiler optimisations
+must respect this semantics.  This means that if you are using barrier
+synchronisations correctly to coordinate threads, you do not need to worry
+about memory consistency.
+
+%%%%%
 
 We can test the concurrent simulation using the standard technique of
 comparing it to the sequential simulation.  We generate some input data at

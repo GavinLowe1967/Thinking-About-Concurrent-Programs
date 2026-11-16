@@ -13,7 +13,7 @@ the chapter, we need to ensure that different synchronisations do not
 interfere.  To that end, all the receivers wait until the previous
 synchronisation has finished and all threads have returned; they then record
 their presence and wait for the sender.  The sender waits until all |n|
-receivers have entered, writes its values, and signals to the receivers.  The
+receivers have entered, writes its value, and signals to the receivers.  The
 receivers pick up the sender's value; the last one to leave resets for the
 next round and signals to waiting receivers.  Comments in the code give more
 details. 

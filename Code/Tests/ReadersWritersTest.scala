@@ -3,7 +3,7 @@ package tacp.tests
 import ox.scl._
 
 import tacp.monitors.{ReadersWritersLock, MonitorReadersWriters0, 
-  MonitorReadersWriters}
+  MonitorReadersWriters, MonitorReadersWriters2}
 
 /** A linearizability tester for the readers and writers problem. */
 object ReadersWritersTest{
@@ -52,12 +52,14 @@ object ReadersWritersTest{
     }
   }
 
-  val MRW0 = 0; val MRW = 1; val Semaphore = 2; val SemaphoreQueue = 3
+  val MRW0 = 0; val MRW = 1; val Semaphore = 2; val SemaphoreQueue = 3; 
+  val MRW2 = 4
 
   def doTest(choice: Int) = {
     val rw: CRW = choice match{
       case MRW0 => new MonitorReadersWriters0
       case MRW => new MonitorReadersWriters
+//      case MRW2 => new MonitorReadersWriters2
       case Semaphore => new tacp.semaphores.SemaphoreReadersWriters
       case SemaphoreQueue => new tacp.semaphores.SemaphoreReadersWritersQueueLock
     }
@@ -71,6 +73,7 @@ object ReadersWritersTest{
     while(i < args.length) args(i) match{
       case "--monitor0" => choice = MRW0; i += 1
       case "--monitor" => choice = MRW; i += 1
+//      case "--monitor2" => choice = MRW2; i += 1
       case "--semaphore" => choice = Semaphore; i += 1
       case "--semaphoreQueue" => choice = SemaphoreQueue; i += 1
     }

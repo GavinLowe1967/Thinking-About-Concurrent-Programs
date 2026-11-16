@@ -3,6 +3,7 @@ ROOT = ../tacp
 DIR = $(ROOT)/datatypes
 
 DPDIR = $(ROOT)/dataParallel
+JVMDIR = $(ROOT)/jvmMonitors
 
 # Source directories for classes that use tests here.
 
@@ -39,10 +40,14 @@ pQueue: $(DIR)/PartialQueue.class
 
 $(DIR)/ConcBFGraphSearch.class: $(DIR)/GraphSearch.class $(DIR)/TerminatingPartialQueue.class $(DIR)/ConcSet.class
 
-$(DIR)/WordPath.class:  $(DIR)/ConcBFGraphSearch.class $(DPDIR)/BFSGraphSearch.class
+$(DIR)/WordPath.class:  $(DIR)/ConcBFGraphSearch.class \
+  $(DPDIR)/BFSGraphSearch.class $(JVMDIR)/MonitorGraphSearch.class
 
 $(DPDIR)/BFSGraphSearch.class: $(DP_SRC_DIR)/BFSGraphSearch.scala
 	cd $(DP_SRC_DIR); make
+
+$(JVMDIR)/MonitorGraphSearch.class: $(JVM_MON_SRC_DIR)/MonitorGraphSearch.scala
+	cd $(JVM_MON_SRC_DIR); make graphSearch
 
 # Exercises
 

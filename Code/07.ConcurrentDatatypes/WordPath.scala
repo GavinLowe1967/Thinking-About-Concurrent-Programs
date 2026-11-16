@@ -28,10 +28,12 @@ object WordPath{
 
   def main(args: Array[String]) = {
     // Parse arguments. 
-    var start = ""; var target = ""; var conc = true; var barrier = false; var i = 0
+    var start = ""; var target = ""; var searcherT = "conc"
+    var i = 0
     while(i < args.length) args(i) match{
-      case "--seq" => conc = false; i += 1
-      case "--barrier" => barrier = true; conc = false; i += 1
+      case "--seq" => searcherT = "seq"; i += 1
+      case "--barrier" => searcherT = "barrier"; i += 1
+      case "--jvm" => searcherT = "jvm"; i += 1
       case w => 
         if(start.isEmpty) start = w 
         else if(target.isEmpty) target = w
@@ -41,10 +43,12 @@ object WordPath{
     if(target.isEmpty){ println("Missing argument(s)"); sys.exit() }
 
     val g = new WordGraph("knuth_words.txt")
-    val searcher: GraphSearch[String] =
-      if(conc) new ConcBFGraphSearch(g, numWorkers) 
-      else if(barrier) new tacp.dataParallel.BFSGraphSearch(g, numWorkers)
-      else new SeqBFGraphSearch(g)
+    val searcher: GraphSearch[String] = searcherT match{
+      case "conc" => new ConcBFGraphSearch(g, numWorkers) 
+      case "barrier" => new tacp.dataParallel.BFSGraphSearch(g, numWorkers)
+      case "jvm" => new tacp.jvmMonitors.MonitorGraphSearch(g, numWorkers)
+      case "seq" => new SeqBFGraphSearch(g)
+    }
     def isTarget(w: String) = w == target
     searcher(start, isTarget) match{
       case Some(p) => println(p.mkString(", "))

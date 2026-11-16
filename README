@@ -29,7 +29,8 @@ Chaper 5: Clients and Servers
 Chapter 6: Interacting Peers
 
 Chapter 7: Concurrent Datatypes
-** In resource server example, remind that spec deterministic  
+** In resource server example, remind that spec deterministic
+** Cache consistency -- is this the first place with shared variables?   
 
 Chapter 8: Data Parallel
 
@@ -39,18 +40,20 @@ Chapter 9: Locks
 * Exercise, couting letter frequencies in documents, updating letter counts using locks??  Better to just update thread-local counts. 
 
 Chapter 10: Conditions: 
-- ?? Timed wait operators ??
-- Add diagram of thread states (monitors lecture slides)
-- Talk about choreography -- done
-- improve section on other languages
-- more exercises 
-* Add publish/subscribe: this implies channels as publish/subscribe.
-** Lin testing for partial queue -- cf Fig 7.7. 
+* more exercises ?
+* Timed exchanger?
 
 Chapter 11: JVM Monitors
-- Add more exercises.
+** Swap Locks/Conditions and Partial Queue sections.  -- DONE
+
+** Make discussion of memory consistency consistent with earlier; and this
+   implies earlier.
+** JVM Conditions -- spurious wakeups. -- DONE
+
+- Add more exercises. ?Timed channel? 
 
 Chapter 12: Semaphores:
+** "critical region" -> "critical section"
 - Add more exercises.
 - Dan's Solution to mod 3 question: single semaphore, up if current sum is divisible by 3.  -- done
 - Counting semaphore exercise: when testing, use small n. 
@@ -75,6 +78,8 @@ Appendices
 --------------
 
 TO DO
+
+Change SCLIndex command
 
 Extra index entries corresponding to examples.
 
