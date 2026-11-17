@@ -1,0 +1,39 @@
+\begin{question}
+Recall the recurrence relation from Exercise~\ref{ex:recurrence}.  Write a
+program to solve the same problem, but using JVM monitors.  The program should
+again use |N| workers, with worker~$i$ completing row~$i$ of the table.  In
+addition, it should use an additional array |done| of |Int|s to support
+coordination.  Each worker~$i$ should set $\sm{done}(i)$ to be~$j$ to indicate
+that it has calculated $\sm{table}(i)(j)$.  Worker~$i+1$ can read this value.
+Of course, it is necessary to protect these shared variables to avoid race
+conditions.
+\end{question}
+
+%%%%%
+
+\begin{answerI}
+My code is below.  Each entry in |done| is protected by a different monitor,
+to allow different entries to be accessed concurrently.
+%
+\begin{scala}
+class MonitorRecurrence(N: Int){
+  private val done = Array.fill(N-1)(-1)
+
+  /** £locks(i)£ protects £done(i)£. */
+  private val locks = Array.fill(N-1)(new AnyRef)
+
+  private def worker(i : Int) = thread{
+    for(j <- 0 until N){
+      if(i > 0) locks(i-1).synchronized{ while(done(i-1) < j) locks(i-1).wait() }
+      updateEntry(i,j)
+      if(i < N-1) locks(i).synchronized{ done(i) = j; locks(i).notify() }
+    }
+  }
+
+  def calculate = {
+    run(|| (for( i <- 0 until N) yield worker(i)))
+    table
+  }
+}
+\end{scala}
+\end{answerI}

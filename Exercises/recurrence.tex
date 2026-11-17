@@ -1,0 +1,84 @@
+\begin{question}
+\label{ex:recurrence}
+Suppose we are given a function
+\begin{scala}
+  def g(i: Int, j: Int): Int = ...
+\end{scala}
+%
+and a natural number~|N|.  We are interested in the following recurrence
+relation for a function~$f$, for $i$ and~$j$ in the range $\interval 0 {\sm
+  N}$:
+%
+\begin{eqnarray*}
+f(0,0) & = & 0 \\
+f(0,j) & = & f(0,j-1) + \sm g(0,j) \\
+f(i,0) & = & f(i-1,0) + \sm g(i,0) \\
+f(i,j) & = & f(i,j-1) + f(i-1,j) + \sm g(i,j).
+\end{eqnarray*}
+%
+We want to create an array |table| to tabulate~$f$: each entry
+$\sm{table}(i)(j)$ should be set to $f(i,j)$.  The function |calculate| below
+%in Figure~\ref{fig:tabulation} 
+does this sequentially.
+
+%%%%%
+
+%\begin{figure}[h]
+\begin{scala}
+  val table = Array.ofDim[Int](N,N)
+
+  /** Update the entry in £(i,j)£ of table.  
+    * Precondition: if £$\sm i > 0$£, then £table(i$-$1)(j)£ has been calculated; 
+    *      if £$\sm j > 0$£, then £table(i)(j$-$1)£ has been calculated. */
+  def updateEntry(i: Int, j: Int) = {
+    table(i)(j) = 
+      if(i == 0){ if(j == 0) 0 else table(i)(j-1) + g(0,j) }
+      else if(j == 0) table(i-1)(j) + g(i,0) 
+      else table(i)(j-1) + table(i-1)(j) + g(i,j)
+  }
+
+  def calculate = {
+    for(i <- 0 until N; j <- 0 until N) updateEntry(i,j)
+    table
+  }
+\end{scala}
+
+Write a concurrent program for tabulating~$f$.  Your program should use |N|
+workers: worker~$i$ will complete row~$i$ of the table, i.e.,~it will calculate
+$\sm{table}(i)(j)$ for each $j \in \interval 0 {\sm N}$.  The program should
+proceed in rounds: during round~$r$, all entries $(i,j)$ with $i+j = r$ should
+be calculated.
+%
+Your program may use the above function~|updateEntry|; note, though, that this
+function has a non-trivial precondition; you should make sure this
+precondition is satisfied.  
+\end{question}
+
+%%%%%
+
+\begin{answerI}
+My code is below.  Note that not every thread calculates values on every
+round.  
+%
+\begin{scala}
+class BarrierRecurrence(N: Int){
+  private val barrier = new Barrier(N)
+
+  private def worker(i: Int) = thread{
+    for(r <- 0 until 2*N-1){
+      val j = r-i
+      if(j >= 0 && j < N) updateEntry(i, j)
+      barrier.sync(i)
+    }
+  }
+
+  def calculate = {
+    run(|| (for( i <- 0 until N) yield worker(i)))
+    table
+  }
+}
+\end{scala}
+The precondition is satisfied because the barrier synchronisation ensures that
+the different workers are all on the same round, and the values needed in
+round~$r$ were calculated in round~$r-1$.
+\end{answerI}

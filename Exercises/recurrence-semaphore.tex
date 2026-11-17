@@ -1,0 +1,30 @@
+\begin{question}
+Recall the recurrence relation from Exercise~\ref{ex:recurrence}.  Write a
+program to solve the same problem, but using semaphores. 
+\end{question}
+
+\begin{answerI}
+My code is below.  Each semaphore $\sm{sems}(i)$ is used as a signal from
+$\sm{worker}(i)$ to $\sm{worker}(i+1)$, to indicate that it has completed
+another entry in table.  These are counting semaphores so that signals can be
+accumulated.
+%
+\begin{scala}
+class SemaphoresRecurrence(N: Int){
+  private val sems = Array.fill(N-1)(new CountingSemaphore)
+
+  private def worker(i : Int) = thread{
+    for(j <- 0 until N){
+      if(i > 0) sems(i-1).down()
+      updateEntry(i,j)
+      if(i < N-1) sems(i).up()
+    }
+  }
+
+  def calculate = {
+    run(|| (for( i <- 0 until N) yield worker(i)))
+    table
+  }
+}
+\end{scala}
+\end{answerI}

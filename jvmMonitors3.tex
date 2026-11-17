@@ -165,14 +165,15 @@ wakeups.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{A Timeout Exchanger}
+\section{A Timed Exchanger}
 \label{sec:timed-exchanger}
 
 In previous chapters, we saw a couple of implementations of an exchanger: an
 object that allows two threads to swap values of some type~|A|.  In this
-section we consider an exchanger with a timeout: if a thread fails to exchange
-within some period of time, it will timeout and fail.  We will also allow the
-exchange to fail under another couple of circumstances, which we discuss below.
+section we consider an exchanger with a timeout, like that in
+Exercise~\ref{ex:timedExchanger}: if a thread fails to exchange within some
+period of time, it will timeout and fail.  We will also allow the exchange to
+fail under another couple of circumstances, which we discuss below.
 
 In order to capture the possibility of failure, we give the |exchange|
 operation the following signature:
@@ -222,7 +223,7 @@ will store one of the following values.
 
 \begin{figure}
 \begin{scala}
-class TimeoutExchanger[A](delay: Int){
+class TimedExchanger[A](delay: Int){
   private var slot: A = _
 
   private val Empty = 0; private val Filled = 1; private val Exchanging = 2
@@ -245,7 +246,7 @@ class TimeoutExchanger[A](delay: Int){
   }
 }
 \end{scala}
-\caption{A timeout exchanger.}
+\caption{A timed exchanger.}
 \label{fig:TimeoutExchanger}
 \end{figure}
 
@@ -282,7 +283,7 @@ earlier wait.  This is rather messy, so we don't adopt this approach.
 Study the details of the implementation.
 \end{instruction}
 
-The timeout exchanger can be tested much the same as the basic exchanger in
+The timed exchanger can be tested much the same as the basic exchanger in
 Section~\ref{sec:exchanger}, except we should also allow an attempted exchange
 to fail.  Note that we cannot require an attempted exchange to succeed, even
 if it overlaps in time with another attempt: it is possible that unfortunate

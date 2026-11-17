@@ -1,8 +1,9 @@
 \begin{questionS}
 \label{ex:partialStack}
 Now adapt your answer to Exercise~\ref{ex:serverStack} to implement a
-\emph{partial} stack, extending the following trait.
+\emph{partial} stack, extending the  trait in Figure~\ref{fig:PartialStack}.
 %
+\begin{figure}
 \begin{scala}
 trait PartialStack[T]{
   /** Push £x£ onto the stack. */
@@ -15,6 +16,9 @@ trait PartialStack[T]{
   def shutdown(): Unit
 }
 \end{scala}
+\caption{The {\scalashape PartialStack} trait.}
+\label{fig:PartialStack}
+\end{figure}
 %
 Also adapt the linearizability tester to test your implementation.
 \end{questionS}

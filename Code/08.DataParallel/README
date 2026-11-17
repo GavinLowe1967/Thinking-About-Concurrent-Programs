@@ -36,3 +36,8 @@ SmoothShared.scala: concurrent image smoothing program.
 SmoothSharedTest.scala: test program for the previous (distribution).
 
 LargestComponent.scala: code for the largest component problem.
+
+Recurrence.scala: tabulating a recurrence relation; used in several exercises
+in different chapters.
+
+Filter.scala: filtering an array according to some predicate. 
