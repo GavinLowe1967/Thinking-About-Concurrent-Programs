@@ -43,22 +43,38 @@ does this sequentially.
   }
 \end{scala}
 
-Write a concurrent program for tabulating~$f$.  Your program should use |N|
-workers: worker~$i$ will complete row~$i$ of the table, i.e.,~it will calculate
-$\sm{table}(i)(j)$ for each $j \in \interval 0 {\sm N}$.  The program should
-proceed in rounds: during round~$r$, all entries $(i,j)$ with $i+j = r$ should
-be calculated.
-%
-Your program may use the above function~|updateEntry|; note, though, that this
+%% Write a concurrent program for tabulating~$f$.  Your program should use |N|
+%% workers: worker~$i$ will complete row~$i$ of the table, i.e.,~it will calculate
+%% $\sm{table}(i)(j)$ for each $j \in \interval 0 {\sm N}$.  The program should
+%% proceed in rounds: during round~$r$, all entries $(i,j)$ with $i+j = r$ should
+%% be calculated.
+%% %
+%% Your program may use the above function~|updateEntry|; note, though, that this
+%% function has a non-trivial precondition; you should make sure this
+%% precondition is satisfied.  
+
+Write two programs for tabulating~$f$, as detailed below.  Each program should
+use |N| workers: worker~$i$ should complete row~$i$ of the table, i.e.,~it 
+calculates $\sm{table}(i)(j)$ for each $j \in \interval 0 {\sm N}$.
+Your programs may use the above function~|updateEntry|; note, though, that this
 function has a non-trivial precondition; you should make sure this
 precondition is satisfied.  
+%
+\begin{enumerate}
+\item The first program should proceed in rounds: during round~$r$, all
+  entries $(i,j)$ with $i+j = r$ should be calculated.
+
+\item The second program should use channel communications to coordinate
+  threads: worker~$i$ can send a message to worker~$i+1$ each time it
+  completes an entry in the table.
+\end{enumerate}
 \end{question}
 
 %%%%%
 
 \begin{answerI}
-My code is below.  Note that not every thread calculates values on every
-round.  
+My code for the first program is below.  Note that not every thread calculates
+values on every round.
 %
 \begin{scala}
 class BarrierRecurrence(N: Int){
@@ -81,4 +97,28 @@ class BarrierRecurrence(N: Int){
 The precondition is satisfied because the barrier synchronisation ensures that
 the different workers are all on the same round, and the values needed in
 round~$r$ were calculated in round~$r-1$.
+
+My code for the second program is below.
+%
+\begin{scala}
+class ChannelsRecurrence(N: Int){
+  /** Channels for synchronisation.  £channels(i)£ is used for messages from
+    * £worker(i)£ to £worker(i+1)£. */
+  private val channels = Array.fill(N-1)(new BuffChan[Unit](N))
+
+  private def worker(i: Int) = thread{
+    for(j <- 0 until N){
+      if(i > 0) channels(i-1)?()
+      updateEntry(i,j)
+      if(i < N-1) channels(i)!()
+    }
+  }
+
+  def calculate = // As above.
+}
+\end{scala}
+%
+The precondition is satisfied because the receive on |channels(i-1)| during
+iteration~|j| guarantees that |worker(i-1)| has completed |table(i-1)(j)|, and
+this worker completed |table(i)(j-1)| on the previous iteration.
 \end{answerI}

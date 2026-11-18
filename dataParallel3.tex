@@ -395,27 +395,31 @@ We should consider, again, the question of cache consistency\index{cache
 consistency}.  
 %
 In this program, each thread writes into the memory locations of its |newX|
-array, and sends a reference to that array to other threads.  When another
-thread reads from that array (named |hisX|), is it guaranteed to see the
-result of those writes?  In Section~\ref{sec:astronomical-bodies}, we said
-that when there is a barrier synchronisation between a write and a read, cache
-consistency is guaranteed.  However, there is no barrier synchronisation
-between the writes and reads of~|newX|.  It turns out that the use of the
-channel provides a similar guarantee.
+array, and sends a reference to that array to other threads.  Recall, from
+Chapter~\ref{chap:channels}, that the send publishes the values in the
+sender's cache, and the receive subscribes to those values.  Thus, when the
+receiving thread reads from that array (named |hisX|), it is guaranteed to see
+the result of the writes to its~|newX|.
 
-When a thread sends on a channel, it \emph{publishes}\index{publish} the
-values in its cache, making them available to other threads.  When a thread
-receives on a channel, it \emph{subscribes}\index{subscribe} to all memory
-locations published by the sender.  The effect is that each subsequent read
-made by the receiver is guaranteed to see the result of each write made by the
-sender before it sent the message.  Again, compiler optimisations must respect
-this semantics.  This means that cache consistency is guaranteed in Jacobi
-iteration program.  
+%% In Section~\ref{sec:astronomical-bodies}, we said
+%% that when there is a barrier synchronisation between a write and a read, cache
+%% consistency is guaranteed.  However, there is no barrier synchronisation
+%% between the writes and reads of~|newX|.  It turns out that the use of the
+%% channel provides a similar guarantee.
 
-In fact, when using a synchronous channel, a stronger guarantee is provided:
-when two threads perform a communication, each subsequent read made by
-\emph{either} of the two threads is guaranteed to see the result of each write
-made by the other thread before the communication.
+%% When a thread sends on a channel, it \emph{publishes}\index{publish} the
+%% values in its cache, making them available to other threads.  When a thread
+%% receives on a channel, it \emph{subscribes}\index{subscribe} to all memory
+%% locations published by the sender.  The effect is that each subsequent read
+%% made by the receiver is guaranteed to see the result of each write made by the
+%% sender before it sent the message.  Again, compiler optimisations must respect
+%% this semantics.  This means that cache consistency is guaranteed in the Jacobi
+%% iteration program.
+
+%% In fact, when using a synchronous channel, a stronger guarantee is provided:
+%% when two threads perform a communication, each subsequent read made by
+%% \emph{either} of the two threads is guaranteed to see the result of each write
+%% made by the other thread before the communication.
 
 %%%%%
 

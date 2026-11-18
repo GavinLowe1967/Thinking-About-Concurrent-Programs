@@ -313,6 +313,47 @@ Reasoning as before:
 \]
 In this case, the communication on~|c| acts as a synchronisation between the
 two threads, without passing any data.
+
+Here's another example.
+\begin{scala}
+  val c = new OnePlaceBuffChan[Unit]; var x = 0
+  run(thread{ x = 42; c!() } || thread{ c?(); println(x) })
+\end{scala}
+%
+Here the write of~42 to~|x| happens before the reading of~|x| in the second
+thread, so 42 is printed.  However, there is an extra subtlety here.  Recall
+that in Chapter~\ref{chap:intro}, we described the problem of cache
+consistency\index{cache consistency}: if one thread writes to a shared
+variable, and then another thread reads that variable, it is possible that the
+write has not propagated from the first thread's cache to the second thread's
+cache.  Is this a problem here?  It turns out that the program works
+correctly, because of the communication on~|c|.  When a thread sends on a
+channel, it \emph{publishes}\index{publish} the values in its cache, making
+them available to other threads.  When a thread receives on a channel, it
+\emph{subscribes}\index{subscribe} to all variables published by the sending
+thread at the relevant send.  The effect of this is that each read made by the
+receiving thread after it receives is guaranteed to see the result of each
+write made by the sending thread before it sent.  Further, compiler
+optimisations must respect this semantics.  
+
+With a synchronous channel, there is a similar guarantee in the opposite
+direction.  When a thread receives on a synchronous channel, it
+\emph{publishes}\index{publish} the values in its cache.  When a thread sends
+on a synchronous channel, it \emph{subscribes}\index{subscribe} to all
+variables published by the receiving thread at the relevant receive.  The
+effect of this is that each read made by the sending thread after it sends is
+guaranteed to see the result of each write made by the receiving thread before
+it received.  Hence the following program also prints~42.
+%
+\begin{scala}
+  val c = new SyncChan[Unit]; var x = 0
+  run(thread{ x = 42; c?() } || thread{ c!(); println(x) })
+\end{scala}
+
+These rules mean that if you are using a channel communication correctly to
+coordinate threads, you do not need to worry about memory consistency.  We
+will see that the same is true of other concurrency primitives in later
+chapters. 
   
 Formally, $\preceq$ is a preorder (i.e.,~a transitive, reflexive order) such
 that:

@@ -318,14 +318,23 @@ Study the implementation of the concurrent simulation.
 
 %%%%%
 
-In Chapter~\ref{chap:intro}, we described the problem of cache
-consistency\index{cache consistency}: if one thread writes to a shared
-variable, and then another thread reads that variable, it is possible that the
-write has not propagated from the first thread's cache to the second thread's
-cache.  Is this a problem for our concurrent simulation, where different
-threads read and write shared variables in the |AstronomicalBody| objects?  It
-turns out that the simulation works correctly, because of the barrier
-synchronisations.  When a thread performs a barrier synchronisation,
+%% In Chapter~\ref{chap:intro}, we described the problem of cache
+%% consistency\index{cache consistency}: if one thread writes to a shared
+%% variable, and then another thread reads that variable, it is possible that the
+%% write has not propagated from the first thread's cache to the second thread's
+%% cache.  Is this a problem for our concurrent simulation, where different
+%% threads read and write shared variables in the |AstronomicalBody| objects?  It
+%% turns out that the simulation works correctly, because of the barrier
+%% synchronisations.  
+
+Recall the problem of cache consistency\index{cache consistency}.  In the
+concurrent simulation, if one thread writes to a shared variable in an
+|AstronomicalBody| object, and subsequently another thread reads that
+variable, is the read guarantees to see the effect of the write?  It turns out
+that it is, because in each case there is a barrier synchronisation between
+the write and the read.
+
+When a thread performs a barrier synchronisation,
 it \emph{publishes}\index{publish} the values in its cache, making them
 available to other threads.  Further, the
 thread \emph{subscribes}\index{subscribe} to all variables published by other
@@ -335,7 +344,8 @@ each write made by another thread before the synchronisation, provided both
 threads take part in that synchronisation.  Further, compiler optimisations
 must respect this semantics.  This means that if you are using barrier
 synchronisations correctly to coordinate threads, you do not need to worry
-about memory consistency.
+about memory consistency.  We saw a similar rule concerning channel
+communications in Chapter~\ref{chap:channels}.
 
 %%%%%
 

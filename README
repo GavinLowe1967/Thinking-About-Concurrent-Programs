@@ -13,7 +13,7 @@ Chapter 1: Introduction
 - races
 
 Chaper 2: Message passing using channels
-** Add: coordination via message passing.
+** Add: coordination via message passing -- Summary & exercise
 
 Chapter 3: Example: Numerical Integration
 * Maybe more exercises.
@@ -91,5 +91,7 @@ Provide default implementations of shutdown?
 Thoughout: "modularisation" vs "encapsulation". 
 
 Check "mutual exclusion" defined; and "critical section". 
+
+Review publish/subscribe discussions.
 
 SCL: 
