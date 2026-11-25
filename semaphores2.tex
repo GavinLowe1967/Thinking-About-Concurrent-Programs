@@ -1,19 +1,24 @@
 \section{Signalling Using Semaphores}
 
-Recall, that a semaphore that is used to enforce mutual exclusion is initially
-\emph{up}.  A thread that enters the critical region does a \SCALA{down}, to
-block other threads from entering.  When it leaves the critical region it does
-an \SCALA{up}, to allow other threads to proceed.
+Recall that a semaphore that is used to enforce mutual exclusion is
+initially \emph{up}.  A thread that enters the critical section does a
+\SCALA{down}, to block other threads from entering.  When it leaves the
+critical section it does an \SCALA{up}, to allow other threads to proceed.
 
-By contrast a \emph{signalling semaphore} is initially \emph{down}.  A thread
-can send a signal by performing an \SCALA{up}.  A thread waits for a signal by
-performing a \SCALA{down}.
+By contrast a \emph{signalling semaphore}\index{semaphore!signalling} is
+initially \emph{down}.  A thread can send a signal by performing an
+\SCALA{up}.  A thread waits for a signal by performing a \SCALA{down}.
 \begin{scala}
   private val signal = new Semaphore(false)
   def signaller = thread{ ...; signal.up(); ... }
   def waiter = thread{ ...; signal.down(); ... }
 \end{scala}  
-Alternatively, the signalling semaphore can be created using
+%
+%% If |waiter| reaches its |signal.down()| before |signaller| performs
+%% |signal.up()|, then it waits until that |up| is performed. 
+%
+Alternatively, the signalling semaphore can be created
+using\SCLIndex{SignallingSemaphore}
 \begin{scala}
   private val signal = new SignallingSemaphore
 \end{scala}
@@ -41,9 +46,9 @@ The main difference is that a semaphore has a state: it is either \emph{up} or
 thread is waiting (when the semaphore is in the \emph{down} state), then the
 signal is not lost (the semaphore moves to the \emph{up} state).
 %
-By contrast, if a signal is performed on a condition when
-no thread is waiting, then the signal is lost: in such cases, it is often
-appropriate to use the condition in combination with a boolean variable. 
+By contrast, if a signal is performed on a condition when no thread is
+waiting, then the signal is lost: in such cases, it is normally necessary to
+use the condition in combination with a boolean variable.
 
 Two threads can synchronise using a pair of signalling semaphores: each
 signals to the other when it reaches the synchronisation point; neither
@@ -152,7 +157,7 @@ class SemaphorePartialQueue[T] extends PartialQueue[T]{
   /** Semaphore on which a £dequeue£ waits until the queue is non£-£empty. */
   private val nonEmptyS = new SignallingSemaphore
 
-  /** Enqueue x. */
+  /** Enqueue £x£. */
   def enqueue(x: T) = {
     mutex.down()
     queue.enqueue(x)
@@ -181,7 +186,8 @@ class SemaphorePartialQueue[T] extends PartialQueue[T]{
 %%%%%
 
 
-The technique used by |enqueue| is known as \emph{passing the baton}.  The
+The technique used by |enqueue| is known as \emph{passing the
+  baton}\index{passing the baton}.  The
 |enqueue| decides what sort of operation should run next---either a waiting
 |dequeue| or a new operation---and ``passes it the baton'' by lifting the
 appropriate semaphore.  This is a very useful technique.  Often the current
@@ -224,16 +230,16 @@ number of threads currently waiting in a variable \SCALA{waiting}.  This is
 protected by a mutex semaphore.
 
 
-\begin{figure}[htbp]
+\begin{figure}%[htbp]
 \begin{scala}
 class SemaphoreBarrier(n: Int) extends tacp.dataParallel.BarrierT{
   require(n > 1)
   /** Number of threads currently waiting. */
   private var waiting = 0 
   /** Semaphore to signal to waiting threads. */
-  private val waitSem = new SignallingSemaphore()
+  private val waitSem = new SignallingSemaphore
   /** Semaphore for mutual exclusion. */
-  private val mutex = new MutexSemaphore()
+  private val mutex = new MutexSemaphore
 
   def sync(me: Int) = {
     mutex.down()
@@ -253,7 +259,7 @@ class SemaphoreBarrier(n: Int) extends tacp.dataParallel.BarrierT{
 
 The implementation uses a signalling semaphore \SCALA{waitSem} to block the
 first $\sm n-1$ threads.  The $\sm n$th thread signals on this semaphore to
-unblock another thread, i.e.~passes it the baton.  That thread passes the
+unblock another thread, i.e.,~passes it the baton.  That thread passes the
 baton to another waiting thread (assuming $\sm n \ge 3$), and so on.  The
 final thread to be awoken raises the mutex, to pass the baton to a thread on
 the next round.

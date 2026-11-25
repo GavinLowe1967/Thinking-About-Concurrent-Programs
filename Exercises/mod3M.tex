@@ -26,17 +26,17 @@ Here's my code.
 %
 \begin{scala}
 class Mod3M{
-  /** Sum of identites of threads currently in critical region. */
+  /** Sum of identites of threads currently in critical section. */
   private var current = 0
 
-  /** Enter the critical region. */
+  /** Enter the critical section. */
   def enter(id: Int) = synchronized{
     while(current%3 != 0) wait() 
     current += id
     if(current%3 == 0) notify()
   }
 
-  /** Leave the critical region. */
+  /** Leave the critical section. */
   def exit(id: Int) = synchronized{
     current -= id
     if(current%3 == 0) notify()

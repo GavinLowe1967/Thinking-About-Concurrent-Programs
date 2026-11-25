@@ -4,7 +4,7 @@ import ox.scl._
 
 import tacp.clientServer.{MenWomenT,MenWomen}
 import tacp.monitors.MenWomenM
-import tacp.semaphores.MenWomenSemaphore
+import tacp.semaphores.{MenWomenSemaphore,FaultyMenWomenSemaphore}
 
 object MenWomenTest{
   /* In each test, each man/woman writes the identity of his/her partner into an
@@ -31,6 +31,7 @@ object MenWomenTest{
       case "cs" => new MenWomen
       case "monitor" => new MenWomenM 
       case "semaphore" => new MenWomenSemaphore
+      case "faultySemaphore" => new FaultyMenWomenSemaphore
     }
     val men = || (for(i <- 0 until n) yield man(i, mw))
     val women = || (for(i <- 0 until n) yield woman(i, mw))
@@ -49,6 +50,7 @@ object MenWomenTest{
     while(i < args.length) args(i) match{
       case "--monitor" => choice = "monitor"; i += 1
       case "--semaphore" => choice = "semaphore"; i += 1
+      case "--faultySemaphore" => choice = "faultySemaphore"; i += 1
     }
 
     for(i <- 0 until 10000){ doTest(choice); if(i%200 == 0) print(".") }

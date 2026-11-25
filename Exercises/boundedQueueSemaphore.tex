@@ -43,4 +43,8 @@ class BoundedSemaphorePartialQueue[T](n: Int) extends PartialQueue[T]{
   }
 }
 \end{scala}
+
+When testing, it is important to use a fairly small value of~|n| (on, at
+least, a decent number of runs), so as to ensure coverage of the case when the
+queue becomes full. 
 \end{answerI}

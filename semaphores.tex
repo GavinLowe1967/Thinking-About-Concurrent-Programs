@@ -20,7 +20,7 @@ it into the \emph{down} state.
 
 A semaphores can be used for mutual exclusion.  Such a semaphore is initially
 in the \emph{up} state.  A thread performs |down| before entering the critical
-region, and performs |up| when leaving the critical region.
+section, and performs |up| when leaving the critical section.
 
 A semaphore can also be used for signalling.  Such a semaphore is initially in
 the \emph{up} state.  A thread performs |up| to send a signal.  A thread
@@ -58,9 +58,13 @@ operation consumes a permit.
 
 \exercises
 
-\framebox{Something} using fine-grained locking.  Linked list?
+%\framebox{Something} using fine-grained locking.  Linked list?
+
+\input{Exercises/partialStackS} % Partial stack
 
 \input{Exercises/consumerS} % Producer-consumer buffer  exercise -- tutorial Q3
+
+\input{Exercises/recurrence-semaphore} % Tabulating recurrence relation.
 
 \input{Exercises/Mod3S} % Mod 3 question -- tutorial Q4
 
@@ -72,4 +76,3 @@ operation consumes a permit.
 \input{Exercises/readersWritersQueueLock} % Combine readers and writers lock
                                           % with queue lock.
 
-\input{Exercises/recurrence-semaphore} % Tabulating recurrence relation.

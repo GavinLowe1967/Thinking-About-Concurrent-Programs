@@ -45,6 +45,7 @@ Chapter 10: Conditions:
 * Timed exchanger?
 
 Chapter 11: JVM Monitors
+Exercises: 4+3
 ** Swap Locks/Conditions and Partial Queue sections.  -- DONE
 
 ** Make discussion of memory consistency consistent with earlier; and this
@@ -54,11 +55,9 @@ Chapter 11: JVM Monitors
 - Add more exercises. ?Timed channel? 
 
 Chapter 12: Semaphores:
-** "critical region" -> "critical section"
-- Add more exercises.
-- Dan's Solution to mod 3 question: single semaphore, up if current sum is divisible by 3.  -- done
-- Counting semaphore exercise: when testing, use small n. 
---  Incorrect solution to men & women -- handwritten on tute sheet
+Exercises: 2+5
+- Counting semaphore exercise: when testing, use small n.  -- done
+--  Incorrect solution to men & women -- handwritten on tute sheet -- done
 
 Chapter 13, Conclusions
 - Summary: concurrent datatypes; coordination between threads (barriers);
@@ -69,8 +68,9 @@ Chapter 13, Conclusions
 
 Appendices
 
-- Scala -- TODO: import, equality, hash codes.  API documentation; infix
-  operators.
+- Scala -- TODO: import, equality, hash codes "with".  API documentation; infix
+  operators.  Think about index ?separate for Scala?
+
 
 - Experiments -- improve
 
@@ -80,7 +80,7 @@ Appendices
 
 TO DO
 
-Change SCLIndex command
+Change SCLIndexX command
 
 Extra index entries corresponding to examples.
 

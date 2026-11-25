@@ -1,5 +1,5 @@
 \begin{question}
-Recall the men-women problem from exercise~\ref{ex:menWomenServer}.  Implement
+Recall the men-women problem from Exercise~\ref{ex:menWomenServer}.  Implement
 a class to solve this problem, using semaphores internally.
 \end{question}
 
@@ -85,4 +85,38 @@ class MenWomenSemaphore extends MenWomenT{
   }
 }
 \end{scala}
+
+The following implementation uses an interesting idea, but turns out to be
+incorrect.  The idea is that once a man has read the current woman's name, he
+can lift |womanMutex| to allow the next woman to run, and vice versa.
+%
+\begin{scala}
+class FaultyMenWomenSemaphore extends MenWomenT{
+  private var woman = ""; private var man = ""
+  private val manMutex, womanMutex = new MutexSemaphore
+  private val manSignal, womanSignal = new SignallingSemaphore
+
+  def manSync(me: String) = {
+    manMutex.down()
+    man = me; manSignal.up() // Signal to woman at (2).
+    womanSignal.down() // Wait for signal from woman (1).
+    val her = woman; womanMutex.up() // Allow another woman to run.
+    her
+  }
+
+  def womanSync(me: String) = {
+    womanMutex.down()
+    woman = me; womanSignal.up() // Signal to man at (1).
+    manSignal.down() // Wait for signal from man (2).
+    val him = man; manMutex.up() // Allow another man to run.
+    him
+  }
+}
+\end{scala}
+%
+This doesn't work.  Suppose the first woman is suspended after signalling to
+the first man, but before attempting |manSignal.down|.  Then the first man
+could return the first woman's name.  But a second woman could now run,
+receive the signal from the first man, and return the first man's name.  They
+are not paired correctly. 
 \end{answerI}

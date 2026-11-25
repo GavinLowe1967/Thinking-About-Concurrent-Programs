@@ -5,26 +5,26 @@
 %% box~\ref{sb:run}).
 
 %% \begin{scalaBox}{Compiling programs}
-\def\prog#1{{\codecolour\tt #1}}
 %% \label{sb:compile}
-Programs can be compiled using the Scala compiler {\codecolour\tt scalac},
-e.g.  {\codecolour
+Programs can be compiled using the Scala compiler
+\prog{scalac}\index{scalac@\prog{scalac}}, e.g., {\codecolour
 \begin{verbatim}
 > scalac Factorial.scala
 \end{verbatim}
 }% 
-\noindent This will produce a corresponding \texttt{\codecolour .class} file,
-e.g.~\texttt{\codecolour Factorial.class} (assuming the file contains an
-object called |Factorial|), and sometimes some other \texttt{\codecolour
-  .class} files.  These files contain Java bytecode.
+\noindent This will produce a corresponding \prog{.class} file,
+e.g.~\prog{Factorial.class} (assuming the file contains an object called
+|Factorial|), and sometimes some other \prog{.class} files.  These files
+contain Java bytecode.
 
-{\codecolour\tt scalac} can be quite slow, because it has to load a lot of
-files.  It can be faster to use the fast Scala compiler {\codecolour\tt fsc},
-e.g.  {\codecolour
+\prog{scalac} can be quite slow, because it has to load a lot of files.  It
+can be faster to use the fast Scala compiler \prog{fsc}\index{fsc@\prog{fsc}},
+e.g., {\codecolour
 \begin{verbatim}
 > fsc Factorial.scala
 \end{verbatim}
 }% 
+\noindent
 This will need to load the files the first time it is run; but will then keep
 a cache of those files so will be faster subsequently.  (The fast Scala
 compiler can become confused, for example if you change directory; it can be
@@ -35,22 +35,23 @@ reset using \prog{fsc -shutdown}.)
 
 %% \begin{scalaBox}{Running programs}
 %% \label{sb:run}
-Once an object has been compiled, if it has a suitable |main| function with a definition of the form%
+Once an object has been compiled, if it has a suitable |main| function with a
+definition of the form% 
 % 
 \begin{scala}
   def main(args: Array[String]) = ...
 \end{scala}
 %
-then it can be executed using \texttt{\codecolour scala}, e.g.  {\codecolour
+then it can be executed using \prog{scala}\index{scala@\prog{scala}}, e.g.,
+{\codecolour
 \begin{verbatim}
 > scala Factorial 5
 \end{verbatim}
 }%
 \noindent
-This executes the bytecode in the \texttt{\codecolour .class} file on the Java
-Virtual Machine (JVM)\index{JVM}.  The array~|args| is instantiated as an
-array holding any additional arguments provided on the command line (as
-strings).
+This executes the bytecode in the \prog{.class} file on the Java Virtual
+Machine (JVM)\index{JVM}.  The array~|args| is instantiated as an array
+holding any additional arguments provided on the command line (as strings).
 %% \end{scalaBox}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -72,29 +73,37 @@ an |if| statement as follows.
 
 %% \begin{scalaBox}{\SCALAKW{if} expressions}  
 %% \label{sb:if}
-The command
+The expression\ScalaIndex{if}\ScalaIndex{else}
 \begin{scala}
   if (£$test$£) £$c_1$£ else £$c_2$£
 \end{scala}
 tests whether $test$ is true; if it is, it executes $c_1$; otherwise it
 executes $c_2$.
 %
-Note that the test must be inside parentheses, and (unlike some languages)
-there is no ``\SCALA{then}'' after the test.
+This usage---as an \emph{expression}, producing a value---requires an |else|
+clause.  Note that the test must be inside parentheses, and (unlike some
+languages) there is no ``\SCALA{then}'' after the test.
 
-The command
+An |if| can also be used as a command, when the |else| clause becomes
+optional; for example
 \begin{scala}
-  if (£$test$£) £$c_1$£
+  if(n%2 == 0) println("even") else println("odd")
+  if(n == 0) println("zero")
 \end{scala}
-is similar, except it does nothing if $test$ is false.
 
-If either $c_1$ or $c_2$ above comprises more than a single statement, then it
-should be surrounded by curly brackets.
+%% \begin{scala}
+%%   if (£$test$£) £$c_1$£
+%% \end{scala}
+%% is similar, except it does nothing if $test$ is false.
+
+If either branch of an |if| statement comprises more than a single statement,
+then it should be surrounded by curly brackets.
 %% \end{scalaBox}
 
 %%%%%
 
-Alternatively, the factorial function can be written using a |while| loop:
+Alternatively, the factorial function can be written using a
+|while|\ScalaIndex{while} loop:
 %
 \begin{scala}
   def fact(n: Int): Int = {
@@ -168,7 +177,7 @@ A class is a template for objects.  Thus Scala differentiates between classes
 (of which there may be many instances) and objects (of which there is a single
 instance).
 
-A class can be defined using syntax
+A class can be defined using syntax\ScalaIndex{class}
 \begin{scala}
   class MyClass[£$\sm A_1, \ldots, \sm A_k$£](£$\sm x_1: \sm T_1, \ldots, \sm x_n: \sm T_n$£){ ... } 
 \end{scala}
@@ -178,7 +187,7 @@ x_1,\linebreak[1] \ldots,\linebreak[1] \sm x_n$ are parameter names, and $\sm
 T_1, \ldots, \sm T_n$ are corresponding types (possibly using the type
 parameters).
 
-An instance of~|MyClass| can be created with
+An instance of~|MyClass| can be created with\ScalaIndex{new}
 \begin{scala}
   val myObj = new MyClass[£$\sm B_1, \ldots, \sm B_k$£](£$\sm e_1, \ldots, \sm e_n$£)
 \end{scala}
@@ -194,12 +203,12 @@ T_1, \ldots, \sm T_n$ when the type parameters are instantiated with $\sm B_1,
 %% \begin{scalaBox}{Companion objects}
 %% \label{sb:companion}
 If a class and an object have the same name, then they are known as
-\emph{companions}.  Typically, the companion object will include definitions
-that relate generally to instantiations of the class, rather than being
-operations on a particular instantiation.
+\emph{companions}\index{companion}.  Typically, the companion object will
+include definitions that relate generally to instantiations of the class,
+rather than being operations on a particular instantiation.
 %
-Companions can access |private| and |protected| fields (see below) of one
-another.
+Companions can access |private|\ScalaIndex{private} and
+|protected|\ScalaIndex{protected} fields (see below) of one another.
 %% \end{scalaBox}
 
 %%%%%
@@ -210,7 +219,8 @@ objects: traits and abstract classes.
 
 %% \begin{scalaBox}{Traits}
 %% \label{sb:traits}
-A trait or abstract class  can be defined using syntax 
+A trait or abstract class  can be defined using
+syntax\ScalaIndex{trait}\ScalaIndex{abstract class}  
 \begin{scala}
   trait MyTrait[£$\sm A_1, \ldots, \sm A_k$£]{ ... }
   abstract class MyClass[£$\sm A_1, \ldots, \sm A_k$£](£$\sm x_1: \sm T_1, \ldots, \sm x_n: \sm T_n$£){ ... } 
@@ -245,8 +255,8 @@ can be defined and instantiated.
 
 The main differences between traits and  abstract classes are:
 \begin{itemize}
-\item An abstract class can have construction parameters, whereas a trait
-  cannot (both can have type parameters);
+\item An abstract class can have value parameters, whereas a trait cannot
+  (both can have type parameters);
 
 \item A class or object can inherit from \emph{multiple} traits, but from only
   a single abstract class.
@@ -258,13 +268,13 @@ The main differences between traits and  abstract classes are:
 %% \begin{scalaBox}{\protect\SCALAKW{extends}}
 %% \label{sb:extends}
 An object~|O| or class~|C| can be defined to extend a trait or abstract
-class~|T| using syntax
+class~|T| using syntax\ScalaIndex{extends}
 \begin{scala}
   object O extends T{ ... }
   class C extends T{ ... }
 \end{scala}
-It must provide an implementation for each of the operations defined by that
-trait or abstract class.
+It must provide an implementation for each of the abstract values or functions
+defined by that trait or abstract class.
 %% The object
 %% of class can use any (non-private) value of function of~$t$.
 
@@ -281,18 +291,18 @@ defined in~|T|.
 
 %% \begin{scalaBox}{\protect\SCALAKW{private}}
 %% \label{sb:private}
-If a field of a class, object or trait is marked with the keyword |private|,
-then it can be accessed only by code inside the same class, object or trait,
-or within a companion object or class.
+If a field of a class, object or trait is marked with the keyword
+|private|\ScalaIndex{private}, then it can be accessed only by code
+inside the same class, object or trait, or within a companion object or class.
 %% \end{scalaBox}
 
 %%%%%
 
 %% \begin{scalaBox}{\SCALAKW{protected}}
 %% \label{sb:protected}
-If a field of a class or trait is marked with the keyword |protected|, then it 
-can be accessed only by code inside the same class or trait, or classes or
-traits that extend it.
+If a field of a class or trait is marked with the keyword
+|protected|\ScalaIndex{protected}, then it can be accessed only by code inside
+the same class or trait, or classes or traits that extend it.
 %% \end{scalaBox}
 
 \pagebreak[3]
@@ -309,12 +319,14 @@ traits that extend it.
 
 %% \begin{scalaBox}{\protect\SCALAKW{case} classes}
 %% \label{sb:case-classes}
-A definition of the following form (or with any number of parameters)
+A definition of the following form (or with any number of
+parameters)\ScalaIndex{case class}
 \begin{scala}
   case class C(x: X, y: Y) { ... }
 \end{scala}
 %
-defines |C| as a \emph{case class}.  This has a number of consequences.
+defines |C| as a \emph{case class}\index{case class}.  This has a number of
+consequences.
 \begin{itemize}
 \item Objects of type |C| can be defined without using ``|new|'', for example
 |val o = C(x1, y1)|
@@ -322,25 +334,27 @@ defines |C| as a \emph{case class}.  This has a number of consequences.
 \item The parameters of |C| act like |val|s: if |o| is of type~|C|, then its
   parameters can be accessed as |o.x| and |o.y|.
 
-\item The compiler provides a natural definition of the function |toString|
-  that converts an object of type~|C| to a string.  For the class~|C|, the
-  |toString| function will produce a string such as ``|C(6, 7)|'' (assuming
-  the types |X| and~|Y| are both~|Int|).
+\item The compiler provides a natural definition of the function
+  |toString|\ScalaIndex{toString} that converts an object of type~|C| to a
+  string.  For the class~|C|, the |toString| function will produce a string
+  such as ``|C(6, 7)|'' (assuming the types |X| and~|Y| are both~|Int|).
 
 \item The compiler provides a natural definition of equality: two objects of
   type~|C| will be equal if their |x| and |y| parameters are equal.  Normally,
   two objects are considered equal if they are precisely the same object,
-  i.e.~stored at the same address in memory. 
+  i.e.,~stored at the same address in memory. 
 
 %% \item The compiler provides a natural definition of the function |hashCode|;
 %%   see Chapter~\ref{chap:hash-tables}.  This definition is compatible with the
 %%   definition of equality: if two objects are equal then they have the came
 %%   hash codes. 
 
-\item Pattern matching (which we describe in Section~\ref{sec:scala-misc}) can
-  be used.  With the above definition, a pattern |C(pat|$_1$|, pat|$_2$|)|
-  matches a value |C(x,y)| provided |x| and |y| match |pat|$_1$ and |pat|$_2$,
-  respectively, and bind names according to those patterns.
+\item Pattern matching%\index{pattern matching} 
+  (which we describe in
+  Section~\ref{sec:scala-misc}) can be used.  With the above definition, a
+  pattern |C(pat|$_1$|, pat|$_2$|)| matches a value |C(x,y)| provided |x| and
+  |y| match |pat|$_1$ and |pat|$_2$, respectively, and bind names according to
+  those patterns.
 \end{itemize}
 %% \end{scalaBox}
 

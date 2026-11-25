@@ -1,6 +1,6 @@
 \chapter{Conclusions}
 
-\framebox{Note:} this is very much a first draft.
+
 
 This book has presented a number of tools and techniques for constructing
 concurrent programs.  
@@ -26,11 +26,13 @@ logging interactions with the object, and then analysing the log for
 correctness.  In particular, for concurrent datatypes, this can be done within
 the linearisability framework. 
 
-It is often necessary to provide extra coordination between threads.  For
-programs that proceed in rounds, this can be achieved using a barrier
-synchronisation at the end of each round, possibly with extra synchronisations
-between different stages of a round.  Alternatively, coordination can be
-achieved via message passing, or a special purpose synchronisation object.
+It is often necessary to provide extra coordination between threads.  This
+might be provided by a separate controller thread, that issues tasks for
+workers to perform.  For programs that proceed in rounds, the coordination can
+be achieved using a barrier synchronisation at the end of each round, possibly
+with extra synchronisations between different stages of a round.
+Alternatively, coordination can be achieved via message passing, or a special
+purpose synchronisation object.
 
 In the remainder of this chapter, we briefly discuss some other patterns for
 concurrent programs. 
@@ -41,15 +43,18 @@ concurrent programs.
 
 In a concurrent program, particularly one with many threads, certain
 components can act as a bottleneck.  For example, if a concurrent object uses
-locking, then when one thread holds the lock, others have to wait.
+locking, then when one thread holds the lock, others have to wait.  If each
+thread spends a significant proportion of time in that object, then this will
+limit how well the program scales as the number of threads increases. 
 
 An alternative approach is not to use locking.  However, how can we then avoid
 races of the form we discussed back in Chapter~\ref{chap:intro}?  The answer
 is that we need to make use of additional operations provided by the hardware.
-In particular, we can use an operation |compareAndSet| (CAS) on a memory
-location, which can be described in code as follows, where |current| is the
-location in question, and ``|atomically|'' is intended to indicate that the
-operation is performed atomically.
+In particular, we can use an operation
+|compareAndSet|\index{\SCALA{compareAndSet}} (CAS) on a memory location.  This
+can be described in code as follows, where |current| is the location in
+question, and ``|atomically|'' is intended to indicate that the operation is
+performed atomically.
 %
 \begin{scala}
   def compareAndSet(expected: Int, newValue: Int): Boolean = atomically{
@@ -92,7 +97,9 @@ case.
 An operation is said to be \emph{lock-free}\index{lock-free} if, whenever
 there is a pending operation call, some such call eventually returns.  The
 above |increment| operation is lock-free: if the CAS of one thread fails, some
-other thread must have updated~|x|, and that other thread can return. 
+other thread must have updated~|x|, and that other thread can return.  A
+concurrent object is said to be lock-free if each of its operations is
+lock-free.
 
 %%  On the other hand, an operation that uses a lock is (unsurprisingly) not
 %% lock-free: if one thread obtains the lock and is permanently suspended,
@@ -178,6 +185,9 @@ other threads, the delay is likely to be less than that caused by having to
 wait to obtain a lock.  Having said that, correctly implementing lock-free
 objects is considerably harder than using locks. 
 
+The textbook~\cite{herlihy-shavit} describes this style of programming in much
+more detail. 
+
 %  spin lock??
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -196,12 +206,14 @@ computation, to be used at some time in the future.  For example:
 The computation of the value, encapsulated in~|x|, is started in the first
 line.  The expression \SCALA{x()} (calling the |apply| method on~|x|; see
 Section~\ref{sec:scala-misc}) returns the result of the computation, waiting
-until it is complete if necessary.  (Of course, it is still necessary to avoid
-race conditions.)
+until it is complete if necessary.  This provides a convenient way of forking
+off some subcomputation.  Of course, it is still necessary to avoid race
+conditions.
 
-Figure~\ref{fig:future} gives an implementation of futures using a JVM
-monitor.  It forks a separate thread to calculate the value required; a call
-of the |apply| method has to wait until that calculation is complete.
+Figure~\ref{fig:future} gives a straightforward implementation of futures
+using a JVM monitor.  It forks a separate thread to calculate the value
+required; a call of the |apply| method has to wait until that calculation is
+complete.
 %
 \begin{instruction}
 Study the details of the implementation. 
@@ -239,7 +251,7 @@ class Future[A](exp: => A){
 \section{Competition parallel}
 
 The idea of competition parallel\index{competition parallel} is to choose two
-(or more) different algorithms for a problem, and to run them independently in
+or more different algorithms for a problem, and to run them independently in
 parallel; once one finishes, the others can be interrupted.
 
 This works well on the boolean satisfiability problem.  Here, one is given a

@@ -1,7 +1,7 @@
 package tacp.tests
 
 import ox.scl._
-import tacp.datatypes.{PartialStack,ServerPartialStack}
+import tacp.datatypes.{PartialStack,ServerPartialStack,SemaphorePartialStack}
 
 object PartialStackTest{
   var iters = 20 // Number of iterations by each worker
@@ -29,8 +29,12 @@ object PartialStackTest{
     }
   }
 
-  def doTest() = {
-    val concStack = new ServerPartialStack[Int]; val seqStack = new S
+  def doTest(queueType: String) = {
+    val concStack: PartialStack[Int] = queueType match{
+      case "server" => new ServerPartialStack[Int]
+      case "semaphore" => new SemaphorePartialStack[Int]
+    }
+    val seqStack = new S
     val tester = LinearizabilityTester[S,C](seqStack, concStack, p, worker)
     if(tester() <= 0) sys.exit()
     concStack.shutdown()
@@ -38,18 +42,18 @@ object PartialStackTest{
 
   def main(args: Array[String]) = {
     // parse arguments
-    var i = 0 // ; var queueType = "server"
+    var i = 0; var queueType = "server"
     var reps = 10000  // Number of repetitions
     while(i < args.length) args(i) match{
       case "--iters" => iters = args(i+1).toInt; i += 2 
       case "--reps" => reps = args(i+1).toInt; i += 2 
       //case "--monitor" => queueType = "monitor"; i += 1
-      // case "--semaphore" => queueType = "semaphore"; i += 1
+      case "--semaphore" => queueType = "semaphore"; i += 1
       // case "--countingSemaphore" => queueType = "counting semaphore"; i += 1
       case arg => println("Unrecognised argument: "+arg); sys.exit()
     }
 
-    for(r <- 0 until reps){ doTest(); if(r%50 == 0) print(".") } 
+    for(r <- 0 until reps){ doTest(queueType); if(r%50 == 0) print(".") } 
     println()
   }
 }

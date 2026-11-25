@@ -38,8 +38,8 @@ object Factorial{
 
 %% \begin{scalaBox}{Functions}
 %% \label{sb:functions}
-Most of the work is done by the function |fact|.
-In Scala, functions are introduced using the keyword \SCALA{def} (short for
+Most of the work is done by the function |fact|.  In Scala, functions are
+introduced using the keyword \SCALA{def}\ScalaIndex{def} (short for
 \emph{definition}).  Each parameter (or argument) of the function is given a
 type using a single colon, e.g.~\SCALA{a: A}.  Likewise the type of the result
 of the function can be given using a colon.  For example
@@ -64,20 +64,22 @@ function is the value of that expression: no explicit |return| is necessary.
 
 %% \begin{scalaBox}{Value types}
 %% \label{sb:types}
-Scala has several primitive value types.  In this book we use the following.
+Scala has several primitive value types\index{value type}.  In this book we
+use the following.
 \begin{description}
-\item[{\scalashape Int}:] 32-bit integers, holding values in the range
-  $\interval{-2^{31}}{2^{31}}$; 
+\item[{\scalashape Int}:]\ScalaIndex{Int} 32-bit integers, holding values in
+  the range $\interval{-2^{31}}{2^{31}}$;
 
-\item[{\scalashape Long}:] 64-bit integers, holding values in the range
-  $\interval{-2^{63}}{2^{63}}$; 
+\item[{\scalashape Long}:]\ScalaIndex{Long} 64-bit integers, holding values in
+  the range $\interval{-2^{63}}{2^{63}}$;
 
-\item[{\scalashape Double}:] 64-bit floating-point numbers;
+\item[{\scalashape Double}:]\ScalaIndex{Double} 64-bit floating-point numbers;
 
-\item[{\scalashape Boolean}:] booleans, with two values, |true| and |false|;
+\item[{\scalashape Boolean}:]\ScalaIndex{Boolean} booleans, with two values,
+  |true| and |false|;
 
-\item[{\scalashape Unit}:] the unit type, containing a single value~|()|
-  called the unit value.
+\item[{\scalashape Unit}:]\ScalaIndex{Unit} the unit type, containing a single
+  value~|()|\ScalaIndex{()} called the unit value.
 \end{description}
 % I don't think we use Float or Char.
 %% \end{scalaBox}
@@ -102,19 +104,20 @@ factorial of~|n|, also an |Int|.
 
 %% \begin{scalaBox}{Assertions}
 %% \label{sb:assertions}
-The command |assert(|$test$|)| evaluates the boolean expression $test$, and
-gives an error if it is false.  The command |assert(|$test$|, |$msg$|)| is
-similar, except it also displays the string $msg$ if $test$ is false.  
-Assertions are useful to catch errors in your code.  They are also useful to
-document code, illustrating a property that you believe to be true at a
-particular point.
+The command |assert(|$test$|)|\ScalaIndex{assert} evaluates the boolean
+expression $test$, and gives an error if it is false.  The command
+|assert(|$test$|, |$msg$|)| is similar, except it also displays the string
+$msg$ if $test$ is false.  Assertions are useful to catch errors in your code.
+They are also useful to document code, illustrating a property that you
+believe to be true at a particular point.
 
-The commands |require(|$test$|)| and |require(|$test$|, |$msg$|)| are similar,
-except conventionally they are used to check preconditions of functions.  Such
-statements are useful to catch when a function has been erroneously called
-with its precondition not satisfied.  They are also useful to document the
-code, stating assumptions.  Thus |fact| starts by checking the
-precondition~$\sm n \ge 0$.
+The commands |require(|$test$|)|\ScalaIndex{require} and 
+|require(|$test$|, |$msg$|)| are similar, except conventionally they are used
+to check 
+preconditions of functions.  Such statements are useful to catch when a
+function has been erroneously called with its precondition not satisfied.
+They are also useful to document the code, stating assumptions.  Thus |fact|
+starts by checking the precondition~$\sm n \ge 0$.
 %% \end{scalaBox}
 
 
@@ -122,8 +125,8 @@ precondition~$\sm n \ge 0$.
 
 %% \begin{scalaBox}{Variables}
 %% \label{sb:variables}
-\emph{Variables} are declared in Scala using the keyword |var|.  For example,
-in |fact|, 
+\emph{Variables} are declared in Scala using the keyword
+|var|\ScalaIndex{var}.  For example, in |fact|,
 \begin{scala}
   var x = 1
 \end{scala}
@@ -131,9 +134,9 @@ introduces a new variable |x| and initialises it to~|1|.
 
 Every variable in Scala has a \emph{type}, defining the range of values that
 it can take.  The Scala compiler normally infers the type of a variable from
-the way that it is initialised.  For example, the variable~|x|, above, has
-type |Int|, the normal type for integers (whole numbers).  The Scala compiler
-infers this type because |x| is initialised to~|1|, which is an |Int|.  
+the way that it is initialised.  For example, the variable~|x| has type |Int|.
+The Scala compiler infers this type because |x| is initialised to~|1|, which
+is an |Int|.
 %% In Scala (and most other languages), these |Int|s can hold only numbers in
 %% a limited range, from $-2^{31}$ (inclusive) to $+2^{31}$ (exclusive).
 %
@@ -142,10 +145,11 @@ infers this type because |x| is initialised to~|1|, which is an |Int|.
 
 %%%%%
 
-A |for| loop \SCALA{for(x <- xs) body} executes \SCALA{body}, where \SCALA{x}
-takes each value in the sequence~\SCALA{xs} in turn.  The expression \SCALA{a
-  until b} creates the sequence of numbers from~\SCALA{a} to~\SCALA{b-1},
-inclusive.
+A |for| loop\ScalaIndexA{for loop@\protect\SCALA{for} loop} 
+\SCALA{for(x <- xs) body}
+executes \SCALA{body}, where \SCALA{x} takes each value in the
+sequence~\SCALA{xs} in turn.  The expression \SCALA{a until b} creates the
+sequence of numbers from~\SCALA{a} to~\SCALA{b-1}, inclusive.
 % , which we sometimes write as $\interval{\sm a}{\sm b}$.
 Similarly, \SCALA{a to b} creates the sequence of numbers from~\SCALA{a}
 to~\SCALA{b}, inclusive.
@@ -211,8 +215,8 @@ Alternatively, they can be written on separate lines: the compiler
 Thus the body of |fact| consists of the sequential composition of the four
 commands on successive lines.
 
-After the |for| loop of~|fact|, |x| equals the factorial of~|n|.  Finally, the
-function returns the value of~|x|.
+After the |for| loop of~|fact|, the value of~|x| equals the factorial of~|n|.
+Finally, the function returns the value of~|x|.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
  
@@ -239,12 +243,12 @@ conventional to start each subsequent line with another
    * long to fit on one line. */
 \end{scala}
 
-Scaladoc is a tool for extracting comments from a Scala program, and producing
-corresponding HTML documentation.  Scaladoc uses comments that are written
-between ``{\scalastyle\rm /**}'' and ``{\scalastyle\rm */}''; it is
-conventional to start each subsequent line with another ``{\scalastyle\rm
-  *}''.  Thus line~\ref{line:fact-comment} contains a Scaladoc comment,
-describing what the function does.
+Scaladoc\index{Scaladoc} is a tool for extracting comments from a Scala
+program, and producing corresponding HTML documentation.  Scaladoc uses
+comments that are written between ``{\scalastyle\rm /**}'' and
+``{\scalastyle\rm */}''; it is conventional to start each subsequent line with
+another ``{\scalastyle\rm *}''.  Thus line~\ref{line:fact-comment} contains a
+Scaladoc comment, describing what the function does.
 
 %
 %% There are good online tutorials describing Scaladoc syntax.  However, we will
@@ -275,7 +279,7 @@ describing what the function does.
 
 %% \begin{scalaBox}{Objects}
 %% \label{sb:objects}
-An object is defined using syntax
+An object is defined using syntax\ScalaIndex{object}
 \begin{scala}
   object MyObject{ ... }
 \end{scala}
@@ -297,14 +301,14 @@ for example, |MyObject.x|.
 
 %% \begin{scalaBox}{{\scalashape main} functions}
 %% \label{sb:main}
-Each program should contain a function with declaration
+Each program should contain a function with
+declaration\ScalaIndex{main}
 \begin{scala}
   def main(args: Array[String]) = ...
 \end{scala}
 This is  executed when the program is run.  The parameter |args| is
 instantiated with any additional arguments provided on the command line.
 %% \end{scalaBox}
-
 
 
 %%%%%
@@ -325,7 +329,7 @@ A new array of size~|n| can be created with, e.g.,
 
 The \SCALA{i}th entry of array \SCALA{a} can be obtained using \SCALA{a(i)}.
 (Note the round parentheses!)  The indexing is zero-based, i.e., if \SCALA{a}
-is of size \SCALA{n}, then the elements are \SCALA{a(0),...,a(n-1)}.  This
+is of size \SCALA{n}, then the elements are \SCALA{a(0)},\ldots,\SCALA{a(n-1)}.  This
 indexing operation takes constant time.  
 
 Arrays are \emph{mutable}.  The individual entries can be updated, e.g.
@@ -338,7 +342,8 @@ Arrays are \emph{mutable}.  The individual entries can be updated, e.g.
 
 %% \begin{scalaBox}{Named values}
 %% \label{sb:val}
-The Scala keyword |val| introduces a named value.  For example
+The Scala keyword |val|\ScalaIndex{val} introduces a named value.  For
+example
 \begin{scala}
   val f = fact(n)
 \end{scala}
@@ -379,10 +384,10 @@ and stores the result in~|n|.
 
 %% \begin{scalaBox}{Standard printing functions}
 %% \label{sb:print}
-The standard function |print| prints its argument on the screen.  The function
-|println| is similar, except it also ends the line.  Thus the |Factorial|
-program calls |fact|, instantiating its parameter with~|n|, and prints the
-result.
+The standard function |print|\ScalaIndex{print} prints its argument
+on the screen.  The function |println|\ScalaIndex{println} is
+similar, except it also ends the line.  Thus the |Factorial| program calls
+|fact|, instantiating its parameter with~|n|, and prints the result.
 %% \end{scalaBox}
 
 %%%%%

@@ -37,10 +37,10 @@ The solution here is very similar to that for the readers and writers lock.
 It is slightly simpler, because the problem is symmetric in the two types of
 threads. 
 
-In order to avoid starvation, a new thread does not enter the critical region
+In order to avoid starvation, a new thread does not enter the critical section
 immediately if there are threads of the other type waiting.  Further, we
 record the number of threads of each type that have received a signal but not
-yet entered the critical region.  
+yet entered the critical section.  
 
 My code is below, explained via comments.
 %
@@ -132,7 +132,7 @@ standard.
 
 
 %% My code is below, explained via comments.  This adapts the tactic from the
-%% readers and writers example: a new thread does not enter the critical region
+%% readers and writers example: a new thread does not enter the critical section
 %% immediately if there are threads of the other type waiting. 
 %% %
 %% \begin{scala}
@@ -195,7 +195,7 @@ standard.
 %% \end{enumerate}
 %% %
 %% At this point, the second B-thread needs to recheck the condition: if it
-%% simply enters the critical region, it breaks the intended invariant. 
+%% simply enters the critical section, it breaks the intended invariant. 
 
 %% We can test this lock using linearizability testing, where the abstract state
 %% is a pair $(a,b)$ indicating $a$ A-threads and $b$ B-threads are using the

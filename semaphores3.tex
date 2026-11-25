@@ -158,11 +158,11 @@ strategy using semaphores---but it turns out that this is incorrect!
 
 With the version in Figure~\ref{fig:SemaphoreSyncChan-incorrect}, suppose a
 |send| operation is suspended just before performing |continue.down()|.  Then
-the current receiver can signal on |continue| and |slotEmptied|.  Then the
+the current receiver can signal on |continue| and |slotEmptied|.  Next, the
 following sender and receiver can run, leading to a second |continue.up()|.
 But thus breaks the precondition of |up|!  If our implementation of semaphores
 had allowed such a second |up|, it would have been a lost signal.  The correct
-implementation ensures a strict order in which critical events occur. 
+implementation ensures a strict order in which critical events occur.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

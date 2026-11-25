@@ -41,3 +41,33 @@ class MenWomenSemaphore extends MenWomenT{
     him
   }
 }
+
+// =======================================================
+
+class FaultyMenWomenSemaphore extends MenWomenT{
+  /** Name of the current (or last) woman. */
+  private var woman = ""
+
+  /** Name of the current (or last) man. */
+  private var man = ""
+
+  private val manMutex, womanMutex = new MutexSemaphore
+
+  private val manSignal, womanSignal = new SignallingSemaphore
+
+  def manSync(me: String) = {
+    manMutex.down()
+    man = me; manSignal.up() // Signal to woman at (2).
+    womanSignal.down() // Wait for signal from woman (1).
+    val her = woman; womanMutex.up() // Allow another woman to run.
+    her
+  }
+
+  def womanSync(me: String) = {
+    womanMutex.down()
+    woman = me; womanSignal.up() // Signal to man at (1).
+    manSignal.down() // Wait for signal from man (2).
+    val him = man; manMutex.up() // Allow another man to run.
+    him
+  }
+}

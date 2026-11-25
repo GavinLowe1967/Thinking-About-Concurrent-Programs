@@ -20,7 +20,7 @@ code out into a private operation |signal|.
 %
 \begin{scala}
 class Mod3S extends Mod3{
-  /** Sum of identites of threads currently in critical region. */
+  /** Sum of identites of threads currently in critical section. */
   private var current = 0
 
   /** Number of threads waiting. */
@@ -75,21 +75,21 @@ class Mod3SA extends Mod3{
 This satisfies the invariant:
 \begin{quote}
    |entry| is up if and only if the sum of identities of threads in the
-   critical region is divisible by~3.
+   critical section is divisible by~3.
 \end{quote}
 %
 The semaphore is initially up, so this invariant holds initially.
 
 If the |entry.down()| in |enter| succeeds, then the invariant tells us that
-this thread is allowed to enter the critical region.  If \SCALA{id\%3}$ = 0$,
+this thread is allowed to enter the critical section.  If \SCALA{id\%3}$ = 0$,
 the sum remains divisible by~3 subsequently, so the thread does |entry.up()|
 to reestablish the invariant.  Otherwise, the new sum is not divisible by~3,
 so it leaves |entry| down, to maintain the invariant.
 
 To argue for the correctness of the |exit| operation, note that the threads
-currently in the critical region can include at most one whose identity is not
+currently in the critical section can include at most one whose identity is not
 divisible by~3: once one such enters, other threads are blocked from entering.
 Hence, when $\sm{id\%}3 \ne 0$, all the remaining threads in the critical
-region have identities divisible by~3, so raising |entry| reestablishes the
+section have identities divisible by~3, so raising |entry| reestablishes the
 invariant.  If ${\sm{id\%}3 = 0}$, then the invariant is preserved trivially.
 \end{answerI}

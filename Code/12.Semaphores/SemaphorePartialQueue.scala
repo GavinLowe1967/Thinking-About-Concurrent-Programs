@@ -50,7 +50,7 @@ class CountingSemaphorePartialQueue[T] extends PartialQueue[T]{
   private val queue = new scala.collection.mutable.Queue[T]
 
   /** Semaphore for mutual exclusion on queue. */
-  private val mutex = new MutexSemaphore()
+  private val mutex = new MutexSemaphore
 
   /** Semaphore for dequeueing.  The state of the semaphore equals
     * queue.length. */

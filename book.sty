@@ -59,6 +59,9 @@
 %%% Section headings for exercises
 \def\exercises{\section*{Exercises}\markright{EXERCISES}}
 
+%% Command line code
+\def\prog#1{\texttt{\codecolour#1}}
+
 %%% SCL index entries.
 
 \def\ignoreX#1{}
@@ -71,13 +74,18 @@
 % to appear after the entry for "thread".
 \def\SCLIndexX#1#2{\index[SCL]{\protect\ignoreX{{#1}}\protect\SCALA{#2}}}
 % SCL index entry for #1, using the natural sort.
-\def\SCLIndex#1{\SCLIndexX{#1}{#1}} 
+%\def\SCLIndex#1{\SCLIndexX{#1}{#1}} 
+\def\SCLIndex#1{\index[SCL]{#1@\protect\SCALA{#1}}}
 % Indexing macro for "||"
 \def\App{\protect\SCALA{\|\|}}
 % Hack, because indexing uses "!" as a special character.  Note: the order of
 % the index depends on the name of the macro!
 \def\Ashriek{\SCALA{!}}
 
+% Entry in the Scala index; param is formatted as Scala
+\def\ScalaIndex#1{\index[Scala]{#1@\protect\SCALA{#1}}}
+% Entry in the Scala index.  Note: normally necessary to use "\protect".
+\def\ScalaIndexA#1{\index[Scala]{\protect#1}}
 
 %%% Alignment
 \def\align{\begin{array}[t]{@{}l@{}}}

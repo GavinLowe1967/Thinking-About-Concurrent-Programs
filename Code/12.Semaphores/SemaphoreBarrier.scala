@@ -7,9 +7,9 @@ class SemaphoreBarrier(n: Int) extends tacp.dataParallel.BarrierT{
   /** Number of threads currently waiting. */
   private var waiting = 0 
   /** Semaphore to signal to waiting threads. */
-  private val waitSem = new SignallingSemaphore()
+  private val waitSem = new SignallingSemaphore
   /** Semaphore for mutual exclusion. */
-  private val mutex = new MutexSemaphore()
+  private val mutex = new MutexSemaphore
 
   def sync(me: Int) = {
     mutex.down()

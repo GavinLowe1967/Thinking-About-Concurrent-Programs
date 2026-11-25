@@ -1,19 +1,20 @@
-A semaphore is an important synchronisation tool.  The idea (and name) is
-inspired by railway signalling, where a flag is raised to indicate that the
-track ahead can be entered, or lowered to indicate that the track ahead is
-occupied.  A train arriving at the section of track waits until the flag is
-up, enters the section, and the flag is lowered again.  When the train leaves
-the section of track, the flag is raised.  Thus the track is used under mutual
-exclusion. 
+A semaphore\index{semaphore} is an important synchronisation tool.  The idea
+(and name) is inspired by railway signalling, where a flag is raised to
+indicate that the track ahead can be entered, or lowered to indicate that the
+track ahead is occupied.  A train arriving at the section of track waits until
+the flag is up, enters the section, and the flag is lowered again.  When the
+train leaves the section of track, the flag is raised.  Thus the track is used
+under mutual exclusion.
 
-A semaphore has two states, \emph{up} and \emph{down}.  It has two operations:
+A semaphore, from class |Semaphore|\SCLIndex{Semaphore}, has two
+states, \emph{up} and \emph{down}.  It has two operations: 
 %
 \begin{description}
-\item[\scalastyle{down()}:] Wait until the flag is in the \emph{up} position,
-  and then put the flag \emph{down} and proceed;
+\item[\scalastyle{down()}:]\SCLIndex{up} Wait until the flag is in
+the \emph{up} position, and then put the flag \emph{down} and proceed;
 
-\item[\scalastyle{up()}:] Put the flag \emph{up}, to allow another thread to
-  proceed.
+\item[\scalastyle{up()}:]\SCLIndex{down} Put the flag \emph{up}, to allow
+another thread to proceed.
 \end{description}
 %
 The operations \SCALA{down} and \SCALA{up} are sometimes called \SCALA{P} and
@@ -71,13 +72,14 @@ mutual exclusion in the next section, before moving on to signalling.
 
 \section{Using a Semaphore for Mutual Exclusion}
 
-One use of semaphores is to provide mutual exclusion.  
+One use of semaphores is to provide mutual 
+exclusion.\index{semaphore!for mutual exclusion}
 %
 Such a semaphore is created with
 \begin{scala}
   val mutex = new Semaphore(true)
 \end{scala}
-However, SCL includes a definition
+However, SCL includes a definition\SCLIndex{MutexSemaphore}
 \begin{scala}
   class MutexSemaphore extends Semaphore(true)
 \end{scala}
@@ -87,15 +89,15 @@ so there's a more memorable form:
 \end{scala}
 
 
-A thread entering the critical region executes
+A thread entering the critical section executes
 \begin{scala}
   mutex.down()
 \end{scala}
 %
 This blocks if the semaphore is already down, i.e.~if another thread is in the
-critical region.  In the initial state, the operation will not block. 
+critical section.  In the initial state, the operation will not block. 
 %
-A thread leaving the critical region executes
+A thread leaving the critical section executes
 \begin{scala}
   mutex.up()
 \end{scala}
@@ -136,9 +138,22 @@ object Counter{
 
 %%%%%
 
+
 This technique can be used to provide mutual exclusion on arbitrary objects,
 much like a |Lock|.  Fine-grained locking can be implemented by creating
 multiple |MutexSemaphore|s.
+
+Similarly to other concurrency primitives we have seen, correct use of a
+semaphore gives guarantees of cache consistency\index{cache consistency}.
+When a thread performs either an |up| or |down| operation,
+it \emph{publishes}\index{publish} the values in its cache, making them
+available to other threads, and \emph{subscribes}\index{subscribe} to all
+variables published by other threads in previous operations on the semaphore.
+This is a consequence of the fact that a semaphore is implemented using
+|synchronized| blocks, and the rules we saw in
+Section~\ref{sec:JVM-monitors-ME} for these blocks.  Thus, in
+Figure~\ref{fig:semaphore-counter}, each operation sees the effect of previous
+operations.
 
 As with most concurrency primitives, it is possible to misuse semaphores.  For
 exampe, consider the following code, where semaphore \SCALA{sem1} is used to

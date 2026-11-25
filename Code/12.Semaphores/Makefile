@@ -19,9 +19,10 @@ EXAMPLES = $(DIR)/Counter.class $(DTDIR)/SemaphorePartialQueue.class	\
   $(DIR)/SemaphoreBarrier.class $(DIR)/SemaphoreSyncChan.class		\
   $(DIR)/QueueLock.class $(DIR)/SemaphoreReadersWriters.class
 
-EXERCISES = $(DIR)/SemaphoreReadersWritersQueueLock.class	\
-  $(DIR)/SemaphoreProducerConsumer.class $(DIR)/Mod3S.class	\
-  $(DTDIR)/BoundedSemaphorePartialQueue.class $(DIR)/MenWomenSemaphore.class
+EXERCISES = $(DIR)/SemaphoreReadersWritersQueueLock.class			\
+  $(DIR)/SemaphoreProducerConsumer.class $(DIR)/Mod3S.class			\
+  $(DTDIR)/BoundedSemaphorePartialQueue.class $(DIR)/MenWomenSemaphore.class	\
+  $(DTDIR)/SemaphorePartialStack.class
 
 all: $(EXAMPLES) $(EXERCISES)
 

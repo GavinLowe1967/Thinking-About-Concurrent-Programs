@@ -1,4 +1,4 @@
-\begin{questionS}
+\begin{question}
 Adapt the |TerminatingPartialQueue| class from
 Figure~\ref{fig:terminating-queue} so as to use a monitor. 
 
@@ -10,11 +10,11 @@ Figure~\ref{fig:graph-search-conc} so as to use shared variables and a
 monitor.
 %
 Test your code by adapting the word path program from the course website.
-\end{questionS}
+\end{question}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\begin{answerS}
+\begin{answerI}
 My code for the terminating partial queue is below.  This maintains, in
 |waiting|, a count of the number of threads that are currently waiting to
 perform a |dequeue|.  If a thread attempts a |dequeue|, and all the other
@@ -118,4 +118,4 @@ class MonitorGraphSearch[N](g: Graph[N], numWorkers: Int)
   }
 }
 \end{scala}
-\end{answerS}
+\end{answerI}
