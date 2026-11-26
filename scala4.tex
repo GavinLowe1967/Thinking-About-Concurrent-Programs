@@ -139,5 +139,34 @@ then it can be invoked as |o(e)| where  |e| is an expression of type~|A|.
 This generalises to different numbers of parameters, including none.  
 %% \end{scalaBox}
 
-\framebox{TODO:} |import|,  equality and hash codes
-(from datatypes3).
+%%%%%
+
+An |import| statement\ScalaIndex{import} can be used to import names from
+other objects or packages; without such an |import| the full path would have
+to be given.  For example, a statement
+\begin{scala}
+import scala.collection.mutable.Queue
+\end{scala}
+allows subsequent code to simply write |Queue| for that class.  An
+underscore~(``|_|'') can be used to indicate all elements of an object or
+package.  For example, 
+\begin{scala}
+import ox.scl._
+\end{scala}
+imports all the names from the SCL package. 
+
+Values may be compared for equality using ``|==|'', or for inequality using
+``|!=|''.  For reference objects, the default definition corresponds to
+\emph{reference equality}: whether the values being compared are literally the
+same object.  It is often more appropriate to use \emph{value equality},
+whether the two objects represent the same abstract value.  This can be done
+by overriding the |equals|\ScalaIndex{equals} operation.  Note that this
+function takes a parameter of type~|Any|\ScalaIndex{Any}, the universal type.
+See Figure~\ref{fig:RALinTest-1} for an example.
+
+The hash code for an object, for use in a hash table, can be obtained using
+the |hashCode| operation.  When overriding the definition of |equals|, it is
+normally necessary to override the definition of
+|hashCode|\ScalaIndex{hashCode}: two objects that are equal according to
+|equals| should have the same hash code.  Again, see
+Figure~\ref{fig:RALinTest-1} for an example.

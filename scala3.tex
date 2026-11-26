@@ -14,9 +14,10 @@ We described value types in Section~\ref{sec:scala-core}.  By contrast, each
 |class| or |trait| definition defines a type with the same
 name, which is a \emph{reference type}\index{reference type}.  For example
 \begin{scala}
-class C{ ... }
+  class C{ ... }
 \end{scala}
-defines a type~|C|.
+defines a type~|C|. The type |AnyRef|\ScalaIndex{AnyRef} is the supertype of
+all reference types.
 
 Each variable of a reference type actually holds a reference to the object,
 i.e.,~the address in memory where the object is stored.

@@ -45,24 +45,24 @@ provides a number of convenient concurrency primitives\index{concurrency
 primitive}.  An index at the end of the book lists the SCL primitives we
 use.  
 
-Line~\ref{line:input} of Figure~\ref{fig:race} imports the SCL library, so
-the main primitives can be used directly; for example, ``|thread|'' is
-shorthand for ``|ox.scl.thread|''.  (In later programs, we will tend to omit
-this |import| statement, for brevity.)
+Line~\ref{line:input} of Figure~\ref{fig:race} imports the SCL library, so the
+main primitives can be used directly (see Appendix~\ref{sec:scala-misc}).  For
+example, ``|thread|'' is shorthand for ``|ox.scl.thread|''.  (In later
+programs, we will tend to omit this |import| statement, for brevity.)
 
 A definition of the form \SCALA{thread\{<code>\}}\SCLIndex{thread} defines a
 thread\index{thread} that when executed will execute \SCALA{<code>}.  For
 example, line~\ref{line:p} defines |t1| to be a thread that when executed will
 increment the shared variable~|x| 1000 times, and line~\ref{line:q} defines
 |t2| to be a thread that when executed will decrement |x| 1000 times.  Each
-thread is of type |ThreadGroup|\SCLIndexX{threae}{ThreadGroup}\footnote{This
+thread is of type |ThreadGroup|\SCLIndex{ThreadGroup}\footnote{This
   type is not the same as the type {\scalashape java.lang.ThreadGroup}.}.
 %% Note: the index entry for ThreadGroup will appear after that for thread. 
 
 %% Hack here to get the indexing to accept ||.  Note: the order of the index
 %% depends on the name of the macro!
 If |p| and |q| are |ThreadGroup|s, then \SCALA{p || q} represents their
-parallel composition\index[SCL]{\App}, also of type |ThreadGroup|.  For example,
+parallel composition\index[SCL]{**@\App}, also of type |ThreadGroup|.  For example,
 line~\ref{line:system} defines |system| to be the parallel composition of~|t1|
 and~|t2|.
 

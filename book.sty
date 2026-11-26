@@ -64,7 +64,7 @@
 
 %%% SCL index entries.
 
-\def\ignoreX#1{}
+%\def\ignoreX#1{}
 % SCL index entry for #2, but where sorting will be on #1.  In most cases, #1
 % will be the same as #2.  If #2 starts with a capital letter, #1 should
 % normally replace that with the corresponding lower case letter,
@@ -72,15 +72,17 @@
 % another index entry, some hacking is required,
 % e.g. \SCLIndexX{threae}{ThreadGroup} or \SCLIndexX{threadé}{ThreadGroup},
 % to appear after the entry for "thread".
-\def\SCLIndexX#1#2{\index[SCL]{\protect\ignoreX{{#1}}\protect\SCALA{#2}}}
+%\def\SCLIndexX#1#2{\index[SCL]{\protect\ignoreX{{#1}}\protect\SCALA{#2}}}
+%\def\SCLIndexX#1#2{\index[SCL]{\protect#1@\protect\SCALA{#2}}}
 % SCL index entry for #1, using the natural sort.
 %\def\SCLIndex#1{\SCLIndexX{#1}{#1}} 
 \def\SCLIndex#1{\index[SCL]{#1@\protect\SCALA{#1}}}
-% Indexing macro for "||"
+% Indexing macros for "||" and "|"
 \def\App{\protect\SCALA{\|\|}}
+\def\Bar{\protect\SCALA{\|}}
 % Hack, because indexing uses "!" as a special character.  Note: the order of
 % the index depends on the name of the macro!
-\def\Ashriek{\SCALA{!}}
+%\def\Ashriek{\SCALA{!}}
 
 % Entry in the Scala index; param is formatted as Scala
 \def\ScalaIndex#1{\index[Scala]{#1@\protect\SCALA{#1}}}

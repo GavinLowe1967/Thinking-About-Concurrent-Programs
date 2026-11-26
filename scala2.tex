@@ -286,6 +286,12 @@ The definition of~|O| or |C| can use any non-private value, type or function
 defined in~|T|.
 %% \end{scalaBox}
 
+An object or class can be defined to extend multiple traits, and maybe also
+another class, using the |with|\ScalaIndex{with} keyword to mix in extra
+traits.  For example:%
+\begin{scala}
+  class C extends SC with T
+\end{scala}
 %%%%%
 
 

@@ -218,7 +218,7 @@ In the above simulation, we used |println| statements so that we could
 understand what happened.  However, this style is often not convenient when
 tracking down bugs.  Normally, a better way to is to use logging.\index{logging}
 
-The SCL class |Log|\SCLIndexX{log}{Log} provides log objects.
+The SCL class |Log|\SCLIndex{Log} provides log objects.
 %
 A new log storing events of type~|A|, suitable for |p| threads,
 can be defined by
@@ -300,7 +300,7 @@ that if one |add| event logically happens before another (i.e.~according to
 the~$\prec$ relation), the former receives a strictly smaller timestamp.
 
 The above assumption seems to be sound in Linux, but not in Windows.  If you
-must use Windows, the class |SharedLog|\SCLIndexX{sharedLog}{SharedLog}
+must use Windows, the class |SharedLog|\SCLIndex{SharedLog}
 provides the same interface.  However, it will give worse performance.
 Further, it might affect the likelihood of detecting bugs: I have experienced
 bugs that would appear when no logging was performed, or when the

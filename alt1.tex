@@ -12,10 +12,15 @@ syntax of alternation in SCL, and then use it in examples.
 %%%%%
 
 % Create index entry for "|".
-\def\indexBar{\index[SCL]{\protect\ignoreX {{*}}\protect\scalastyle$\mid$}}
+%\def\indexBar{\index[SCL]{*@\Bar}}
+%\def\indexBar{\index[SCL]{*@\protect\SCALA{\!\!}}}%\scalastyle$\mid$}}
+%\def\indexBar{\index[SCL]{*@\protect\scalastyle$\mid$}}
+%\def\indexBar{\index[SCL]{*@{}\protect\SCALA{\|}}}%\protect\scalastyle$\mid$}}
+%\def\indexBar{\SCLIndex\protect{|}}
 
 The following construct defines a thread that tries to receive from any one of
-several different in-ports:\SCLIndex{alt}\SCLIndex{=?=>}\indexBar
+several different in-ports:\SCLIndex{alt}\SCLIndex{=?=>}\index[SCL]{*@\Bar}
+%\index[SCL]{*@{}\protect\SCALA{\!}}
 %
 \begin{scala}
   alt( in£$_1$£ =?=> {f£$_1$£} | ... | in£$_n$£ =?=> {f£$_n$£} )
@@ -80,8 +85,8 @@ effects.
 
 If a guard evaluates to true and the in-port is open, we say that the
 corresponding branch is \emph{feasible}\index{feasible}.  If no branch is
-feasible, the alt throws an |AltAbort|\SCLIndexX{alté}{AltAbort} exception (a
-subclass of \SCALA{Stopped}\SCLIndexX{stopped}{Stopped}): this corresponds to
+feasible, the alt throws an |AltAbort|\SCLIndex{AltAbort} exception (a
+subclass of \SCALA{Stopped}\SCLIndex{Stopped}): this corresponds to
 the case where the alt will never be able to communicate.
 
 If a branch is feasible and the in-port is available for communication
@@ -195,7 +200,8 @@ throughput, and a simpler program, without fairness.
 %%%%%  Generalised
 
 There are generalised versions of the alternation operators that take an
-arbitrary sequence of branches~|bs|, denoted \SCALA{alt( \|(bs) )}\indexBar\  
+arbitrary sequence of branches~|bs|, denoted 
+\SCALA{alt( \|(bs) )}\index[SCL]{*@\Bar}   
 and \SCALA{serve( \|(bs) )}.  For example, given an array |ins| of in-ports,
 we can form a generalisation of the tagger as follows.  It is built from a
 sequence of branches that is generated using a |for| expression.

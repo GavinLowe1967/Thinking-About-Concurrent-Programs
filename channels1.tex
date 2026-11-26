@@ -52,11 +52,11 @@ and received at the other end.
 
 %%%%%
 
-In SCL, \SCALA{Chan[A]}\SCLIndexX{chan}{Chan} is the type of channels that
+In SCL, \SCALA{Chan[A]}\SCLIndex{Chan} is the type of channels that
 pass data of type~\SCALA{A}.  (The type is polymorphic in~|A|: see
 Section~\ref{sec:scala-types}.)  This type has subtypes
-|SyncChan[A]|\SCLIndexX{syncChan}{SyncChan}, of synchronous channels, and
-|BuffChanT[A]|\SCLIndexX{buffChan }{BuffChan}, of buffered (or asynchronous)
+|SyncChan[A]|\SCLIndex{SyncChan}, of synchronous channels, and
+|BuffChanT[A]|\SCLIndex{BuffChan}, of buffered (or asynchronous)
 channels.  We  start by describing synchronous channels, and later
 describe buffered channels.
 
@@ -65,13 +65,14 @@ The command
   val chan = new SyncChan[A]
 \end{scala}
 defines |chan| to be a synchronous channel\index{channel!synchronous} passing
-data of type~|A|.  Given such a channel, the
-command\index[SCL]{\Ashriek}
+data of type~|A|.  Given such a channel, the command\SCLIndex{"!}
+%\SCLIndexX{"!}{"!} \index[SCL]{$@{}\Ashriek} \index[SCL]{$@{}\SCALA{"!}}
+% Note: "!" has a special meaning inside \index, so the " escapes it.
 \begin{scala}
   chan!v
 \end{scala}
 sends the value \SCALA{v} (of type~|A|) on \SCALA{chan}.  The
-expression\SCLIndexX{? }{?} 
+expression\SCLIndex{?} 
 %%% Note: the index command for ? ensures the entry comes before that for ??.
 \begin{scala}
   chan?()
@@ -128,13 +129,15 @@ however, a value is put into a channel on an out-port, and passed out on an
 in-port.
 
 Figure~\ref{fig:channel-types} outlines the relevant types (see
-Section~\ref{sec:scala-encapsulation}).  An |InPort|\SCLIndexX{inPort}{InPort}
-provides the operation~|?|, and an |OutPort|\SCLIndexX{outPort}{OutPort}
+Section~\ref{sec:scala-encapsulation}).  An |InPort|\SCLIndex{inPort}{InPort}
+provides the operation~|?|, and an |OutPort|\SCLIndex{OutPort}
 provides the operation~|!|.  The definition of |Chan[A]| uses multiple
-inheritance: it inherits definitions from both |InPort[A]| and |OutPort[A]|,
-so a |Chan| must provide implementations of both~|?| and~|!|.  The
-types \SCALA{InPort[A]} and \SCALA{OutPort[A]} can be abbreviated
-as \SCALA{??[A]}\SCLIndex{??}  and~\SCALA{!![A]},\index[SCL]{\Ashriek\Ashriek}
+inheritance (see Appendix~\ref{sec:scala-encapsulation}): it inherits
+definitions from both |InPort[A]| and |OutPort[A]|, so a |Chan| must provide
+implementations of both~|?| and~|!|.  The types \SCALA{InPort[A]}
+and \SCALA{OutPort[A]} can be abbreviated as \SCALA{??[A]}\SCLIndex{??}
+and~\SCALA{!![A]},\SCLIndex{"!"!}
+%\index[SCL]{$$@{}\SCALA{"!"!}}% \index[SCL]{$$@{}\Ashriek\Ashriek} 
 respectively.
 %%% Note: the index command for ?? ensures the entry comes after that for ?.
 
@@ -300,13 +303,13 @@ received in the same order in which they are sent: the channel acts as a
 first-in first-out buffer.
 
 There are various types of buffered channels in SCL, collected in the trait
-|BuffChanT|:\SCLIndexX{buffChanT}{BuffChanT} 
+|BuffChanT|:\SCLIndex{BuffChanT} 
 \begin{scala}
 trait BuffChanT[A] extends Chan[A]
 \end{scala}
 %
 One class of buffered channels is defined as
-follows.\SCLIndexX{unboundedBuffChan}{UnboundedBuffChan} 
+follows.\SCLIndex{UnboundedBuffChan} 
 %
 \begin{scala}
 class UnboundedBuffChan[A] extends BuffChanT[A]
@@ -339,8 +342,7 @@ blocked until the receiver receives one of the earlier messages, and so makes
 space in the channel.
 %
 The two types of bounded buffered channel are defined
-as:\SCLIndexX{onePlaceBuffChan}{OnePlaceBuffChan}% 
-\SCLIndexX{buffChan }{BuffChan}
+as:\SCLIndex{OnePlaceBuffChan}\SCLIndex{BuffChan}
 %
 \begin{scala}
 class OnePlaceBuffChan[A] extends BuffChanT[A]

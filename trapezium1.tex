@@ -332,7 +332,7 @@ The function |system| constructs the system.  The definition of |workers|
 builds a sequence of workers using a |for| expression (see
 Section~\ref{sec:scala-misc}).  It then combines them together in parallel
 using an indexed form of parallel composition: if |ts| is a sequence of
-|ThreadGroup|s, then \SCALA{\|\| ts}\index[SCL]{\App} represents their
+|ThreadGroup|s, then \SCALA{\|\| ts}\index[SCL]{**@\App} represents their
 parallel composition, and is itself a |ThreadGroup|.
 
 Finally, the |apply| function runs the system and returns the final result

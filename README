@@ -68,8 +68,12 @@ Chapter 13, Conclusions
 
 Appendices
 
-- Scala -- TODO: import, equality, hash codes "with".  API documentation; infix
-  operators.  Think about index ?separate for Scala?
+- Scala 
+TODO: 
+- import, equality, hash codes, API documentation "with", Any, AnyRef -- done
+-  infix operators?  Only used with max, first in alt4.tex
+- Think about index ?separate for Scala?  
+- Use "Appendix" for references to sections. 
 
 
 - Experiments -- improve

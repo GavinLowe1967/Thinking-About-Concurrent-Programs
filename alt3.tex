@@ -83,7 +83,7 @@ second fork, they could drop their first fork, and try again later (this is
 probably how real philosophers would act).
 
 Within SCL, this could be achieved using a timeout\index{timeout}.  Each
-channel has an operation\SCLIndexX{sendWithin }{sendWithin}
+channel has an operation\SCLIndex{sendWithin}
 %
 \begin{scala}
   def sendWithin(millis: Long)(x: A): Boolean 
@@ -93,7 +93,7 @@ This tries to send~|x| for up to |millis| milliseconds; but if no receiver is
 ready within that time (or no space is available, in the case of a buffered
 channel), it times out.  The operation returns a |Boolean| to indicate whether
 the send was successful.  Likewise there is an
-operation\SCLIndexX{receiveWithin }{receiveWithin}
+operation\SCLIndex{receiveWithin}
 %
 \begin{scala}
   def receiveWithin(millis: Long): Option[A] =
@@ -116,9 +116,9 @@ technique of timing out, dropping the fork, and trying again later.
 
 So far, we have only seen alts that provide a choice between in-ports.
 However, it is also possible to use an out-port in an alt, using the following
-syntax for a branch:%
+syntax for a branch:\SCLIndex{="!=>}
 % Hacked index entry for =!=>
-\index[SCL]{\ignoreX {{=}}\protect\SCALA{=}\Ashriek\SCALA{=>}}
+%\index[SCL]{="!=>@\protect\SCALA{="!=>}} %  {\ignoreX {{=}}\protect\SCALA{=}\Ashriek\SCALA{=>}}
 %
 \begin{scala}
   bool && out =!=> { expression }

@@ -353,7 +353,7 @@ other subtask.
 The main implementation is in Figure~\ref{fig:quicksort-bag-of-tasks-2}.  For
 the purposes of observation~\ref{obs:quicksort-3}, above, we consider a task
 to be small if it contains fewer than |Limit| elements, where |Limit| is
-defined as the minimum of $20,000$ and $\sm{a.size} / (10 \times
+defined as the maximum of $20,000$ and $\sm{a.size} / (10 \times
 \sm{numWorkers})$.  My informal experiments suggested that for tasks smaller
 than about $20,000$, it is faster for the worker to complete the whole task
 itself than to create subtasks.  The latter term means that for very large

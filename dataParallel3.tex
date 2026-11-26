@@ -157,7 +157,7 @@ applications, |f| is commutative, and so the order doesn't matter.  For
 example, if |f| adds its arguments, the result is the sum of all the~$x_i$.
 
 In SCL, the expression \SCALA{new CombiningBarrier(p, f)}%
-\SCLIndexX{combiningBarrier}{CombiningBarrier} creates a combining barrier
+\SCLIndex{CombiningBarrier} creates a combining barrier
 for |p| threads, associated with function~|f|.  In the Jacobi iteration
 example, we want the combining barrier to calculate the conjunction of the
 workers' |myDone| variables, so we can define the combining barrier
@@ -179,8 +179,8 @@ Each thread receives back |true| if  all threads pass in |true|.
 
 This particular form of combining barrier---returning the conjunction of the
 inputs---is very common, so SCL contains a built-in equivalent version, created
-by |new AndBarrier(p)|\SCLIndexX{andBarrier}{AndBarrier}.  Likewise, an
-|OrBarrier|\SCLIndexX{orBarrier}{OrBarrier} returns the disjunction of the
+by |new AndBarrier(p)|\SCLIndex{AndBarrier}.  Likewise, an
+|OrBarrier|\SCLIndex{OrBarrier} returns the disjunction of the
 inputs.
 
 %%%%%

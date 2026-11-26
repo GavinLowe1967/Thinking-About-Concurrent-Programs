@@ -13,8 +13,8 @@ should signal to the suspended thread, so that it can resume.
 
 In order to achieve this, we need a wait/signal mechanism.  In SCL, this is
 provided by \emph{condition objects}\index{condition}, of type
-|Condition|\SCLIndexX{condition}{Condition}.  If |lock| is a
-|Lock|\SCLIndexX{lock}{Lock}, then\SCLIndex{newCondition}
+|Condition|\SCLIndex{Condition}.  If |lock| is a
+|Lock|\SCLIndex{Lock}, then\SCLIndex{newCondition}
 \begin{scala}
   lock.newCondition
 \end{scala}

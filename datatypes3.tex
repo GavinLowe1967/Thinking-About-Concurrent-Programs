@@ -116,7 +116,7 @@ dequeue.
 
 
 The worker takes a log object |log|, of type
-|LinearizabilityLog|\SCLIndexX{linearizabilityLog}{LinearizabilityLog}, as a
+|LinearizabilityLog|\SCLIndex{LinearizabilityLog}, as a
 parameter.  Each operation is performed and logged via a call to |log| (more
 precisely, the |apply| function of~|log|; see Section~\ref{sec:scala-misc}),
 taking three parameters:
@@ -150,7 +150,7 @@ the concurrent queue is placed.
 The function |doTest| performs a single test.  This starts by creating a
 concurrent queue to test, and a corresponding sequential specification object.
 Line~\ref{line:construct-lin-tester} constructs a
-|LinearizabilityTester|\SCLIndexX{linearizabilityTester}{LinearizabilityTester}
+|LinearizabilityTester|\SCLIndex{LinearizabilityTester}
 object~|tester|.  This takes two type parameters, representing the type of
 sequential specification objects and concurrent objects, respectively (we
 could omit these type parameters, but I find it useful to include them).  The
@@ -262,14 +262,15 @@ sequential operation on the specification object, using the string as a key;
 this avoids repeating the same operation on the same specification object).
 
 It is beneficial to ensure that the specification object has a natural
-definition for equality, and an associated hash code.  This is true for the
-immutable |Queue|s we used here: two such objects are equal if they contain
-the same sequence of data; and in this case their hash codes will be equal.
-The same is true for other objects in the |scala.collection.immutable|
-package.  The linearization checker uses a hash set to keep track of nodes of
-the search graph it has seen previously, so as to avoid repeating work.  For
-this to be effective, it needs to be able to identify when two sequential
-specification objects represent the same state.
+definition for equality, and an associated hash code (see
+Appendix~\ref{sec:scala-misc}).  This is true for the immutable |Queue|s we
+used here: two such objects are equal if they contain the same sequence of
+data; and in this case their hash codes will be equal.  The same is true for
+other objects in the |scala.collection.immutable| package.  The linearization
+checker uses a hash set to keep track of nodes of the search graph it has seen
+previously, so as to avoid repeating work.  For this to be effective, it needs
+to be able to identify when two sequential specification objects represent the
+same state.
 
 To illustrate the above point, we give another example, this time testing the
 total resource server from Section~\ref{sec:resource-server-1} for
