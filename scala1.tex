@@ -40,12 +40,11 @@ object Factorial{
 %% \label{sb:functions}
 Most of the work is done by the function |fact|.  In Scala, functions are
 introduced using the keyword \SCALA{def}\ScalaIndex{def} (short for
-\emph{definition}).  Each parameter (or argument) of the function is given a
-type using a single colon, e.g.~\SCALA{a: A}.  Likewise the type of the result
-of the function can be given using a colon.  For example
-\begin{scala}
-  def func(a: A, b: B, c: C): T = ...
-\end{scala}
+\emph{definition}).  Each value parameter (or argument)\index{parameter!value}
+of the function is given a type using a single colon, e.g.~\SCALA{a: A}.
+Likewise the type of the result of the function can be given using a colon.
+For example
+\SCALA{def func(a: A, b: B, c: C): T = ...}
 introduces a function called |func| that takes three parameters |a|, |b|,
 and~|c|, of types~|A|, |B|, and |C|, respectively, and returns a result of
 type~|T|.  The body of the function appears on the right-hand side of the
@@ -57,7 +56,10 @@ a recursive function, such as |fact|.  Even when it is not necessary, it is
 often a good idea to include it, to help document the function.
 
 If the body of the function ends with an expression, the result of the
-function is the value of that expression: no explicit |return| is necessary.
+function is the value of that expression: no explicit
+|return|\ScalaIndex{return} is necessary.  (However, an explicit |return| is
+necessary for a return not at a logical end of a function, for example, when
+returning from inside a loop.)
 %\end{scalaBox}
 
 %%%%%
@@ -105,19 +107,20 @@ factorial of~|n|, also an |Int|.
 %% \begin{scalaBox}{Assertions}
 %% \label{sb:assertions}
 The command |assert(|$test$|)|\ScalaIndex{assert} evaluates the boolean
-expression $test$, and gives an error if it is false.  The command
+expression $test$, and throws an exception if it is false.  The command
 |assert(|$test$|, |$msg$|)| is similar, except it also displays the string
 $msg$ if $test$ is false.  Assertions are useful to catch errors in your code.
 They are also useful to document code, illustrating a property that you
 believe to be true at a particular point.
 
-The commands |require(|$test$|)|\ScalaIndex{require} and 
-|require(|$test$|, |$msg$|)| are similar, except conventionally they are used
-to check 
-preconditions of functions.  Such statements are useful to catch when a
-function has been erroneously called with its precondition not satisfied.
-They are also useful to document the code, stating assumptions.  Thus |fact|
-starts by checking the precondition~$\sm n \ge 0$.
+The commands |require(|$test$|)|\ScalaIndex{require} and
+\SCALA{require(}$test$|, |$msg$|)| are similar to |assert|, except
+conventionally they are used to check preconditions of functions, and they
+throw a different type of exception when the condition is false.  Such
+statements are useful to catch when a function has been erroneously called
+with its precondition not satisfied.  They are also useful to document the
+code, stating assumptions.  Thus |fact| starts by checking the
+precondition~$\sm n \ge 0$.
 %% \end{scalaBox}
 
 
@@ -126,10 +129,8 @@ starts by checking the precondition~$\sm n \ge 0$.
 %% \begin{scalaBox}{Variables}
 %% \label{sb:variables}
 \emph{Variables} are declared in Scala using the keyword
-|var|\ScalaIndex{var}.  For example, in |fact|,
-\begin{scala}
-  var x = 1
-\end{scala}
+|var|\ScalaIndex{var}.  For example, in |fact|, the declaration
+\SCALA{var x = 1}
 introduces a new variable |x| and initialises it to~|1|.
 
 Every variable in Scala has a \emph{type}, defining the range of values that
@@ -148,11 +149,12 @@ is an |Int|.
 A |for| loop\ScalaIndexA{for loop@\protect\SCALA{for} loop} 
 \SCALA{for(x <- xs) body}
 executes \SCALA{body}, where \SCALA{x} takes each value in the
-sequence~\SCALA{xs} in turn.  The expression \SCALA{a until b} creates the
+sequence~\SCALA{xs} in turn.  The expression 
+\SCALA{a until b}\ScalaIndex{until} creates the 
 sequence of numbers from~\SCALA{a} to~\SCALA{b-1}, inclusive.
 % , which we sometimes write as $\interval{\sm a}{\sm b}$.
-Similarly, \SCALA{a to b} creates the sequence of numbers from~\SCALA{a}
-to~\SCALA{b}, inclusive.
+Similarly, \SCALA{a to b}\ScalaIndex{to} creates the sequence of numbers
+from~\SCALA{a} to~\SCALA{b}, inclusive.
 %
 Thus |fact| uses a |for|
 loop, where the variable~|i| takes each value in the range from |1| to |n|,
@@ -179,11 +181,8 @@ inclusive, in turn.
 
 %% \begin{scalaBox}{Assignment}
 %% \label{sb:assignment}
-Variables are updated using |=|.  For example, in |fact|,
-\begin{scala}
-  x = x*i
-\end{scala}
-sets |x| to its previous value times~|i|.  
+Variables are updated using |=|.  For example, in |fact|, the command
+\SCALA{x = x*i} sets |x| to its previous value times~|i|.  
 %
 The assignment could also have been written as |x *= i|.  Likewise, an
 assignment |x = x+1| could be written as |x += 1|.  Similar assignment
@@ -243,8 +242,8 @@ conventional to start each subsequent line with another
    * long to fit on one line. */
 \end{scala}
 
-Scaladoc\index{Scaladoc} is a tool for extracting comments from a Scala
-program, and producing corresponding HTML documentation.  Scaladoc uses
+Scaladoc\index{Scaladoc} is a tool that extracts comments from a Scala
+program, and produces corresponding HTML documentation.  Scaladoc uses
 comments that are written between ``{\scalastyle\rm /**}'' and
 ``{\scalastyle\rm */}''; it is conventional to start each subsequent line with
 another ``{\scalastyle\rm *}''.  Thus line~\ref{line:fact-comment} contains a
@@ -285,15 +284,15 @@ An object is defined using syntax\ScalaIndex{object}
 \end{scala}
 %
 The body (denoted ``|...|'' above) contains definitions, for example of
-values, functions, types, and nested objects.  Typically, an object
-encapsulates some data and some operations on that data.
+values, functions, types, and nested objects.  %% Typically, an object
+%% encapsulates some data and some operations on that data.
 %
 The definition defines a single object |MyObject|: this is sometimes called
 the singleton pattern.  The factorial program is
 encapsulated in an object called |Factorial|.  
-%
+
 A field of an object can be accessed using the ``|.|'' operator,
-for example, |MyObject.x|. 
+for example, |Factorial.fact|. 
 
 %% \end{scalaBox}
 
@@ -315,27 +314,22 @@ instantiated with any additional arguments provided on the command line.
 
 %% \begin{scalaBox}{Arrays}
 %% \label{sb:arrays}
-If \SCALA{T} is a type then \SCALA{Array[T]} represents the type of arrays
-that hold data of type~\SCALA{T}.  (This is an instance of parametric
-polymorphism, which we describe in Section~\ref{sec:scala-types}.)
-
-Each array has a fixed size. The size of |a| can be obtained using the
-expression |a.length|.
-
+If \SCALA{T} is a type then \SCALA{Array[T]}\ScalaIndex{Array} represents the
+type of arrays that hold data of type~\SCALA{T}.  (This is an instance of
+parametric polymorphism, which we describe in Section~\ref{sec:scala-types}.)
+%
+Each array has a fixed size. %% The size of |a| can be obtained using the
+%% expression |a.length|.
 A new array of size~|n| can be created with, e.g.,
-\begin{scala}
-  val a = new Array[T](n)
-\end{scala}
-
+\SCALA{val a = new Array[T](n)}.
+%
 The \SCALA{i}th entry of array \SCALA{a} can be obtained using \SCALA{a(i)}.
 (Note the round parentheses!)  The indexing is zero-based, i.e., if \SCALA{a}
 is of size \SCALA{n}, then the elements are \SCALA{a(0)},\ldots,\SCALA{a(n-1)}.  This
 indexing operation takes constant time.  
-
-Arrays are \emph{mutable}.  The individual entries can be updated, e.g.
-\begin{scala}
-  a(i) = a(i) + 1
-\end{scala}
+%
+Arrays are \emph{mutable}.  The individual entries can be updated; for example,
+\SCALA{a(i) = a(i) + 1}.
 %% \end{scalaBox}
 
 %%%%%
@@ -343,12 +337,10 @@ Arrays are \emph{mutable}.  The individual entries can be updated, e.g.
 %% \begin{scalaBox}{Named values}
 %% \label{sb:val}
 The Scala keyword |val|\ScalaIndex{val} introduces a named value.  For
-example
-\begin{scala}
-  val f = fact(n)
-\end{scala}
+example, the command
+\SCALA{val f = fact(n)}
 evaluates |fact(n)| and sets |f| to store the result.
-
+%
 Unlike variables introduced with |var|, values introduced with |val| can not
 subsequently be changed; we say that they are \emph{immutable}.  Using |val|
 rather than |var|, when appropriate, can make your program clearer: the reader
@@ -359,21 +351,19 @@ will understand that the value will not change.
 
 %% \begin{scalaBox}{Strings}
 %% \label{sb:strings}
-Strings in Scala have type |String|.  They can  be defined by typing them
-between double inverted commas, for example
-\begin{scala}
-  val hello = "Hello!"
-\end{scala}
-
+Strings in Scala have type |String|\ScalaIndex{String}.  They can be defined
+by typing them between double inverted commas, for example
+\SCALA{val hello = "Hello!"}.
+%
 Strings can be concatenated together using ``|+|''. 
 %
-The operation |v.toString| converts value~|v| to a |String|.  The Scala compiler
-provides a default implementation of |toString| for all values.  The
-|toString| function is applied automatically when a |String| representation of
-a value is required, for example within |println|.
+The operation |v.toString|\ScalaIndex{toString} converts value~|v| to a
+|String|.  The Scala compiler provides a default implementation of |toString|
+for all values.  The |toString| function is applied automatically when a
+|String| representation of a value is required, for example within |println|.
 %
 Conversely, if |String|~|s| represents an |Int|, then it can be converted to
-that |Int| using |s.toInt|.
+that |Int| using |s.toInt|.\ScalaIndex{toInt}
 %% \end{scalaBox}
 
 The |Factorial| program has a |main| function which expects to receive a

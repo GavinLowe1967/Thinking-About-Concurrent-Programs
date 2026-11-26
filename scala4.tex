@@ -39,10 +39,15 @@ of type~|A|, and binds the name~|x| to the value.  The wildcard pattern
   $\sm v_1$ and $\sm v_2$ match |pat|$_1$ and |pat|$_2$, respectively.  Names
   are bound according to those patterns.  This extends to larger tuples in the
   obvious way.
+
+\item Patterns for case classes (Section~\ref{sec:scala-encapsulation}), such
+  as the |Option| type (Section~\ref{sec:scala-types}).  For example, the
+  pattern |Some(x)| matches any value of the form |Some(v)|, and binds the
+  name~|x| to the value~|v|
 \end{itemize}
 %
-Case classes (Section~\ref{sec:scala-encapsulation}), such as the |Option| type
-(Section~\ref{sec:scala-types}), also allow for pattern matching.
+%% Case classes (Section~\ref{sec:scala-encapsulation}), such as the |Option| type
+%% (Section~\ref{sec:scala-types}), also allow for pattern matching.
 %% \end{scalaBox}
 
 %%%%%
@@ -76,20 +81,16 @@ expression is of the form
 where |xs| is a sequence, and |f| is a suitable function: this will generate a
 sequence that contains the value |f(x)| for each |x| in~|xs|.  The ``\SCALA{x
   <- xs}'' is known as a \emph{generator}.  For example, 
-\begin{scala}
-  for(x <- List(1,2,3)) yield x*x
-\end{scala}
-will produce the list |List(1,4,9)|.
-
+\SCALA{for(x <- List(1,2,3)) yield x*x}
+produces the list |List(1,4,9)|.
+%
 A |for| expression may contain more than one generator.  For example
-\begin{scala}
-  for(x <- List(1,2,3); y <- List(4,5)) yield x*y
-\end{scala}
-will produce |List(4,5,8,10,12,15)|.  
+\SCALA{for(x <- List(1,2,3); y <- List(4,5)) yield x*y}
+produces |List(4,5,8,10,12,15)|.  
 %% Note that the |for| expression iterates
 %% over the second generator for each value from the first generator, before
 %% moving on to the next value from the first generator.
-
+%
 A |for| expression may also contain a \emph{filter}, restricting the range of
 values from which results are produced.  For example
 \begin{scala}
@@ -113,7 +114,7 @@ only calculates |x*y| for even values of~|x|, so produces
 Exceptions can be caught using a |try ... catch|%
 \ScalaIndex{try}\ScalaIndex{catch} construct as follows.
 \begin{scala}
-try{ prog } catch{ handler }
+  try{ prog } catch{ handler }
 \end{scala}
 %
 Here |prog| is a program fragment, and |handler| is a partial function
@@ -121,10 +122,7 @@ describing how to handle any exception thrown by |prog|.  The exception
 handler is normally written using pattern matching syntax (described above),
 for example%
 \begin{scala}
-  try{ prog } catch{
-    case st: Stopped => ...
-    case ae: AssertionError => ...
-  }
+  try{ prog } catch{ case st: Stopped => ...; case ae: AssertionError => ... }
 \end{scala}
 %% \end{scalaBox}
 
@@ -144,27 +142,24 @@ This generalises to different numbers of parameters, including none.
 An |import| statement\ScalaIndex{import} can be used to import names from
 other objects or packages; without such an |import| the full path would have
 to be given.  For example, a statement
-\begin{scala}
-import scala.collection.mutable.Queue
-\end{scala}
+\SCALA{import scala.collection.mutable.Queue}
 allows subsequent code to simply write |Queue| for that class.  An
 underscore~(``|_|'') can be used to indicate all elements of an object or
 package.  For example, 
-\begin{scala}
-import ox.scl._
-\end{scala}
+\SCALA{import ox.scl._}
 imports all the names from the SCL package. 
 
 Values may be compared for equality using ``|==|'', or for inequality using
 ``|!=|''.  For reference objects, the default definition corresponds to
-\emph{reference equality}: whether the values being compared are literally the
-same object.  It is often more appropriate to use \emph{value equality},
-whether the two objects represent the same abstract value.  This can be done
-by overriding the |equals|\ScalaIndex{equals} operation.  Note that this
-function takes a parameter of type~|Any|\ScalaIndex{Any}, the universal type.
-See Figure~\ref{fig:RALinTest-1} for an example.
+\emph{reference equality}\index{reference equality}, testing whether the
+values being compared are literally the same object.  It is often more
+appropriate to use \emph{value equality}\index{value equality}, whether the
+two objects represent the same abstract value.  This can be done by overriding
+the |equals|\ScalaIndex{equals} operation.  Note that this function takes a
+parameter of type~|Any|\ScalaIndex{Any}, the universal type.  See
+Figure~\ref{fig:RALinTest-1} for an example.
 
-The hash code for an object, for use in a hash table, can be obtained using
+The hash code for an object, as used in hash tables, can be obtained using
 the |hashCode| operation.  When overriding the definition of |equals|, it is
 normally necessary to override the definition of
 |hashCode|\ScalaIndex{hashCode}: two objects that are equal according to

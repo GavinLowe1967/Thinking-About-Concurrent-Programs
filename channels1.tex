@@ -54,7 +54,7 @@ and received at the other end.
 
 In SCL, \SCALA{Chan[A]}\SCLIndex{Chan} is the type of channels that
 pass data of type~\SCALA{A}.  (The type is polymorphic in~|A|: see
-Section~\ref{sec:scala-types}.)  This type has subtypes
+Appendix~\ref{sec:scala-types}.)  This type has subtypes
 |SyncChan[A]|\SCLIndex{SyncChan}, of synchronous channels, and
 |BuffChanT[A]|\SCLIndex{BuffChan}, of buffered (or asynchronous)
 channels.  We  start by describing synchronous channels, and later
@@ -129,7 +129,7 @@ however, a value is put into a channel on an out-port, and passed out on an
 in-port.
 
 Figure~\ref{fig:channel-types} outlines the relevant types (see
-Section~\ref{sec:scala-encapsulation}).  An |InPort|\SCLIndex{inPort}{InPort}
+Appendix~\ref{sec:scala-encapsulation}).  An |InPort|\SCLIndex{inPort}{InPort}
 provides the operation~|?|, and an |OutPort|\SCLIndex{OutPort}
 provides the operation~|!|.  The definition of |Chan[A]| uses multiple
 inheritance (see Appendix~\ref{sec:scala-encapsulation}): it inherits

@@ -2,8 +2,9 @@
 \label{exercise:stackRace}
 Consider the simple implementation of a stack of |Int|s in
 Figure~\ref{fig:stackRace}.  This encapsulates a |List[Int]|, holding the
-current contents of the stack.  (Section~\ref{sec:scala-types} describes the
-  basics of the |List| class in Scala.)
+current contents of the stack.  (Appendix~\ref{sec:scala-types} describes the
+basics of the |List| class in Scala.  You may want to refer to the online API
+documentation for this class.)
 
 %%%%%
 
@@ -106,7 +107,7 @@ It would be better for |pop| to have a signature such as
 either returning a result of the form~|Some(x)|, where |x| is the value
 popped, or a result~|None| to indicate that the stack is empty.  (The type
 |Option[Int]| contains the union of such values; see
-Section~\ref{sec:scala-types}.)  This combines the |isEmpty| and |pop|
+Appendix~\ref{sec:scala-types}.)  This combines the |isEmpty| and |pop|
 operations from the given class.  Client code can treat the result
 appropriately in each case.
 

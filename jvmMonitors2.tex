@@ -5,15 +5,15 @@ mechanism.  If |o| is a reference object, then it has the following
 operations:
 %
 \begin{itemize}
-\item |o.wait()|:\index{wait@\SCALA{wait}} suspend, giving up the lock
-  on~|o|; wait for a signal, and then re-acquire the lock;
+\item |o.wait()|:\index{wait@\SCALA{wait}}\ScalaIndex{wait} suspend, giving up
+  the lock on~|o|; wait for a signal, and then re-acquire the lock;
 
-\item |o.notify()|:\index{wait@\SCALA{notify}} signal to a thread waiting
-  on~|o|, if there is one (if there is no thread waiting, the operation has no
-  effect);
+\item |o.notify()|:\index{wait@\SCALA{notify}}\ScalaIndex{notify} signal to a
+  thread waiting on~|o|, if there is one (if there is no thread waiting, the
+  operation has no effect);
 
-\item |o.notifyAll()|:\index{wait@\SCALA{notifyAll}} signal to all threads
-  waiting on~|o|.  
+\item |o.notifyAll()|:\index{wait@\SCALA{notifyAll}}\ScalaIndex{notifyAll}
+  signal to all threads waiting on~|o|.
 \end{itemize}
 %
 Each operation should be performed while holding the lock on~|o|, i.e.~from

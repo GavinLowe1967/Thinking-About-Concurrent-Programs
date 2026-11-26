@@ -118,7 +118,7 @@ dequeue.
 The worker takes a log object |log|, of type
 |LinearizabilityLog|\SCLIndex{LinearizabilityLog}, as a
 parameter.  Each operation is performed and logged via a call to |log| (more
-precisely, the |apply| function of~|log|; see Section~\ref{sec:scala-misc}),
+precisely, the |apply| function of~|log|; see Appendix~\ref{sec:scala-misc}),
 taking three parameters:
 %
 \begin{itemize}
@@ -143,7 +143,7 @@ concurrent queue, and associates it with the function |seqEnqueue(x)| on the
 specification object.  Line~\ref{line:queue-lin-tester-worker-dequeue}
 performs |dequeue()| on the concurrent queue, and associates it with the
 function |seqDequeue| on the specification object.  Each uses an anonymous
-function (see Section~\ref{sec:scala-misc}) to define the operation on the
+function (see Appenix~\ref{sec:scala-misc}) to define the operation on the
 concurrent queue: each underscore (``\SCALA{_}'') represents a hole into which
 the concurrent queue is placed.
 

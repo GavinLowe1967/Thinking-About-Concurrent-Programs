@@ -442,8 +442,10 @@ already been matched, it searches through the receivers to try to find one
 that is also unmatched and that receives the corresponding value.  If so, it
 records that |receive| operation as matched, and the |send| operation as
 complete.  If it fails to find a match, this represents an error: it prints
-appropriate information to help with debugging, and returns false.  When the
-traversal encounters an |EndReceive| event, it acts in a very similar way.
+appropriate information to help with debugging, and returns false (an explicit
+|return| is necessary here, to return from inside the loop; see
+Appendix~\ref{sec:scala-core}).  When the traversal encounters an |EndReceive|
+event, it acts in a very similar way.
 
 \begin{instruction}
 Make sure you understand how the testing program works, and, in particular,

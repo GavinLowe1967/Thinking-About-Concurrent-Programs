@@ -21,9 +21,9 @@ The mechanism the JVM provides to ensure mutual exclusion is the
 If |o| is a reference object and \SCALA{e} is an expression or command, then
 |o.synchronized{e}| acts much like \SCALA{e}, except that at most one thread
 can be active within the \SCALA{synchronized}%
-\index{synchronized@\SCALA{synchronized}} expressions of the object~|o|
-at any time.  When an object is used like this, we will refer to it as a
-\emph{monitor}\index{monitor}.
+\index{synchronized@\SCALA{synchronized}}\ScalaIndex{synchronized} expressions
+of the object~|o| at any time.  When an object is used like this, we will
+refer to it as a \emph{monitor}\index{monitor}.
 
 If a thread tries to execute a \SCALA{synchronized} expression while another
 thread is within a |synchronized| block on the same monitor, then the former
@@ -34,7 +34,7 @@ used to ensure that executions of code within |synchronized| blocks do not
 interfere with one another.
 
 Note that the monitor must be a \emph{reference} object (a subclass of
-|AnyRef|; see Section~\ref{sec:scala-types}), not, for example, an |Int|.
+|AnyRef|; see Appendix~\ref{sec:scala-types}), not, for example, an |Int|.
 
 The expression |synchronized{e}| is shorthand for |this.synchronized{e}|,
 i.e.~where the current object is used for the monitor.

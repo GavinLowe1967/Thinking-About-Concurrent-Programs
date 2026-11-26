@@ -13,9 +13,7 @@
 We described value types in Section~\ref{sec:scala-core}.  By contrast, each
 |class| or |trait| definition defines a type with the same
 name, which is a \emph{reference type}\index{reference type}.  For example
-\begin{scala}
-  class C{ ... }
-\end{scala}
+a declaration \SCALA{class C\{ ... \}}
 defines a type~|C|. The type |AnyRef|\ScalaIndex{AnyRef} is the supertype of
 all reference types.
 
@@ -54,8 +52,9 @@ The function is defined for all types~|A|.
 If |A| and |B| are types, then \SCALA{A => B}\index{function type} is the type
 of functions from~|A| to~|B|, i.e.,~that take an argument of type~|A| and
 return a result of type~|B|.  For example, \SCALA{Int => Boolean} is the type
-of functions from |Int| to |Boolean|.  (In fact, each such function is
-implemented as a Scala object, implementing a trait |Function|.)
+of functions from |Int| to |Boolean|.  
+%% (In fact, each such function is
+%% implemented as a Scala object, implementing a trait |Function|.)
 %% \end{scalaBox}
 
 If |A| is a type, then |=> A| is the type of a computation that, when
@@ -73,8 +72,7 @@ evaluated only when the body of the function refers to it.
 Type synonyms can be defined using the keyword |type|\ScalaIndex{type}, for
 example
 \begin{scala}
-  type Price = Int
-  type Log1 = Log[LogEvent]
+  type Price = Int; type Log1 = Log[LogEvent]
 \end{scala}
 Such type synonyms can help to distinguish between different uses of a common
 type, or to provide brevity. 
@@ -83,9 +81,11 @@ type, or to provide brevity.
 %%%%%
 
 The Application Programming Interface (API)\index{API} contains a large number
-of useful types, including arrays and strings (each described in
-Section~\ref{sec:scala-core}).  We describe two more such types here.
-
+of useful classes, including arrays and strings (each described in
+Section~\ref{sec:scala-core}).  We briefly describe two more such classes below.
+For a fuller description of these classes, and for other API classes, you
+should refer to the online documentation (e.g.,~by searching for ``Scala
+API''; recall that this book uses Scala~2.13).
 
 %% \begin{scalaBox}{Lists}
 %% \label{sb:lists}
@@ -95,17 +95,20 @@ containing data of type~|A|.
 A list containing values~|x|, |y| and~|z| can be defined as \SCALA{List[A](x,
   y, z)}; the type parameter~|A| can normally be omitted, as the compiler can
 infer it.
-
+%
 If |xs| has type |List[A]|, and |x| has type~|A|, then \SCALA{x ::
   xs}\ScalaIndex{::} is a new |List[A]| containing~|x| followed by the
-elements of~|xs|.  The expression |xs.isEmpty|\ScalaIndex{isEmpty} returns a
-|Boolean| indicating whether |xs| is empty, and |xs.length|\ScalaIndex{length}
-gives the length of~|xs|.  The element at index~|k| (counting from~0) can be
-obtained as |xs(k)|; this traverses the list, so takes time~$O(\sm k)$.  If
-|xs| is not empty, then |xs.head|\ScalaIndex{head} gives its first element,
-and |xs.tail|\ScalaIndex{tail} gives the list containing all of~|xs| except
-the first element.  The expression |xs ++ ys|\ScalaIndex{++} gives the
-concatenation of~|xs| and~|ys|.
+elements of~|xs|. 
+%%  The expression |xs.isEmpty|\ScalaIndex{isEmpty} returns a
+%% |Boolean| indicating whether |xs| is empty, and |xs.length|\ScalaIndex{length}
+%% gives the length of~|xs|.  
+The element at index~|k| (counting from~0) can be
+obtained as |xs(k)|; this traverses the list, so takes time~$O(\sm k)$.  
+%% If
+%% |xs| is not empty, then |xs.head|\ScalaIndex{head} gives its first element,
+%% and |xs.tail|\ScalaIndex{tail} gives the list containing all of~|xs| except
+%% the first element.  The expression |xs ++ ys|\ScalaIndex{++} gives the
+%% concatenation of~|xs| and~|ys|.
 %% \end{scalaBox}
 
 %%%%%
@@ -113,28 +116,22 @@ concatenation of~|xs| and~|ys|.
 %% \begin{scalaBox}{The {\scalashape Option} type}
 %% \label{sb:option-type}
 The type |Option[A]|\ScalaIndex{Option} contains values of two subtypes:
-%
-\begin{itemize}
-\item values of the form |Some(x)|\ScalaIndex{Some} where |x| has type~|A|;
-
-\item the value~|None|\ScalaIndex{None}.
-\end{itemize}
+values of the form |Some(x)|\ScalaIndex{Some} where |x| has type~|A|; and the
+value~|None|\ScalaIndex{None}.
 %
 The |Option| type is useful in cases where a function might or might not be
 able to return a proper result: it can return a result |Some(x)| to indicate
 that it succeeded, with result~|x|; or it can return |None| to indicate that
 it was unsuccessful.
-
+%
 |Some(x)| and |None| can be used as patterns in pattern matching
 %\index{pattern matching} 
-(see Section~\ref{sec:scala-misc}).  The pattern ``|Some(x)|''
-(where |x| is a variable) matches any value of the form |Some(v)|, and binds
-the variable~|x| to the value~|v|.  The pattern ``|None|'' matches just the
-value~|None|.
+(see Section~\ref{sec:scala-misc}).%%   The pattern ``|Some(x)|''
+%% (where |x| is a variable) matches any value of the form |Some(v)|, and binds
+%% the variable~|x| to the value~|v|.  The pattern ``|None|'' matches just the
+%% value~|None|.
 %% \end{scalaBox}
 
-For other API classes, you should refer to the online documentation (e.g.,~by
-searching for ``Scala API''; recall that this book uses Scala~2.13).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

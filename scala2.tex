@@ -35,12 +35,14 @@ reset using \prog{fsc -shutdown}.)
 
 %% \begin{scalaBox}{Running programs}
 %% \label{sb:run}
-Once an object has been compiled, if it has a suitable |main| function with a
-definition of the form% 
-% 
-\begin{scala}
-  def main(args: Array[String]) = ...
-\end{scala}
+Once an object has been compiled, if it has a suitable |main| function, as
+described above,
+%%  with a
+%% definition of the form% 
+%% % 
+%% \begin{scala}
+%%   def main(args: Array[String]) = ...
+%% \end{scala}
 %
 then it can be executed using \prog{scala}\index{scala@\prog{scala}}, e.g.,
 {\codecolour
@@ -50,8 +52,9 @@ then it can be executed using \prog{scala}\index{scala@\prog{scala}}, e.g.,
 }%
 \noindent
 This executes the bytecode in the \prog{.class} file on the Java Virtual
-Machine (JVM)\index{JVM}.  The array~|args| is instantiated as an array
-holding any additional arguments provided on the command line (as strings).
+Machine (JVM)\index{JVM}.  The argument of the |main| function is instantiated
+as an array holding any additional arguments provided on the command line (as
+strings).
 %% \end{scalaBox}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -63,10 +66,7 @@ To present some other core language features, we write the factorial function
 an |if| statement as follows.
 %
 \begin{scala}
-  def fact(n: Int): Int = {
-    require(n >= 0)
-    if(n == 0) 1 else n*fact(n-1)
-  }
+  def fact(n: Int): Int = { require(n >= 0); if(n == 0) 1 else n*fact(n-1) }
 \end{scala}
 
 %%%%%
@@ -74,9 +74,7 @@ an |if| statement as follows.
 %% \begin{scalaBox}{\SCALAKW{if} expressions}  
 %% \label{sb:if}
 The expression\ScalaIndex{if}\ScalaIndex{else}
-\begin{scala}
-  if (£$test$£) £$c_1$£ else £$c_2$£
-\end{scala}
+\SCALA{if (}$test$|) |$c_1$ |else| $c_2$
 tests whether $test$ is true; if it is, it executes $c_1$; otherwise it
 executes $c_2$.
 %
@@ -96,8 +94,8 @@ optional; for example
 %% \end{scala}
 %% is similar, except it does nothing if $test$ is false.
 
-If either branch of an |if| statement comprises more than a single statement,
-then it should be surrounded by curly brackets.
+If either branch of an |if| expression or statement comprises more than a
+single statement, then it should be surrounded by curly brackets.
 %% \end{scalaBox}
 
 %%%%%
@@ -119,14 +117,10 @@ The code
 \begin{scala}
   while(£$test$£) £$body$£
 \end{scala} 
-does the following
-\begin{enumerate}
-  \item evaluates $test$;
-  \item if $test = true$, executes $body$, and returns to step~1;
-  \item if $test = false$, finishes.
-\end{enumerate}
+does the following: (1)~evaluates $test$; (2)~if $test = true$, executes
+$body$, and returns to step~1; (3)~if $test = false$, finishes.
 Hence it repeatedly executes $body$ while $test$ is true. 
-
+%
 The body of the |while| loop is the \emph{single} statement following the
 test.  If the intention is that the body comprises more than a single
 statement, then those statements should be surrounded by curly brackets.
@@ -225,8 +219,9 @@ syntax\ScalaIndex{trait}\ScalaIndex{abstract class}
   trait MyTrait[£$\sm A_1, \ldots, \sm A_k$£]{ ... }
   abstract class MyClass[£$\sm A_1, \ldots, \sm A_k$£](£$\sm x_1: \sm T_1, \ldots, \sm x_n: \sm T_n$£){ ... } 
 \end{scala}
-where $\sm A_1, \ldots, \sm A_k$ are polymorphic type parameters, $\sm
-x_1, \ldots \sm x_n$ are value parameters, and $\sm T_1, \ldots, \sm T_n$ are
+where $\sm A_1, \ldots, \sm A_k$ are polymorphic type
+parameters\index{parameter!type}, $\sm x_1, \ldots \sm x_n$ are value
+parameters\index{parameter!value}, and $\sm T_1, \ldots, \sm T_n$ are
 corresponding types.
 
 %%  A trait typically defines the interface of one or
@@ -269,15 +264,12 @@ The main differences between traits and  abstract classes are:
 %% \label{sb:extends}
 An object~|O| or class~|C| can be defined to extend a trait or abstract
 class~|T| using syntax\ScalaIndex{extends}
-\begin{scala}
-  object O extends T{ ... }
-  class C extends T{ ... }
-\end{scala}
+\SCALA{object O extends T\{ ... \}} or \SCALA{class C extends T\{ ... \}}.
 It must provide an implementation for each of the abstract values or functions
 defined by that trait or abstract class.
 %% The object
 %% of class can use any (non-private) value of function of~$t$.
-
+%
 The object~|O| can be used anywhere a value of type~|T| is expected.
 Likewise, any object that is an instance of~|C| can be used anywhere a value
 of type~|T| is expected: we say that |C| is a \emph{subclass} of~|T|.
@@ -290,33 +282,20 @@ An object or class can be defined to extend multiple traits, and maybe also
 another class, using the |with|\ScalaIndex{with} keyword to mix in extra
 traits.  For example:%
 \begin{scala}
-  class C extends SC with T
+  class C1 extends C with T{ ... }
 \end{scala}
 %%%%%
 
-
-%% \begin{scalaBox}{\protect\SCALAKW{private}}
-%% \label{sb:private}
 If a field of a class, object or trait is marked with the keyword
 |private|\ScalaIndex{private}, then it can be accessed only by code
 inside the same class, object or trait, or within a companion object or class.
-%% \end{scalaBox}
-
-%%%%%
-
-%% \begin{scalaBox}{\SCALAKW{protected}}
-%% \label{sb:protected}
+%
 If a field of a class or trait is marked with the keyword
 |protected|\ScalaIndex{protected}, then it can be accessed only by code inside
 the same class or trait, or classes or traits that extend it.
-%% \end{scalaBox}
-
-\pagebreak[3]
 
 %% We use case classes (Scala box~\ref{sb:case-classes}) at various points in
 %% this book.
-
-\pagebreak[3]
 
 %% Fields of an object, class or trait may be marked as either private (Scala
 %% box~\ref{sb:private}) or protected (Scala box~\ref{sb:protected}).  Any field
@@ -346,7 +325,8 @@ consequences.
   such as ``|C(6, 7)|'' (assuming the types |X| and~|Y| are both~|Int|).
 
 \item The compiler provides a natural definition of equality: two objects of
-  type~|C| will be equal if their |x| and |y| parameters are equal.  Normally,
+  type~|C| will be equal if their |x| and |y| parameters are equal.  For most
+  non-case classes,
   two objects are considered equal if they are precisely the same object,
   i.e.,~stored at the same address in memory. 
 
@@ -355,7 +335,7 @@ consequences.
 %%   definition of equality: if two objects are equal then they have the came
 %%   hash codes. 
 
-\item Pattern matching%\index{pattern matching} 
+\item Pattern matching
   (which we describe in
   Section~\ref{sec:scala-misc}) can be used.  With the above definition, a
   pattern |C(pat|$_1$|, pat|$_2$|)| matches a value |C(x,y)| provided |x| and

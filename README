@@ -72,8 +72,9 @@ Appendices
 TODO: 
 - import, equality, hash codes, API documentation "with", Any, AnyRef -- done
 -  infix operators?  Only used with max, first in alt4.tex
-- Think about index ?separate for Scala?  
-- Use "Appendix" for references to sections. 
+- "return" clientServer3, datatypes-graph-search -- done
+- Think about index ?separate for Scala?  -- done
+- Use "Appendix" for references to sections. -- TO DO
 
 
 - Experiments -- improve

@@ -113,7 +113,7 @@ One difference from the tester for the total queue is that the |dequeue|
 operation now has a nontrivial precondition, namely that the queue is
 nonempty.  We need to arrange that the linearizability tester does not
 linearize such an operation when the precondition does not hold.  The way to
-do this is to include a |require| statement (see Section~\ref{sec:scala-core})
+do this is to include a |require| statement (see Appendix~\ref{sec:scala-core})
 in the corresponding sequential operation~|seqDequeue|.  This will throw an
 |IllegalArgumentException| when the precondition does not hold.  Internally,
 the linearizability tester catches this exception, but does not allow the
@@ -339,7 +339,7 @@ dequeues.    The expression
 \begin{scala}
   q => {val res = q.dequeue(); done = (res == None); res}
 \end{scala}
-is an anonymous function (see Section~\ref{sec:scala-misc}) that takes a
+is an anonymous function (see Appendix~\ref{sec:scala-misc}) that takes a
 terminating partial queue~|q|, and returns the result of |q.dequeue()|, but
 has the side effect of setting |done| to true if this result is |None|.  Thus
 the worker terminates when |None| is received from a |dequeue|.

@@ -183,11 +183,11 @@ each of its neighbours in the graph other than its predecessor
 
 Next, the node waits (from line~\ref{line:receiving}) to receive |Finished|
 messages from those nodes.  It accumulates the edges of the subtree in the
-list~|edges| (see Section~\ref{sec:scala-types}).  As discussed above, if it
-receives a |Start| message during this phase, it ignores it.  It uses a bitmap
-|pending| to record the indices of neighbours from which |Finished| (or
-|Start|) messages are pending.  The |serve| loop terminates when all entries
-in |pending| are false.
+list~|edges| (see Appendix~\ref{sec:scala-types}; |++| represents list
+concatenation).  As discussed above, if it receives a |Start| message during
+this phase, it ignores it.  It uses a bitmap |pending| to record the indices
+of neighbours from which |Finished| (or |Start|) messages are pending.  The
+|serve| loop terminates when all entries in |pending| are false.
 
 Finally (line~\ref{line:finished}) it sends the accumulated subtree to its
 predecessor (other than for the initiator).  The initiator,  node~|0|, stores

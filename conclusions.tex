@@ -51,7 +51,7 @@ An alternative approach is not to use locking.  However, how can we then avoid
 races of the form we discussed back in Chapter~\ref{chap:intro}?  The answer
 is that we need to make use of additional operations provided by the hardware.
 In particular, we can use an operation
-|compareAndSet|\index{\SCALA{compareAndSet}} (CAS) on a memory location.  This
+|compareAndSet|\ScalaIndex{compareAndSet} (CAS) on a memory location.  This
 can be described in code as follows, where |current| is the location in
 question, and ``|atomically|'' is intended to indicate that the operation is
 performed atomically.
@@ -205,7 +205,7 @@ computation, to be used at some time in the future.  For example:
 %
 The computation of the value, encapsulated in~|x|, is started in the first
 line.  The expression \SCALA{x()} (calling the |apply| method on~|x|; see
-Section~\ref{sec:scala-misc}) returns the result of the computation, waiting
+Appendix~\ref{sec:scala-misc}) returns the result of the computation, waiting
 until it is complete if necessary.  This provides a convenient way of forking
 off some subcomputation.  Of course, it is still necessary to avoid race
 conditions.
